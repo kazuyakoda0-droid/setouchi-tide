@@ -429,7 +429,7 @@ async function fetchTideDay(lat, lon, dayMs) {
   return result;
 }
 
-const EPOCH = Date.UTC(2026,0,1,0,0,0,0);
+const EPOCH = Date.UTC(2000,0,1,0,0,0,0);
 const NEW_MOON = Date.UTC(2000,0,6,18,14,0,0);
 const SYN = 29.530588853;
 const SHIO = {1:'大潮',2:'大潮',3:'中潮',4:'中潮',5:'中潮',6:'中潮',7:'小潮',8:'小潮',9:'小潮',10:'長潮',11:'若潮',12:'中潮',13:'中潮',14:'大潮',15:'大潮',16:'大潮',17:'大潮',18:'中潮',19:'中潮',20:'中潮',21:'中潮',22:'小潮',23:'小潮',24:'小潮',25:'長潮',26:'若潮',27:'中潮',28:'中潮',29:'大潮',30:'大潮'};
@@ -453,32 +453,39 @@ function mod24(x){x%=24; if(x<0)x+=24; return x;}
 function pad2(n){return String(n).padStart(2,'0');}
 function fmtHM(dec){ if(dec==null||isNaN(dec)) return '--:--'; let h=Math.floor(dec); let m=Math.round((dec-h)*60); if(m===60){m=0;h+=1;} return pad2(h%24)+':'+pad2(m); }
 function fmtDur(dec){ let h=Math.floor(dec); let m=Math.round((dec-h)*60); if(m===60){m=0;h+=1;} return h+'時間'+pad2(m)+'分'; }
-function height(t, st, spr){
-  const w2=360/12.420601, wn=360/12.658348, w1=360/23.934470, wo=360/25.819342;
+// 海上保安庁 公式調和定数 広島(宇品) s=0118
+// V0 at 2000-01-01 00:00 UTC, referenced to JST standard meridian (135°E):
+//   semi-diurnal: V0 = V0_greenwich + 2*135; diurnal: V0 = V0_greenwich + 1*135
+//   s0=211.728°, h0=279.974°, p0=83.297°
+// [sigma(°/h), H(cm), kappa(°), V0(°)]
+const HC_HIROSHIMA = [
+  [28.9841042,101.53,278.08, 46.492], // M2: (2h-2s)+2*135
+  [30.0000000, 42.08,307.98,270.000], // S2: 0+2*135
+  [15.0410686, 30.88,216.89,144.974], // K1: (h+90)+1*135
+  [13.9430356, 22.55,194.60,188.482], // O1: (-h+2s+270)+1*135
+  [28.4397295, 18.10,268.57,278.061], // N2: (2h-3s+p)+2*135
+  [30.0821373, 12.03,304.31,289.948], // K2: (2h+180)+2*135
+  [14.9589314,  9.35,217.49,125.026], // P1: (-h+270)+1*135
+  [29.5284789,  4.12,291.47,341.517], // L2: (2h-s+p)+2*135
+];
+function height(t, st) {
+  // t: hours from EPOCH (2000-01-01 00:00 UTC)
   const tt = t - st.dphase;
-  let h = 220 + st.dz;
-  h += (100+72*spr)*st.damp*Math.cos((w2*tt-60)*D2R);
-  h += 22*st.damp*Math.cos((wn*tt-40)*D2R);
-  h += (15+12*spr)*st.damp*Math.cos((w1*tt-200)*D2R);
-  h += 13*st.damp*Math.cos((wo*tt-180)*D2R);
+  let h = 200 + st.dz;
+  for (const [sigma,H,kappa,V0] of HC_HIROSHIMA)
+    h += H * st.damp * Math.cos((sigma * tt + V0 - kappa) * D2R);
   return h;
 }
-function findExtrema(st,t0,spr,step){
-  const a=[];
-  for(let h=-0.6; h<=24.6001; h+=step) a.push({h, v:height(t0+h,st,spr)});
-  const out=[];
-  for(let i=1;i<a.length-1;i++){
-    if(a[i].h<-0.001||a[i].h>24.001) continue;
-    if(a[i].v>a[i-1].v && a[i].v>a[i+1].v) out.push({type:'満潮',time:a[i].h,level:a[i].v});
-    else if(a[i].v<a[i-1].v && a[i].v<a[i+1].v) out.push({type:'干潮',time:a[i].h,level:a[i].v});
-  }
-  return out;
+function height10min(st, t0) {
+  const a = [];
+  for (let i = 0; i < 144; i++) a.push(Math.round(height(t0 + i/6, st)));
+  return a;
 }
 function todayJSTMs(){
   const n = new Date(); const j = new Date(n.getTime()+9*3600000);
   return Date.UTC(j.getUTCFullYear(),j.getUTCMonth(),j.getUTCDate());
 }
-function dayData(st, offset, step){
+function dayData(st, offset){
   const dayMs = todayJSTMs() + offset*86400000;
   const d = new Date(dayMs);
   const Y=d.getUTCFullYear(),Mo=d.getUTCMonth(),Da=d.getUTCDate(),wd=d.getUTCDay();
@@ -501,7 +508,7 @@ function dayData(st, offset, step){
   const moonrise = mod24(sunrise + (age/SYN)*24);
   const moonset = mod24(moonrise + 12.42);
   const moonculm = mod24((moonrise+moonset)/2 + (moonset<moonrise?12:0));
-  const ex = findExtrema(st,t0,spr,step);
+  const ex = extremesFrom10min(height10min(st, t0));
   return {Y,Mo,Da,wd,age,spr,shio,sunrise,sunset,moonrise,moonset,moonculm,ex,t0,N};
 }
 function moonPath(cx,cy,r,phase){
@@ -618,7 +625,7 @@ class Component extends DCLogic {
     const nightShading = this.props.nightShading ?? true;
     const st = STATIONS.find(s=>s.id===this.state.sel) || STATIONS[0];
     const off = this.state.offset;
-    const dd = dayData(st, off, 1/30);
+    const dd = dayData(st, off);
     // apiData のキーが現在の観測点・日付と一致するときだけ使用
     const currentKey = this._loadTile_key(st.id, off);
     const raw = this.state.apiData;
@@ -629,7 +636,7 @@ class Component extends DCLogic {
     // API データがあれば使用、なければ調和定数モデルで計算
     const lvArr = (td && td.levels && td.levels.length >= 144)
       ? td.levels.slice(0, 144)
-      : (() => { const a=[]; for(let h=0;h<24;h++) for(let mi=0;mi<6;mi++) a.push(Math.round(height(dd.t0+h+mi/6, st, dd.spr))); return a; })();
+      : height10min(st, dd.t0);
 
     // ----- 満潮/干潮 -----
     const ex = (td && td.extremes && td.extremes.length > 0) ? td.extremes : dd.ex;
@@ -637,11 +644,7 @@ class Component extends DCLogic {
     // ----- graph geometry -----
     const gx=48, gw=872, gtop=16, gh=270, gbot=gtop+gh;
     const pts=[]; let minV=1e9,maxV=-1e9;
-    if (td && td.levels && td.levels.length >= 144) {
-      for(let i=0;i<=144;i++){ const h=i/6; const v=td.levels[Math.min(i,143)]; pts.push([h,v]); if(v<minV)minV=v; if(v>maxV)maxV=v; }
-    } else {
-      for(let h=0;h<=24.0001;h+=0.04){ const v=height(dd.t0+h,st,dd.spr); pts.push([h,v]); if(v<minV)minV=v; if(v>maxV)maxV=v; }
-    }
+    for(let i=0;i<=144;i++){ const h=i/6; const v=lvArr[Math.min(i,143)]; pts.push([h,v]); if(v<minV)minV=v; if(v>maxV)maxV=v; }
     let lo=Math.floor((minV-18)/50)*50, hi=Math.ceil((maxV+18)/50)*50;
     if(hi-lo<100){hi=lo+100;}
     const X=h=>gx+h/24*gw;
@@ -729,7 +732,7 @@ class Component extends DCLogic {
 
     const weekly=[];
     for(let i=0;i<7;i++){
-      const wdd = dayData(st, off+i, 1/6);
+      const wdd = dayData(st, off+i);
       const wh = wdd.ex.filter(e=>e.type==='満潮').sort((a,b)=>a.time-b.time)[0];
       const wl = wdd.ex.filter(e=>e.type==='干潮').sort((a,b)=>a.time-b.time)[0];
       const cur = i===0;
