@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@400;500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%}
+  body{background:#f4f1ea;color:#2b2620;font-family:"Zen Kaku Gothic New",system-ui,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  ::selection{background:rgba(43,93,122,.18)}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-thumb{background:rgba(60,50,35,.2);border-radius:6px;border:2px solid #f4f1ea}
+  ::-webkit-scrollbar-track{background:transparent}
+  @keyframes fadeup{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  .leaflet-container{font-family:"Zen Kaku Gothic New",sans-serif;background:#cfe0e6}
+  .leaflet-tooltip.tdtip{background:rgba(251,250,245,.92);border:1px solid rgba(60,50,35,.18);box-shadow:0 1px 3px rgba(0,0,0,.14);color:#2b2620;font-size:11px;font-weight:600;padding:1px 7px;border-radius:3px;white-space:nowrap}
+  .leaflet-tooltip.tdtip.sel{background:#b06a3f;color:#fff;border-color:#8f5430}
+  .leaflet-tooltip.tdtip::before{display:none}
+  .leaflet-control-attribution{font-size:9px;background:rgba(251,250,245,.82)!important}
+  .leaflet-bar a{color:#2b2620}
+</style>
+</helmet>
+
+<div style="height:100vh;overflow:hidden;display:flex;flex-direction:column">
+
+  <!-- ============ HEADER ============ -->
+  <header style="flex:0 0 auto;height:62px;display:flex;align-items:center;justify-content:space-between;padding:0 26px;border-bottom:1px solid rgba(60,50,35,.16);background:#f4f1ea;z-index:500">
+    <div style="display:flex;align-items:baseline;gap:14px">
+      <div style="display:flex;align-items:center;gap:9px">
+        <svg width="20" height="20" viewBox="0 0 20 20"><path d="M1 13 Q5 8 10 13 T19 13" fill="none" stroke="#2b5d7a" stroke-width="1.6"/><path d="M1 7 Q5 2 10 7 T19 7" fill="none" stroke="#b06a3f" stroke-width="1.6" opacity=".75"/></svg>
+        <span style="font-family:'Zen Old Mincho',serif;font-weight:600;font-size:19px;letter-spacing:.04em;color:#2b2620">瀬戸内タイド</span>
+      </div>
+      <span style="font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#8a8073">Setouchi Tide Atlas</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:18px">
+      <span style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.1em;color:#8a8073">広島県 沿岸 / HIROSHIMA COAST</span>
+      <span style="width:1px;height:20px;background:rgba(60,50,35,.18)"></span>
+      <span style="font-size:12px;color:#6b6357">観測点 <b style="font-family:'DM Mono',monospace;color:#2b2620">12</b> 地点</span>
+      <button onClick="{{ openApiSetting }}" title="APIキー設定" style="margin-left:12px;width:28px;height:28px;border:1px solid rgba(60,50,35,.2);background:{{ apiKeyBtnBg }};border-radius:3px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:#6b6357">⚙</button>
+    </div>
+  </header>
+
+  <!-- ============ API KEY MODAL ============ -->
+  <sc-if value="{{ apiModalOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;background:rgba(43,38,32,.45);z-index:2000;display:flex;align-items:center;justify-content:center">
+      <div style="background:#fbfaf5;border:1px solid rgba(60,50,35,.2);border-radius:4px;padding:28px 32px;width:440px;max-width:90vw;box-shadow:0 8px 32px rgba(0,0,0,.18)">
+        <div style="font-family:'Zen Old Mincho',serif;font-size:18px;color:#2b2620;margin-bottom:6px">API キー設定</div>
+        <div style="font-size:12px;color:#8a8073;margin-bottom:16px;line-height:1.6">Stormglass.io の無料APIキーを入力してください。<br>キーはこのブラウザにのみ保存され、コードには含まれません。<br><a href="https://stormglass.io" target="_blank" style="color:#2b5d7a">stormglass.io</a> で無料登録（10回/日）</div>
+        <input ref="{{ apiInputRef }}" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style="width:100%;padding:9px 12px;border:1px solid rgba(60,50,35,.25);border-radius:3px;font-family:'DM Mono',monospace;font-size:11px;color:#2b2620;background:#f4f1ea;box-sizing:border-box;outline:none" />
+        <div style="margin-top:6px;font-family:'DM Mono',monospace;font-size:10px;color:#a99e8c">キーなしでも調和定数モデルで動作します</div>
+        <div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end">
+          <button onClick="{{ clearApiKey }}" style="padding:7px 16px;border:1px solid rgba(60,50,35,.2);background:transparent;border-radius:3px;cursor:pointer;font-size:12px;color:#b06a3f">削除</button>
+          <button onClick="{{ closeApiModal }}" style="padding:7px 16px;border:1px solid rgba(60,50,35,.2);background:transparent;border-radius:3px;cursor:pointer;font-size:12px;color:#6b6357">キャンセル</button>
+          <button onClick="{{ saveApiKey }}" style="padding:7px 18px;border:none;background:#2b5d7a;border-radius:3px;cursor:pointer;font-size:12px;color:#fff;font-weight:600">保存して再読込</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ============ MAIN ============ -->
+  <div style="flex:1 1 auto;display:flex;min-height:0">
+
+    <!-- ---------- LEFT: MAP ---------- -->
+    <section style="flex:0 0 46%;border-right:1px solid rgba(60,50,35,.16);display:flex;flex-direction:column;background:#efe9dc;min-height:0">
+      <div style="padding:18px 22px 12px;display:flex;align-items:flex-end;justify-content:space-between">
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#b06a3f;margin-bottom:5px">Observation Map</div>
+          <div style="font-family:'Zen Old Mincho',serif;font-size:18px;color:#2b2620;letter-spacing:.03em">沿岸潮位観測点</div>
+        </div>
+        <div style="text-align:right;font-size:11px;color:#8a8073;line-height:1.5">海上の地点を<br>クリックして選択</div>
+      </div>
+
+      <div style="flex:1 1 auto;padding:0 18px 14px;min-height:0;display:flex">
+        <div ref="{{ mapRef }}" style="flex:1;border:1px solid rgba(60,50,35,.18);border-radius:3px;overflow:hidden;background:#cfe0e6;position:relative;z-index:0"></div>
+      </div>
+      <div style="padding:0 22px 16px;display:flex;align-items:center;gap:18px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:7px"><span style="width:11px;height:11px;border-radius:50%;background:#b06a3f;border:2px solid #fbfaf5;box-shadow:0 0 0 1px rgba(60,50,35,.15)"></span><span style="font-size:11.5px;color:#6b6357">選択中</span></div>
+        <div style="display:flex;align-items:center;gap:7px"><span style="width:9px;height:9px;border-radius:50%;background:#2b5d7a"></span><span style="font-size:11.5px;color:#6b6357">観測点</span></div>
+        <span style="margin-left:auto;font-family:'DM Mono',monospace;font-size:10px;color:#a99e8c">© OpenStreetMap · CARTO</span>
+      </div>
+    </section>
+
+    <!-- ---------- RIGHT: DATA ---------- -->
+    <section style="flex:1 1 auto;overflow-y:auto;min-height:0;padding:22px 26px 60px;background:#f4f1ea">
+      <div style="max-width:760px;margin:0 auto;animation:fadeup .35s ease">
+
+        <!-- station header -->
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding-bottom:18px;border-bottom:1px solid rgba(60,50,35,.16)">
+          <div style="min-width:0">
+            <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#b06a3f;margin-bottom:6px">Tide Station</div>
+            <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+              <h1 style="margin:0;font-family:'Zen Old Mincho',serif;font-weight:600;font-size:34px;letter-spacing:.02em;color:#2b2620;line-height:1">{{ selName }}</h1>
+              <span style="font-size:13px;color:#8a8073">{{ selKana }}</span>
+            </div>
+            <div style="margin-top:9px;font-family:'DM Mono',monospace;font-size:12px;color:#6b6357;letter-spacing:.04em">{{ latStr }}　{{ lonStr }}</div>
+          </div>
+          <!-- date nav -->
+          <div style="flex:0 0 auto;text-align:right">
+            <div style="display:flex;align-items:center;gap:4px;justify-content:flex-end">
+              <button onClick="{{ prevDay }}" style="width:30px;height:30px;border:1px solid rgba(60,50,35,.2);background:#fbfaf5;border-radius:3px;cursor:pointer;color:#2b2620;font-size:14px;display:flex;align-items:center;justify-content:center" style-hover="background:#efe9dc">‹</button>
+              <div style="min-width:180px;text-align:center">
+                <div style="font-family:'Zen Old Mincho',serif;font-size:21px;color:#2b2620;letter-spacing:.02em">{{ dateStr }} <span style="font-size:15px;color:{{ weekdayColor }}">（{{ weekdayStr }}）</span></div>
+              </div>
+              <button onClick="{{ nextDay }}" style="width:30px;height:30px;border:1px solid rgba(60,50,35,.2);background:#fbfaf5;border-radius:3px;cursor:pointer;color:#2b2620;font-size:14px;display:flex;align-items:center;justify-content:center" style-hover="background:#efe9dc">›</button>
+            </div>
+            <div style="margin-top:8px;display:flex;align-items:center;gap:8px;justify-content:flex-end">
+              <button onClick="{{ goToday }}" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;padding:4px 10px;border:1px solid rgba(60,50,35,.2);background:transparent;border-radius:3px;cursor:pointer;color:#6b6357" style-hover="background:#efe9dc">TODAY</button>
+              <span style="display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:3px;background:{{ shioBg }};border:1px solid {{ shioBorder }}">
+                <span style="font-family:'Zen Old Mincho',serif;font-size:15px;font-weight:600;color:{{ shioColor }};letter-spacing:.06em">{{ shioName }}</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== tide graph ===== -->
+        <div style="margin-top:22px;background:#fbfaf5;border:1px solid rgba(60,50,35,.14);border-radius:3px;padding:18px 16px 12px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;padding:0 6px 10px">
+            <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#8a8073">Tide Graph — 24h</div>
+            <div style="display:flex;gap:16px;font-size:11px;color:#6b6357">
+              <span>最高 <b style="font-family:'DM Mono',monospace;color:#2b5d7a">{{ maxText }}</b></span>
+              <span>最低 <b style="font-family:'DM Mono',monospace;color:#b06a3f">{{ minText }}</b></span>
+              <span>干満差 <b style="font-family:'DM Mono',monospace;color:#2b2620">{{ rangeText }}</b></span>
+            </div>
+          </div>
+          <svg viewBox="0 0 936 318" style="width:100%;height:auto;display:block">
+            <sc-for list="{{ nightRects }}" as="n" hint-placeholder-count="2">
+              <rect x="{{ n.x }}" y="16" width="{{ n.w }}" height="270" fill="rgba(43,38,32,.055)"/>
+            </sc-for>
+            <sc-for list="{{ gridLines }}" as="g" hint-placeholder-count="6">
+              <line x1="48" y1="{{ g.y }}" x2="920" y2="{{ g.y }}" stroke="rgba(60,50,35,.1)" stroke-width="1" stroke-dasharray="{{ g.dash }}"/>
+              <text x="42" y="{{ g.ty }}" text-anchor="end" font-family="DM Mono, monospace" font-size="10" fill="#a99e8c">{{ g.label }}</text>
+            </sc-for>
+            <sc-for list="{{ hourTicks }}" as="h" hint-placeholder-count="9">
+              <line x1="{{ h.x }}" y1="286" x2="{{ h.x }}" y2="{{ h.y2 }}" stroke="rgba(60,50,35,.18)" stroke-width="1"/>
+              <text x="{{ h.x }}" y="304" text-anchor="middle" font-family="DM Mono, monospace" font-size="10" fill="#8a8073">{{ h.label }}</text>
+            </sc-for>
+            <sc-if value="{{ graphFill }}" hint-placeholder-val="{{ true }}">
+              <path d="{{ areaPath }}" fill="{{ accentFill }}"/>
+            </sc-if>
+            <path d="{{ linePath }}" fill="none" stroke="{{ accent }}" stroke-width="2.2" stroke-linejoin="round"/>
+            <sc-if value="{{ hasNow }}" hint-placeholder-val="{{ false }}">
+              <line x1="{{ nowX }}" y1="16" x2="{{ nowX }}" y2="286" stroke="#b06a3f" stroke-width="1.4" stroke-dasharray="4 3"/>
+              <circle cx="{{ nowX }}" cy="{{ nowDotY }}" r="4" fill="#b06a3f" stroke="#fbfaf5" stroke-width="1.6"/>
+              <text x="{{ nowLabelX }}" y="28" text-anchor="{{ nowAnchor }}" font-family="DM Mono, monospace" font-size="10" font-weight="500" fill="#b06a3f">{{ nowText }}</text>
+            </sc-if>
+            <sc-for list="{{ markers }}" as="m" hint-placeholder-count="4">
+              <circle cx="{{ m.x }}" cy="{{ m.y }}" r="4.5" fill="{{ m.fill }}" stroke="{{ accent }}" stroke-width="2"/>
+              <text x="{{ m.x }}" y="{{ m.tY }}" text-anchor="middle" font-family="Zen Kaku Gothic New, sans-serif" font-size="11" font-weight="700" fill="{{ m.typeColor }}">{{ m.type }}</text>
+              <text x="{{ m.x }}" y="{{ m.lY }}" text-anchor="middle" font-family="DM Mono, monospace" font-size="10.5" fill="#4a4034">{{ m.timeStr }}</text>
+              <text x="{{ m.x }}" y="{{ m.lY2 }}" text-anchor="middle" font-family="DM Mono, monospace" font-size="10.5" fill="#8a8073">{{ m.levelStr }}</text>
+            </sc-for>
+          </svg>
+          <div style="display:flex;align-items:center;gap:18px;padding:8px 6px 2px;flex-wrap:wrap">
+            <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:#6b6357"><span style="width:18px;height:2px;background:{{ accent }}"></span>潮位</span>
+            <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:#6b6357"><span style="width:12px;height:10px;background:rgba(43,38,32,.08)"></span>夜間</span>
+            <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:#6b6357"><span style="width:0;height:12px;border-left:1.4px dashed #b06a3f"></span>現在時刻</span>
+          </div>
+        </div>
+
+        <!-- ===== tide table ===== -->
+        <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div style="background:#fbfaf5;border:1px solid rgba(60,50,35,.14);border-radius:3px;padding:14px 16px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="width:9px;height:9px;border-radius:50%;background:{{ accent }}"></span><span style="font-family:'Zen Old Mincho',serif;font-size:14px;color:#2b2620">満潮</span></div>
+            <sc-for list="{{ highTides }}" as="t" hint-placeholder-count="2">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;padding:7px 0;border-top:1px solid rgba(60,50,35,.08)">
+                <span style="font-family:'DM Mono',monospace;font-size:19px;color:#2b2620;letter-spacing:.02em">{{ t.timeStr }}</span>
+                <span style="font-family:'DM Mono',monospace;font-size:14px;color:#6b6357">{{ t.levelStr }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="background:#fbfaf5;border:1px solid rgba(60,50,35,.14);border-radius:3px;padding:14px 16px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="width:9px;height:9px;border-radius:50%;background:#fbfaf5;border:2px solid #b06a3f"></span><span style="font-family:'Zen Old Mincho',serif;font-size:14px;color:#2b2620">干潮</span></div>
+            <sc-for list="{{ lowTides }}" as="t" hint-placeholder-count="2">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;padding:7px 0;border-top:1px solid rgba(60,50,35,.08)">
+                <span style="font-family:'DM Mono',monospace;font-size:19px;color:#2b2620;letter-spacing:.02em">{{ t.timeStr }}</span>
+                <span style="font-family:'DM Mono',monospace;font-size:14px;color:#6b6357">{{ t.levelStr }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- ===== 10-min detail grid ===== -->
+        <div style="margin-top:14px;background:#fbfaf5;border:1px solid rgba(60,50,35,.14);border-radius:3px;padding:14px 16px 16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+            <div style="display:flex;align-items:baseline;gap:10px">
+              <span style="font-family:'Zen Old Mincho',serif;font-size:14px;color:#2b2620">10分毎潮位</span>
+              <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#8a8073">Tide Heights · 10-min · cm</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-family:'DM Mono',monospace;font-size:10px;color:#8a8073">{{ gridLo }}</span>
+              <span style="width:84px;height:8px;border-radius:2px;background:{{ gridGradient }};border:1px solid rgba(60,50,35,.12)"></span>
+              <span style="font-family:'DM Mono',monospace;font-size:10px;color:#8a8073">{{ gridHi }}</span>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:46px repeat(6,1fr);gap:1px;background:rgba(60,50,35,.1);border:1px solid rgba(60,50,35,.1);border-radius:2px;overflow:hidden">
+            <sc-for list="{{ gridCells }}" as="c" hint-placeholder-count="175">
+              <div style="background:{{ c.bg }};color:{{ c.color }};font-weight:{{ c.weight }};box-shadow:{{ c.shadow }};font-family:'DM Mono',monospace;font-size:11.5px;text-align:center;padding:5px 0;position:relative;z-index:{{ c.z }}">{{ c.txt }}</div>
+            </sc-for>
+          </div>
+          <div style="margin-top:9px;font-family:'DM Mono',monospace;font-size:10px;color:#a99e8c">行=時 / 列=分。セル濃淡は潮位の高低。<span style="color:#b06a3f">枠</span>=現在時刻。</div>
+        </div>
+
+        <!-- ===== celestial ===== -->
+        <div style="margin-top:24px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#b06a3f;margin-bottom:10px">日月・潮汐 / Sun · Moon</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+          <div style="background:#fbfaf5;border:1px solid rgba(60,50,35,.14);border-radius:3px;padding:15px 16px">
+            <div style="font-size:11px;color:#8a8073;margin-bottom:12px">太陽</div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px"><span style="font-size:12px;color:#6b6357">日の出</span><span style="font-family:'DM Mono',monospace;font-size:17px;color:#2b2620">{{ sunrise }}</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px"><span style="font-size:12px;color:#6b6357">日の入</span><span style="font-family:'DM Mono',monospace;font-size:17px;color:#2b2620">{{ sunset }}</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:8px;border-top:1px solid rgba(60,50,35,.08)"><span style="font-size:11px;color:#8a8073">昼の長さ</span><span style="font-family:'DM Mono',monospace;font-size:12px;color:#6b6357">{{ dayLen }}</span></div>
+          </div>
+          <div style="background:#fbfaf5;border:1px solid rgba(60,50,35,.14);border-radius:3px;padding:15px 16px">
+            <div style="font-size:11px;color:#8a8073;margin-bottom:12px">月</div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px"><span style="font-size:12px;color:#6b6357">月の出</span><span style="font-family:'DM Mono',monospace;font-size:17px;color:#2b2620">{{ moonrise }}</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px"><span style="font-size:12px;color:#6b6357">月の入</span><span style="font-family:'DM Mono',monospace;font-size:17px;color:#2b2620">{{ moonset }}</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:8px;border-top:1px solid rgba(60,50,35,.08)"><span style="font-size:11px;color:#8a8073">正中</span><span style="font-family:'DM Mono',monospace;font-size:12px;color:#6b6357">{{ moonculm }}</span></div>
+          </div>
+          <div style="background:#fbfaf5;border:1px solid rgba(60,50,35,.14);border-radius:3px;padding:15px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+            <svg width="56" height="56" viewBox="0 0 56 56" style="margin-bottom:8px">
+              <circle cx="28" cy="28" r="20" fill="#cdd3da" stroke="rgba(60,50,35,.2)" stroke-width="1"/>
+              <path d="{{ moonPath }}" fill="#f4ecd6"/>
+              <circle cx="28" cy="28" r="20" fill="none" stroke="rgba(60,50,35,.22)" stroke-width="1"/>
+            </svg>
+            <div style="font-family:'Zen Old Mincho',serif;font-size:14px;color:#2b2620">{{ phaseName }}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:11px;color:#8a8073;margin-top:3px">月齢 {{ ageStr }}　輝面 {{ illumStr }}</div>
+          </div>
+        </div>
+
+        <!-- ===== weather / sea ===== -->
+        <div style="margin-top:24px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#b06a3f;margin-bottom:10px">気象・海象 / Weather · Sea</div>
+        <div style="background:#fbfaf5;border:1px solid rgba(60,50,35,.14);border-radius:3px;padding:16px 18px;display:flex;align-items:center;gap:22px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:14px;min-width:170px">
+            <svg width="44" height="44" viewBox="0 0 44 44">
+              <sc-if value="{{ isSunny }}" hint-placeholder-val="{{ true }}"><circle cx="22" cy="22" r="11" fill="#e6a740"/><g stroke="#e6a740" stroke-width="2" stroke-linecap="round"><line x1="22" y1="3" x2="22" y2="9"/><line x1="22" y1="35" x2="22" y2="41"/><line x1="3" y1="22" x2="9" y2="22"/><line x1="35" y1="22" x2="41" y2="22"/><line x1="9" y1="9" x2="13" y2="13"/><line x1="31" y1="31" x2="35" y2="35"/><line x1="35" y1="9" x2="31" y2="13"/><line x1="13" y1="31" x2="9" y2="35"/></g></sc-if>
+              <sc-if value="{{ isCloudy }}" hint-placeholder-val="{{ false }}"><ellipse cx="18" cy="26" rx="13" ry="9" fill="#aab4bc"/><ellipse cx="29" cy="23" rx="10" ry="8" fill="#bcc6cd"/><circle cx="22" cy="18" r="8" fill="#e6a740" opacity="0.5"/></sc-if>
+              <sc-if value="{{ isRainy }}" hint-placeholder-val="{{ false }}"><ellipse cx="20" cy="20" rx="14" ry="9" fill="#8d99a1"/><ellipse cx="29" cy="17" rx="9" ry="7" fill="#a6b0b7"/><g stroke="#5f8aa0" stroke-width="2" stroke-linecap="round"><line x1="14" y1="32" x2="11" y2="39"/><line x1="22" y1="32" x2="19" y2="39"/><line x1="30" y1="32" x2="27" y2="39"/></g></sc-if>
+            </svg>
+            <div>
+              <div style="font-family:'Zen Old Mincho',serif;font-size:18px;color:#2b2620">{{ weatherText }}</div>
+              <div style="font-family:'DM Mono',monospace;font-size:11px;color:#8a8073;margin-top:2px">気圧 {{ pressureText }}</div>
+            </div>
+          </div>
+          <span style="width:1px;height:42px;background:rgba(60,50,35,.12)"></span>
+          <div style="display:flex;gap:26px;flex-wrap:wrap;flex:1">
+            <div><div style="font-size:11px;color:#8a8073;margin-bottom:5px">気温</div><div style="font-family:'DM Mono',monospace;font-size:16px;color:#2b2620"><b style="color:#b06a3f">{{ airHi }}</b> / <span style="color:#2b5d7a">{{ airLo }}</span> ℃</div></div>
+            <div><div style="font-size:11px;color:#8a8073;margin-bottom:5px">風</div><div style="font-family:'DM Mono',monospace;font-size:16px;color:#2b2620">{{ windText }}</div></div>
+            <div><div style="font-size:11px;color:#8a8073;margin-bottom:5px">波高</div><div style="font-family:'DM Mono',monospace;font-size:16px;color:#2b2620">{{ waveText }}</div></div>
+            <div><div style="font-size:11px;color:#8a8073;margin-bottom:5px">水温</div><div style="font-family:'DM Mono',monospace;font-size:16px;color:#2b2620">{{ waterText }}</div></div>
+          </div>
+        </div>
+
+        <!-- ===== weekly ===== -->
+        <div style="margin-top:24px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#b06a3f;margin-bottom:10px">週間潮汐 / 7-Day Forecast</div>
+        <div style="background:#fbfaf5;border:1px solid rgba(60,50,35,.14);border-radius:3px;overflow:hidden">
+          <div style="display:grid;grid-template-columns:96px 70px 1fr 1fr 64px;gap:0;padding:9px 16px;background:#efe9dc;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;color:#8a8073;text-transform:uppercase">
+            <span>日付</span><span>潮名</span><span>満潮</span><span>干潮</span><span style="text-align:right">月齢</span>
+          </div>
+          <sc-for list="{{ weekly }}" as="w" hint-placeholder-count="7">
+            <div onClick="{{ w.onClick }}" style="display:grid;grid-template-columns:96px 70px 1fr 1fr 64px;gap:0;padding:11px 16px;border-top:1px solid rgba(60,50,35,.08);cursor:pointer;align-items:center;background:{{ w.rowBg }}" style-hover="background:#efe9dc">
+              <span style="display:flex;align-items:baseline;gap:7px"><span style="font-family:'DM Mono',monospace;font-size:14px;color:#2b2620;font-weight:{{ w.dateWeight }}">{{ w.dateStr }}</span><span style="font-size:12px;color:{{ w.wdColor }}">{{ w.wd }}</span></span>
+              <span style="font-family:'Zen Old Mincho',serif;font-size:14px;color:{{ w.shioColor }}">{{ w.shio }}</span>
+              <span style="font-family:'DM Mono',monospace;font-size:12.5px;color:#4a4034">{{ w.hiStr }}</span>
+              <span style="font-family:'DM Mono',monospace;font-size:12.5px;color:#4a4034">{{ w.loStr }}</span>
+              <span style="text-align:right;font-family:'DM Mono',monospace;font-size:12.5px;color:#8a8073">{{ w.age }}</span>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="margin-top:22px;font-family:'DM Mono',monospace;font-size:10px;color:#a99e8c;line-height:1.7">
+          {{ dataSourceNote }}
+        </div>
+
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:920},&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#2b5d7a&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;配色&quot;},&quot;graphFill&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;タイドグラフ&quot;},&quot;nightShading&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;タイドグラフ&quot;}}">
+// =====================================================================
+// 潮汐 API 設定
+// Stormglass.io の無料APIキーを入力: https://stormglass.io (10回/日)
+// 空のままにすると調和定数モデル（推算値）を使用します
+// =====================================================================
+// APIキーはlocalStorageから読み込む（コードに埋め込まない）
+const TIDE_API_KEY = localStorage.getItem('stormglass_api_key') || '';
+
+// =====================================================================
+// 三次スプライン補間
+// 1時間ごとの観測/推算値 → 10分ごとのデータを滑らかに生成
+// =====================================================================
+function naturalCubicSpline(xs, ys) {
+  const n = xs.length;
+  if (n < 2) return x => ys[0];
+  // 区間幅
+  const h = xs.slice(1).map((x, i) => x - xs[i]);
+  // 係数行列をトーマス法で解く
+  const alpha = new Array(n).fill(0);
+  for (let i = 1; i < n - 1; i++)
+    alpha[i] = (3/h[i])*(ys[i+1]-ys[i]) - (3/h[i-1])*(ys[i]-ys[i-1]);
+  const l = new Array(n).fill(1), mu = new Array(n).fill(0), z = new Array(n).fill(0);
+  for (let i = 1; i < n - 1; i++) {
+    l[i] = 2*(xs[i+1]-xs[i-1]) - h[i-1]*mu[i-1];
+    mu[i] = h[i] / l[i];
+    z[i] = (alpha[i] - h[i-1]*z[i-1]) / l[i];
+  }
+  const c = new Array(n).fill(0), b = new Array(n-1).fill(0), d = new Array(n-1).fill(0);
+  for (let j = n - 2; j >= 0; j--) {
+    c[j] = z[j] - mu[j]*c[j+1];
+    b[j] = (ys[j+1]-ys[j])/h[j] - h[j]*(c[j+1]+2*c[j])/3;
+    d[j] = (c[j+1]-c[j]) / (3*h[j]);
+  }
+  return function(x) {
+    // 対象区間をバイナリサーチ
+    let lo = 0, hi = n - 2;
+    while (lo < hi) { const m = (lo+hi+1)>>1; if (xs[m] <= x) lo=m; else hi=m-1; }
+    const i = Math.max(0, Math.min(lo, n-2));
+    const dx = x - xs[i];
+    return ys[i] + b[i]*dx + c[i]*dx*dx + d[i]*dx*dx*dx;
+  };
+}
+
+// 1時間データ(cm) → 10分データ 144点に拡張
+function hourlyTo10min(hourlyCm) {
+  const xs = hourlyCm.map((_, i) => i);          // 0,1,2,...,24
+  const spline = naturalCubicSpline(xs, hourlyCm);
+  const out = [];
+  for (let i = 0; i < 144; i++) out.push(Math.round(spline(i / 6)));
+  return out;
+}
+
+// 極値を 10分データ配列から検出（平坦部分も正しく扱う）
+function extremesFrom10min(levels10min) {
+  const ex = [];
+  const n = levels10min.length;
+  let i = 1;
+  while (i < n - 1) {
+    const prev = levels10min[i-1], cur = levels10min[i];
+    if (cur > prev) {
+      // 上昇中 → 平坦部の終端を探す
+      let j = i;
+      while (j < n - 1 && levels10min[j+1] === cur) j++;
+      if (levels10min[j+1] < cur) {
+        // 平坦部の中点を満潮とする
+        const peak = Math.floor((i + j) / 2);
+        ex.push({ type:'満潮', time: peak/6, level: cur });
+      }
+      i = j + 1;
+    } else if (cur < prev) {
+      // 下降中 → 平坦部の終端を探す
+      let j = i;
+      while (j < n - 1 && levels10min[j+1] === cur) j++;
+      if (levels10min[j+1] > cur) {
+        const trough = Math.floor((i + j) / 2);
+        ex.push({ type:'干潮', time: trough/6, level: cur });
+      }
+      i = j + 1;
+    } else {
+      i++;
+    }
+  }
+  return ex;
+}
+
+// API データキャッシュ (同一ページセッション内)
+const _tideCache = {};
+
+async function fetchTideDay(lat, lon, dayMs) {
+  const ckey = lat.toFixed(4) + '_' + lon.toFixed(4) + '_' + dayMs;
+  if (_tideCache[ckey]) return _tideCache[ckey];
+  if (!TIDE_API_KEY) return null;
+
+  // JST 0:00 〜 翌 JST 1:00 (スプライン端点確保のため+1h)
+  const jstMidUTC = dayMs - 9 * 3600000;
+  const startISO = new Date(jstMidUTC - 3600000).toISOString();   // 前日23:00 UTC
+  const endISO   = new Date(jstMidUTC + 25 * 3600000).toISOString(); // 翌01:00 UTC
+
+  // Stormglass sea-level API (1時間毎)
+  const url = 'https://api.stormglass.io/v2/tide/sea-level/point' +
+    '?lat=' + lat + '&lng=' + lon +
+    '&start=' + encodeURIComponent(startISO) +
+    '&end='   + encodeURIComponent(endISO);
+  const resp = await fetch(url, { headers: { Authorization: TIDE_API_KEY } });
+  if (!resp.ok) throw new Error('Stormglass API HTTP ' + resp.status);
+  const json = await resp.json();
+  if (!json.data || !json.data.length) throw new Error('Stormglass: データなし');
+
+  // JST 0〜24h の正時ごとの潮位 (cm) を取得
+  const hourlyCm = [];
+  for (let h = 0; h <= 24; h++) {
+    const targetUTC = jstMidUTC + h * 3600000;
+    // 最も近い時刻のデータを使用
+    let best = null, bestDiff = Infinity;
+    json.data.forEach(pt => {
+      const diff = Math.abs(new Date(pt.time).getTime() - targetUTC);
+      if (diff < bestDiff) { bestDiff = diff; best = pt; }
+    });
+    const val = best ? (best.sg ?? best.noaa ?? Object.values(best)[0]) : null;
+    hourlyCm.push(val != null ? Math.round(val * 100) : null);
+  }
+
+  // null を線形補間で埋める
+  for (let i = 0; i < hourlyCm.length; i++) {
+    if (hourlyCm[i] == null) {
+      let p = i-1; while (p>=0 && hourlyCm[p]==null) p--;
+      let n = i+1; while (n<hourlyCm.length && hourlyCm[n]==null) n++;
+      hourlyCm[i] = (p>=0 && n<hourlyCm.length)
+        ? Math.round(hourlyCm[p] + (hourlyCm[n]-hourlyCm[p])*(i-p)/(n-p))
+        : (p>=0 ? hourlyCm[p] : hourlyCm[n] ?? 200);
+    }
+  }
+
+  // スプライン補間で 10分毎データ生成
+  const levels = hourlyTo10min(hourlyCm);
+  const extremes = extremesFrom10min(levels);
+  const result = { levels, extremes, source: 'stormglass' };
+  _tideCache[ckey] = result;
+  return result;
+}
+
+const EPOCH = Date.UTC(2026,0,1,0,0,0,0);
+const NEW_MOON = Date.UTC(2000,0,6,18,14,0,0);
+const SYN = 29.530588853;
+const SHIO = {1:'大潮',2:'大潮',3:'中潮',4:'中潮',5:'中潮',6:'中潮',7:'小潮',8:'小潮',9:'小潮',10:'長潮',11:'若潮',12:'中潮',13:'中潮',14:'大潮',15:'大潮',16:'大潮',17:'大潮',18:'中潮',19:'中潮',20:'中潮',21:'中潮',22:'小潮',23:'小潮',24:'小潮',25:'長潮',26:'若潮',27:'中潮',28:'中潮',29:'大潮',30:'大潮'};
+const WD = ['日','月','火','水','木','金','土'];
+const STATIONS = [
+ {id:'hiroshima',name:'広島(宇品)',kana:'ひろしま',lat:34.348,lon:132.459,damp:1.00,dz:0,dphase:0.00},
+ {id:'hatsukaichi',name:'廿日市',kana:'はつかいち',lat:34.349,lon:132.331,damp:1.03,dz:8,dphase:-0.05},
+ {id:'miyajima',name:'宮島(厳島)',kana:'みやじま',lat:34.296,lon:132.319,damp:0.98,dz:5,dphase:-0.10},
+ {id:'ninoshima',name:'似島',kana:'にのしま',lat:34.296,lon:132.452,damp:1.00,dz:2,dphase:0.00},
+ {id:'etajima',name:'江田島',kana:'えたじま',lat:34.222,lon:132.434,damp:1.00,dz:0,dphase:0.05},
+ {id:'otake',name:'大竹',kana:'おおたけ',lat:34.238,lon:132.222,damp:1.05,dz:10,dphase:-0.15},
+ {id:'kure',name:'呉',kana:'くれ',lat:34.232,lon:132.566,damp:1.02,dz:-5,dphase:0.10},
+ {id:'ondo',name:'音戸',kana:'おんど',lat:34.190,lon:132.523,damp:1.08,dz:-3,dphase:0.15},
+ {id:'takehara',name:'竹原',kana:'たけはら',lat:34.341,lon:132.913,damp:1.05,dz:-4,dphase:0.30},
+ {id:'mihara',name:'三原',kana:'みはら',lat:34.401,lon:133.078,damp:1.10,dz:-6,dphase:0.40},
+ {id:'onomichi',name:'尾道',kana:'おのみち',lat:34.408,lon:133.205,damp:1.12,dz:-8,dphase:0.45},
+ {id:'fukuyama',name:'福山(鞆)',kana:'とものうら',lat:34.383,lon:133.382,damp:1.15,dz:-10,dphase:0.50},
+];
+const D2R = Math.PI/180;
+function mod24(x){x%=24; if(x<0)x+=24; return x;}
+function pad2(n){return String(n).padStart(2,'0');}
+function fmtHM(dec){ if(dec==null||isNaN(dec)) return '--:--'; let h=Math.floor(dec); let m=Math.round((dec-h)*60); if(m===60){m=0;h+=1;} return pad2(h%24)+':'+pad2(m); }
+function fmtDur(dec){ let h=Math.floor(dec); let m=Math.round((dec-h)*60); if(m===60){m=0;h+=1;} return h+'時間'+pad2(m)+'分'; }
+function height(t, st, spr){
+  const w2=360/12.420601, wn=360/12.658348, w1=360/23.934470, wo=360/25.819342;
+  const tt = t - st.dphase;
+  let h = 220 + st.dz;
+  h += (100+72*spr)*st.damp*Math.cos((w2*tt-60)*D2R);
+  h += 22*st.damp*Math.cos((wn*tt-40)*D2R);
+  h += (15+12*spr)*st.damp*Math.cos((w1*tt-200)*D2R);
+  h += 13*st.damp*Math.cos((wo*tt-180)*D2R);
+  return h;
+}
+function findExtrema(st,t0,spr,step){
+  const a=[];
+  for(let h=-0.6; h<=24.6001; h+=step) a.push({h, v:height(t0+h,st,spr)});
+  const out=[];
+  for(let i=1;i<a.length-1;i++){
+    if(a[i].h<-0.001||a[i].h>24.001) continue;
+    if(a[i].v>a[i-1].v && a[i].v>a[i+1].v) out.push({type:'満潮',time:a[i].h,level:a[i].v});
+    else if(a[i].v<a[i-1].v && a[i].v<a[i+1].v) out.push({type:'干潮',time:a[i].h,level:a[i].v});
+  }
+  return out;
+}
+function todayJSTMs(){
+  const n = new Date(); const j = new Date(n.getTime()+9*3600000);
+  return Date.UTC(j.getUTCFullYear(),j.getUTCMonth(),j.getUTCDate());
+}
+function dayData(st, offset, step){
+  const dayMs = todayJSTMs() + offset*86400000;
+  const d = new Date(dayMs);
+  const Y=d.getUTCFullYear(),Mo=d.getUTCMonth(),Da=d.getUTCDate(),wd=d.getUTCDay();
+  const jstMidUTC = dayMs - 9*3600000;
+  const t0 = (jstMidUTC - EPOCH)/3600000;
+  const noonUTC = jstMidUTC + 12*3600000;
+  let age = ((noonUTC - NEW_MOON)/86400000) % SYN; if(age<0) age+=SYN;
+  const spr = Math.abs(Math.cos(2*Math.PI*age/SYN));
+  const lunarDay = Math.min(30,Math.max(1,Math.floor(age)+1));
+  const shio = SHIO[lunarDay];
+  const N = Math.round((Date.UTC(Y,Mo,Da)-Date.UTC(Y,0,0))/86400000);
+  const decl = 23.44*D2R*Math.sin(2*Math.PI*(N-81)/365);
+  const latR = st.lat*D2R;
+  let cosH = -Math.tan(latR)*Math.tan(decl); cosH=Math.max(-1,Math.min(1,cosH));
+  const H = Math.acos(cosH)*180/Math.PI;
+  const B = 2*Math.PI*(N-81)/364;
+  const EoT = 9.87*Math.sin(2*B)-7.53*Math.cos(B)-1.5*Math.sin(B);
+  const noon = 12 - (st.lon-135)/15 - EoT/60;
+  const sunrise = noon - H/15, sunset = noon + H/15;
+  const moonrise = mod24(sunrise + (age/SYN)*24);
+  const moonset = mod24(moonrise + 12.42);
+  const moonculm = mod24((moonrise+moonset)/2 + (moonset<moonrise?12:0));
+  const ex = findExtrema(st,t0,spr,step);
+  return {Y,Mo,Da,wd,age,spr,shio,sunrise,sunset,moonrise,moonset,moonculm,ex,t0,N};
+}
+function moonPath(cx,cy,r,phase){
+  const m=Math.cos(2*Math.PI*phase); const f=(1-m)/2;
+  const waxing = phase<0.5;
+  const sweepLimb = waxing?1:0;
+  const rx=Math.abs(m)*r;
+  const termSweep = (f<0.5)? sweepLimb : (1-sweepLimb);
+  return 'M '+cx+' '+(cy-r)+' A '+r+' '+r+' 0 0 '+sweepLimb+' '+cx+' '+(cy+r)+' A '+rx.toFixed(2)+' '+r+' 0 0 '+termSweep+' '+cx+' '+(cy-r)+' Z';
+}
+function phaseName(age){
+  if(age<1.85) return '新月';
+  if(age<5.5) return '三日月';
+  if(age<9.2) return '上弦の月';
+  if(age<12.9) return '十三夜月';
+  if(age<16.6) return '満月';
+  if(age<20.3) return '居待月';
+  if(age<24.0) return '下弦の月';
+  if(age<27.7) return '有明月';
+  return '新月前';
+}
+function dms(v,pos,neg){ const dir=v>=0?pos:neg; v=Math.abs(v); const dd=Math.floor(v); const mm=Math.round((v-dd)*60); return dd+'°'+pad2(mm)+'′'+dir; }
+function rnd(seed){ const x=Math.sin(seed*127.1+311.7)*43758.5453; return x-Math.floor(x); }
+
+class Component extends DCLogic {
+  state = { sel:'hiroshima', offset:0, apiData: null, apiModalOpen: false };
+  pick(id){ return () => this.setState({sel:id}); }
+  setOffset(o){ return () => this.setState({offset:o}); }
+
+  openApiSetting = () => this.setState({ apiModalOpen: true });
+  closeApiModal  = () => this.setState({ apiModalOpen: false });
+  saveApiKey = () => {
+    const el = this._apiInput;
+    if (!el) return;
+    const key = el.value.trim();
+    if (key) localStorage.setItem('stormglass_api_key', key);
+    location.reload();
+  };
+  clearApiKey = () => { localStorage.removeItem('stormglass_api_key'); location.reload(); };
+  apiInputRefCb = (el) => { this._apiInput = el; if (el) el.value = localStorage.getItem('stormglass_api_key') || ''; };
+
+  componentDidMount(){ this._syncMarkers(); this._loadTide(); }
+
+  _loadTile_key(sel, offset){
+    const dayMs = todayJSTMs() + offset * 86400000;
+    return sel + '_' + Math.floor(dayMs / 86400000);
+  }
+  _loadTide(){
+    if (!TIDE_API_KEY) return;
+    const { sel, offset } = this.state;
+    const k = this._loadTile_key(sel, offset);
+    if (this._tideLoadKey === k) return;
+    this._tideLoadKey = k;
+    const st = STATIONS.find(s => s.id === sel) || STATIONS[0];
+    const dayMs = todayJSTMs() + offset * 86400000;
+    fetchTideDay(st.lat, st.lon, dayMs)
+      .then(data => { if (this._tideLoadKey === k) this.setState({ apiData: data }); })
+      .catch(err => { console.error('[TideAPI]', err); if (this._tideLoadKey === k) this.setState({ apiData: null }); });
+  }
+
+  mapRefCb = (el) => { if(el){ this._mapEl = el; this._initMap(); } };
+  _mkStyle(sel){ const accent=this.props.accent??'#2b5d7a'; return {radius:sel?9:6, color:'#fbfaf5', weight:sel?3:2, fillColor:sel?'#b06a3f':accent, fillOpacity:1}; }
+  _initMap(){
+    if(!this._mapEl) return;
+    if(!window.L){ this._lt = setTimeout(()=>this._initMap(), 120); return; }
+    if(this._map) return;
+    const L = window.L;
+    const map = L.map(this._mapEl, {zoomControl:true, attributionControl:true, scrollWheelZoom:true});
+    this._map = map;
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+      {attribution:'© OpenStreetMap © CARTO', subdomains:'abcd', maxZoom:19}).addTo(map);
+    this._markers = {};
+    const pts = [];
+    STATIONS.forEach(s=>{
+      pts.push([s.lat,s.lon]);
+      const mk = L.circleMarker([s.lat,s.lon], this._mkStyle(false)).addTo(map);
+      mk.bindTooltip(s.name, {permanent:true, direction:'right', className:'tdtip', offset:[7,0]});
+      mk.on('click', ()=>this.setState({sel:s.id}));
+      this._markers[s.id] = mk;
+    });
+    map.fitBounds(pts, {padding:[44,44]});
+    setTimeout(()=>{ if(this._map){ this._map.invalidateSize(); this._map.fitBounds(pts,{padding:[44,44]}); this._syncMarkers(); } }, 220);
+    this._syncMarkers();
+  }
+  _syncMarkers(){
+    if(!this._markers) return;
+    const sel = this.state.sel;
+    Object.keys(this._markers).forEach(id=>{
+      const mk = this._markers[id];
+      const isSel = id===sel;
+      mk.setStyle(this._mkStyle(isSel));
+      mk.setRadius(isSel?9:6);
+      const tt = mk.getTooltip();
+      if(tt){ const node=tt.getElement&&tt.getElement(); if(node){ node.classList.toggle('sel', isSel); } }
+      if(isSel) mk.bringToFront();
+    });
+    if(this._map && this._lastSel!==sel){
+      const s = STATIONS.find(x=>x.id===sel);
+      if(s) this._map.panTo([s.lat,s.lon], {animate:true, duration:0.4});
+      this._lastSel = sel;
+    }
+  }
+  componentDidUpdate(){ this._syncMarkers(); this._loadTide(); }
+  componentWillUnmount(){ if(this._map){ this._map.remove(); this._map=null; } if(this._lt) clearTimeout(this._lt); }
+
+  renderVals(){
+    const accent = this.props.accent ?? '#2b5d7a';
+    const graphFill = this.props.graphFill ?? true;
+    const nightShading = this.props.nightShading ?? true;
+    const st = STATIONS.find(s=>s.id===this.state.sel) || STATIONS[0];
+    const off = this.state.offset;
+    const dd = dayData(st, off, 1/30);
+    const td = this.state.apiData; // World Tides API データ（取得済みの場合）
+    function hexA(hex,a){ const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16); return 'rgba('+r+','+g+','+b+','+a+')'; }
+
+    // ----- 10分毎潮位配列 (144点) -----
+    // API データがあれば使用、なければ調和定数モデルで計算
+    const lvArr = (td && td.levels && td.levels.length >= 144)
+      ? td.levels.slice(0, 144)
+      : (() => { const a=[]; for(let h=0;h<24;h++) for(let mi=0;mi<6;mi++) a.push(Math.round(height(dd.t0+h+mi/6, st, dd.spr))); return a; })();
+
+    // ----- 満潮/干潮 -----
+    const ex = (td && td.extremes && td.extremes.length > 0) ? td.extremes : dd.ex;
+
+    // ----- graph geometry -----
+    const gx=48, gw=872, gtop=16, gh=270, gbot=gtop+gh;
+    const pts=[]; let minV=1e9,maxV=-1e9;
+    if (td && td.levels && td.levels.length >= 144) {
+      for(let i=0;i<=144;i++){ const h=i/6; const v=td.levels[Math.min(i,143)]; pts.push([h,v]); if(v<minV)minV=v; if(v>maxV)maxV=v; }
+    } else {
+      for(let h=0;h<=24.0001;h+=0.04){ const v=height(dd.t0+h,st,dd.spr); pts.push([h,v]); if(v<minV)minV=v; if(v>maxV)maxV=v; }
+    }
+    let lo=Math.floor((minV-18)/50)*50, hi=Math.ceil((maxV+18)/50)*50;
+    if(hi-lo<100){hi=lo+100;}
+    const X=h=>gx+h/24*gw;
+    const Yv=v=>gtop+(hi-v)/(hi-lo)*gh;
+    let linePath='M'+pts.map(p=>X(p[0]).toFixed(1)+' '+Yv(p[1]).toFixed(1)).join(' L');
+    const areaPath=linePath+' L'+X(24).toFixed(1)+' '+gbot+' L'+X(0).toFixed(1)+' '+gbot+' Z';
+
+    const gridLines=[];
+    for(let g=lo; g<=hi; g+=50){ gridLines.push({y:Yv(g).toFixed(1), ty:(Yv(g)+3).toFixed(1), label:g, dash:(g%100===0?'0':'2 4')}); }
+    const hourTicks=[];
+    [0,3,6,9,12,15,18,21,24].forEach(h=>{ hourTicks.push({x:X(h).toFixed(1), y2:(h%6===0?280:283), label:String(h)}); });
+
+    const nightRects=[];
+    if(nightShading){
+      nightRects.push({x:X(0).toFixed(1), w:(X(dd.sunrise)-X(0)).toFixed(1)});
+      nightRects.push({x:X(dd.sunset).toFixed(1), w:(X(24)-X(dd.sunset)).toFixed(1)});
+    }
+
+    const highs = ex.filter(e=>e.type==='満潮').sort((a,b)=>a.time-b.time);
+    const lows = ex.filter(e=>e.type==='干潮').sort((a,b)=>a.time-b.time);
+    const markers = ex.map(e=>{
+      const isHigh=e.type==='満潮';
+      const y=Yv(e.level);
+      return { x:X(e.time).toFixed(1), y:y.toFixed(1),
+        fill: isHigh?accent:'#fbfaf5', typeColor: isHigh?accent:'#b06a3f', type:e.type,
+        tY:(isHigh? y-30 : y+38).toFixed(1), lY:(isHigh? y-16 : y+22).toFixed(1), lY2:(isHigh? y-4 : y+34).toFixed(1),
+        timeStr: fmtHM(e.time), levelStr: Math.round(e.level)+'cm' };
+    });
+
+    let hasNow=false, nowX='0', nowDotY='0', nowText='', nowLabelX='0', nowAnchor='middle';
+    let gnowH=-1, gnowMi=-1;
+    if(off===0){
+      const n=new Date(); const nh=mod24(n.getUTCHours()+9 + n.getUTCMinutes()/60);
+      let nv;
+      if(td && td.levels && td.levels.length>=144){
+        const idx=Math.min(Math.floor(nh*6),143); const frac=nh*6-idx;
+        nv=lvArr[idx]+(frac*(lvArr[Math.min(idx+1,143)]-lvArr[idx]));
+      } else { nv=height(dd.t0+nh,st,dd.spr); }
+      hasNow=true; nowX=X(nh).toFixed(1); nowDotY=Yv(nv).toFixed(1);
+      nowText='現在 '+fmtHM(nh)+' / '+Math.round(nv)+'cm';
+      nowAnchor = nh>20?'end':(nh<4?'start':'middle'); nowLabelX = X(nh).toFixed(1);
+      gnowH=(n.getUTCHours()+9)%24; gnowMi=Math.floor(n.getUTCMinutes()/10);
+    }
+
+    const mkRow=e=>({timeStr:fmtHM(e.time), levelStr:Math.round(e.level)+' cm'});
+    const highTides = highs.length?highs.map(mkRow):[{timeStr:'--:--',levelStr:'-- cm'}];
+    const lowTides = lows.length?lows.map(mkRow):[{timeStr:'--:--',levelStr:'-- cm'}];
+    const maxHi = highs.length?Math.max(...highs.map(e=>e.level)):maxV;
+    const minLo = lows.length?Math.min(...lows.map(e=>e.level)):minV;
+
+    // ----- 10-min grid -----
+    const mins=['00','10','20','30','40','50'];
+    const gLo=Math.min(...lvArr), gHi=Math.max(...lvArr);
+    const gridCells=[];
+    gridCells.push({txt:'時＼分',bg:'#efe9dc',color:'#8a8073',weight:700,shadow:'none',z:'1'});
+    mins.forEach(m=>gridCells.push({txt:m,bg:'#efe9dc',color:'#8a8073',weight:600,shadow:'none',z:'1'}));
+    let kk=0;
+    for(let h=0;h<24;h++){
+      gridCells.push({txt:pad2(h),bg:'#efe9dc',color:'#4a4034',weight:600,shadow:'none',z:'1'});
+      for(let mi=0;mi<6;mi++){
+        const v=lvArr[kk++]; const frac=(v-gLo)/((gHi-gLo)||1);
+        const isNow = (h===gnowH && mi===gnowMi);
+        gridCells.push({ txt:String(Math.round(v)), bg:hexA(accent,0.05+0.30*frac), color:'#2b2620',
+          weight:isNow?700:500, shadow:isNow?'inset 0 0 0 2px #b06a3f':'none', z:isNow?'2':'1' });
+      }
+    }
+    const gridGradient = 'linear-gradient(90deg,'+hexA(accent,0.05)+','+hexA(accent,0.35)+')';
+
+    const phasePct = dd.age/SYN;
+    const illum = Math.round((1-Math.cos(2*Math.PI*phasePct))/2*100);
+
+    const idx = STATIONS.findIndex(s=>s.id===st.id);
+    const sd = (off+200)*37 + idx*7;
+    const cats=['快晴','晴れ','晴れ時々曇り','曇り','曇り時々雨','雨'];
+    const ci = Math.floor(rnd(sd)*cats.length);
+    const weatherText = cats[ci];
+    const isRainy = ci>=4, isCloudy = ci===3, isSunny = ci<3;
+    const airHi = 26 + Math.round(rnd(sd+1)*6);
+    const airLo = airHi - 4 - Math.round(rnd(sd+2)*3);
+    const dirs=['北','北東','東','南東','南','南西','西','北西'];
+    const windText = dirs[Math.floor(rnd(sd+3)*8)]+' '+(2+Math.round(rnd(sd+4)*6))+'m/s';
+    const waveText = (0.3+rnd(sd+5)*0.9).toFixed(1)+' m';
+    const waterText = (21.5+rnd(sd+6)*3.5).toFixed(1)+' ℃';
+    const pressureText = (1006+Math.round(rnd(sd+7)*16))+' hPa';
+
+    const weekly=[];
+    for(let i=0;i<7;i++){
+      const wdd = dayData(st, off+i, 1/6);
+      const wh = wdd.ex.filter(e=>e.type==='満潮').sort((a,b)=>a.time-b.time)[0];
+      const wl = wdd.ex.filter(e=>e.type==='干潮').sort((a,b)=>a.time-b.time)[0];
+      const cur = i===0;
+      weekly.push({ dateStr:(wdd.Mo+1)+'/'+wdd.Da, wd: WD[wdd.wd],
+        wdColor: wdd.wd===0?'#b04a3f':(wdd.wd===6?'#2b5d7a':'#8a8073'),
+        shio: wdd.shio, shioColor: wdd.shio==='大潮'?'#b06a3f':(wdd.shio==='小潮'?'#2b5d7a':'#4a4034'),
+        hiStr: wh? fmtHM(wh.time)+'  '+Math.round(wh.level)+'cm' : '--',
+        loStr: wl? fmtHM(wl.time)+'  '+Math.round(wl.level)+'cm' : '--',
+        age: wdd.age.toFixed(1), rowBg: cur?'rgba(176,106,63,.09)':'transparent',
+        dateWeight: cur?700:400, onClick: this.setOffset(off+i) });
+    }
+
+    const shioColor = dd.shio==='大潮'?'#b06a3f':(dd.shio==='小潮'?'#2b5d7a':'#4a4034');
+    const shioBg = dd.shio==='大潮'?'rgba(176,106,63,.1)':(dd.shio==='小潮'?'rgba(43,93,122,.08)':'rgba(60,50,35,.05)');
+    const shioBorder = dd.shio==='大潮'?'rgba(176,106,63,.3)':(dd.shio==='小潮'?'rgba(43,93,122,.25)':'rgba(60,50,35,.15)');
+
+    return {
+      mapRef: this.mapRefCb,
+      selName: st.name, selKana: st.kana, latStr: dms(st.lat,'N','S'), lonStr: dms(st.lon,'E','W'),
+      dateStr: dd.Y+'年'+(dd.Mo+1)+'月'+dd.Da+'日', weekdayStr: WD[dd.wd],
+      weekdayColor: dd.wd===0?'#b04a3f':(dd.wd===6?'#2b5d7a':'#6b6357'),
+      shioName: dd.shio, shioColor, shioBg, shioBorder,
+      prevDay: this.setOffset(off-1), nextDay: this.setOffset(off+1), goToday: this.setOffset(0),
+      accent, accentFill: hexA(accent,0.13), graphFill,
+      areaPath, linePath, gridLines, hourTicks, nightRects, markers,
+      hasNow, nowX, nowDotY, nowText, nowLabelX, nowAnchor,
+      maxText: Math.round(maxHi)+'cm', minText: Math.round(minLo)+'cm', rangeText: Math.round(maxHi-minLo)+'cm',
+      highTides, lowTides,
+      gridCells, gridGradient, gridLo: Math.round(gLo)+'cm', gridHi: Math.round(gHi)+'cm',
+      sunrise: fmtHM(dd.sunrise), sunset: fmtHM(dd.sunset), dayLen: fmtDur(dd.sunset-dd.sunrise),
+      moonrise: fmtHM(dd.moonrise), moonset: fmtHM(dd.moonset), moonculm: fmtHM(dd.moonculm),
+      moonPath: moonPath(28,28,20,phasePct), phaseName: phaseName(dd.age), ageStr: dd.age.toFixed(1), illumStr: illum+'%',
+      weatherText, isSunny, isCloudy, isRainy,
+      airHi, airLo, windText, waveText, waterText, pressureText,
+      weekly,
+      apiModalOpen: this.state.apiModalOpen,
+      openApiSetting: this.openApiSetting,
+      closeApiModal: this.closeApiModal,
+      saveApiKey: this.saveApiKey,
+      clearApiKey: this.clearApiKey,
+      apiInputRef: this.apiInputRefCb,
+      apiKeyBtnBg: TIDE_API_KEY ? 'rgba(43,93,122,.12)' : 'rgba(176,106,63,.10)',
+      dataSourceNote: (td && td.levels)
+        ? '※ 潮位データ: Stormglass.io API (MSL基準 / 三次スプライン補間による10分間隔)。潮名・日月データは調和定数モデルによる推算値。'
+        : '※ 潮位は調和定数による近似モデルの推算値（デモ表示）。TIDE_API_KEY を設定すると Stormglass.io のリアルデータに切り替わります。'
+    };
+  }
+}
+</script>
+</body>
+</html>
