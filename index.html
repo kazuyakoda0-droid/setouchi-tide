@@ -457,23 +457,46 @@ function fmtDur(dec){ let h=Math.floor(dec); let m=Math.round((dec-h)*60); if(m=
 // V0 at 2000-01-01 00:00 UTC, referenced to JST standard meridian (135°E):
 //   semi-diurnal: V0 = V0_greenwich + 2*135; diurnal: V0 = V0_greenwich + 1*135
 //   s0=211.728°, h0=279.974°, p0=83.297°
-// [sigma(°/h), H(cm), kappa(°), V0(°)]
-const HC_HIROSHIMA = [
-  [28.9841042,101.53,278.08, 46.492], // M2: (2h-2s)+2*135
-  [30.0000000, 42.08,307.98,270.000], // S2: 0+2*135
-  [15.0410686, 30.88,216.89,144.974], // K1: (h+90)+1*135
-  [13.9430356, 22.55,194.60,188.482], // O1: (-h+2s+270)+1*135
-  [28.4397295, 18.10,268.57,278.061], // N2: (2h-3s+p)+2*135
-  [30.0821373, 12.03,304.31,289.948], // K2: (2h+180)+2*135
-  [14.9589314,  9.35,217.49,125.026], // P1: (-h+270)+1*135
-  [29.5284789,  4.12,291.47,341.517], // L2: (2h-s+p)+2*135
-];
+// name: [sigma(°/h), H(cm), kappa(°), V0(°)]
+const HC_HIROSHIMA = {
+  M2:  [28.9841042,101.53,278.08, 46.492], // (2h-2s)+2*135
+  S2:  [30.0000000, 42.08,307.98,270.000], // 0+2*135
+  K1:  [15.0410686, 30.88,216.89,144.974], // (h+90)+1*135
+  O1:  [13.9430356, 22.55,194.60,188.482], // (-h+2s+270)+1*135
+  N2:  [28.4397295, 18.10,268.57,278.061], // (2h-3s+p)+2*135
+  K2:  [30.0821373, 12.03,304.31,289.948], // (2h+180)+2*135
+  P1:  [14.9589314,  9.35,217.49,125.026], // (-h+270)+1*135
+  L2:  [29.5284789,  4.12,291.47,341.517], // (2h-s+p)+2*135
+  // 長周期分潮(species 0、135°補正なし)。年周・半年周の水位オフセットを補う。
+  Sa:  [0.0410686, 16.47,149.20,279.974],  // h
+  Ssa: [0.0821373,  1.95, 32.99,199.948],  // 2h mod360
+};
+// 月の昇交点黄経 N(度)。18.6年周期の交点補正(f=振幅係数, u=位相補正)に使用。
+function nodalN(t) {
+  const d = t / 24 - 0.5; // days since J2000.0 (2000-01-01 12:00 UTC)
+  return ((125.0445 - 0.0529539 * d) % 360 + 360) % 360;
+}
+function nodalFU(name, Ndeg) {
+  const Nr = Ndeg * D2R;
+  switch (name) {
+    case 'M2': case 'N2': case 'L2':
+      return { f: 1 - 0.037*Math.cos(Nr), u: -2.1*Math.sin(Nr) };
+    case 'K2': return { f: 1.024 + 0.286*Math.cos(Nr), u: -17.7*Math.sin(Nr) };
+    case 'K1': return { f: 1.006 + 0.115*Math.cos(Nr), u: -8.9*Math.sin(Nr) };
+    case 'O1': return { f: 1.009 + 0.187*Math.cos(Nr), u: 10.8*Math.sin(Nr) };
+    default:   return { f: 1, u: 0 }; // S2/P1/Sa/Ssa は交点補正なし
+  }
+}
 function height(t, st) {
   // t: hours from EPOCH (2000-01-01 00:00 UTC)
   const tt = t - st.dphase;
+  const N = nodalN(t);
   let h = 200 + st.dz;
-  for (const [sigma,H,kappa,V0] of HC_HIROSHIMA)
-    h += H * st.damp * Math.cos((sigma * tt + V0 - kappa) * D2R);
+  for (const name in HC_HIROSHIMA) {
+    const [sigma,H,kappa,V0] = HC_HIROSHIMA[name];
+    const {f,u} = nodalFU(name, N);
+    h += H * f * st.damp * Math.cos((sigma * tt + V0 + u - kappa) * D2R);
+  }
   return h;
 }
 function height10min(st, t0) {
