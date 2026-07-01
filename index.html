@@ -481,6 +481,17 @@ function height10min(st, t0) {
   for (let i = 0; i < 144; i++) a.push(Math.round(height(t0 + i/6, st)));
   return a;
 }
+// 10分刻みで見つけた極値の近傍を三分探索で分単位まで精密化
+function refineExtreme(st, t0, guessH, isHigh) {
+  let lo = t0 + guessH - 1/6, hi = t0 + guessH + 1/6;
+  for (let iter = 0; iter < 60; iter++) {
+    const m1 = lo + (hi - lo) / 3, m2 = hi - (hi - lo) / 3;
+    const v1 = height(m1, st), v2 = height(m2, st);
+    if (isHigh ? v1 < v2 : v1 > v2) lo = m1; else hi = m2;
+  }
+  const t = (lo + hi) / 2;
+  return { time: t - t0, level: height(t, st) };
+}
 function todayJSTMs(){
   const n = new Date(); const j = new Date(n.getTime()+9*3600000);
   return Date.UTC(j.getUTCFullYear(),j.getUTCMonth(),j.getUTCDate());
@@ -508,7 +519,11 @@ function dayData(st, offset){
   const moonrise = mod24(sunrise + (age/SYN)*24);
   const moonset = mod24(moonrise + 12.42);
   const moonculm = mod24((moonrise+moonset)/2 + (moonset<moonrise?12:0));
-  const ex = extremesFrom10min(height10min(st, t0));
+  const exCoarse = extremesFrom10min(height10min(st, t0));
+  const ex = exCoarse.map(e => {
+    const r = refineExtreme(st, t0, e.time, e.type === '満潮');
+    return { type: e.type, time: r.time, level: r.level };
+  });
   return {Y,Mo,Da,wd,age,spr,shio,sunrise,sunset,moonrise,moonset,moonculm,ex,t0,N};
 }
 function moonPath(cx,cy,r,phase){
@@ -682,7 +697,7 @@ class Component extends DCLogic {
       if(td && td.levels && td.levels.length>=144){
         const idx=Math.min(Math.floor(nh*6),143); const frac=nh*6-idx;
         nv=lvArr[idx]+(frac*(lvArr[Math.min(idx+1,143)]-lvArr[idx]));
-      } else { nv=height(dd.t0+nh,st,dd.spr); }
+      } else { nv=height(dd.t0+nh,st); }
       hasNow=true; nowX=X(nh).toFixed(1); nowDotY=Yv(nv).toFixed(1);
       nowText='現在 '+fmtHM(nh)+' / '+Math.round(nv)+'cm';
       nowAnchor = nh>20?'end':(nh<4?'start':'middle'); nowLabelX = X(nh).toFixed(1);
