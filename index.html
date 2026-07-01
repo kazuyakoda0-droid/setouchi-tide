@@ -48,26 +48,8 @@
       <span style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.1em;color:#8a8073">広島県 沿岸 / HIROSHIMA COAST</span>
       <span style="width:1px;height:20px;background:rgba(60,50,35,.18)"></span>
       <span style="font-size:12px;color:#6b6357">観測点 <b style="font-family:'DM Mono',monospace;color:#2b2620">12</b> 地点</span>
-      <button onClick="{{ openApiSetting }}" title="APIキー設定" style="margin-left:12px;width:28px;height:28px;border:1px solid rgba(60,50,35,.2);background:{{ apiKeyBtnBg }};border-radius:3px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:#6b6357">⚙</button>
     </div>
   </header>
-
-  <!-- ============ API KEY MODAL ============ -->
-  <sc-if value="{{ apiModalOpen }}" hint-placeholder-val="{{ false }}">
-    <div style="position:fixed;inset:0;background:rgba(43,38,32,.45);z-index:2000;display:flex;align-items:center;justify-content:center">
-      <div style="background:#fbfaf5;border:1px solid rgba(60,50,35,.2);border-radius:4px;padding:28px 32px;width:440px;max-width:90vw;box-shadow:0 8px 32px rgba(0,0,0,.18)">
-        <div style="font-family:'Zen Old Mincho',serif;font-size:18px;color:#2b2620;margin-bottom:6px">API キー設定</div>
-        <div style="font-size:12px;color:#8a8073;margin-bottom:16px;line-height:1.6">Stormglass.io の無料APIキーを入力してください。<br>キーはこのブラウザにのみ保存され、コードには含まれません。<br><a href="https://stormglass.io" target="_blank" style="color:#2b5d7a">stormglass.io</a> で無料登録（10回/日）</div>
-        <input ref="{{ apiInputRef }}" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style="width:100%;padding:9px 12px;border:1px solid rgba(60,50,35,.25);border-radius:3px;font-family:'DM Mono',monospace;font-size:11px;color:#2b2620;background:#f4f1ea;box-sizing:border-box;outline:none" />
-        <div style="margin-top:6px;font-family:'DM Mono',monospace;font-size:10px;color:#a99e8c">キーなしでも調和定数モデルで動作します</div>
-        <div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end">
-          <button onClick="{{ clearApiKey }}" style="padding:7px 16px;border:1px solid rgba(60,50,35,.2);background:transparent;border-radius:3px;cursor:pointer;font-size:12px;color:#b06a3f">削除</button>
-          <button onClick="{{ closeApiModal }}" style="padding:7px 16px;border:1px solid rgba(60,50,35,.2);background:transparent;border-radius:3px;cursor:pointer;font-size:12px;color:#6b6357">キャンセル</button>
-          <button onClick="{{ saveApiKey }}" style="padding:7px 18px;border:none;background:#2b5d7a;border-radius:3px;cursor:pointer;font-size:12px;color:#fff;font-weight:600">保存して再読込</button>
-        </div>
-      </div>
-    </div>
-  </sc-if>
 
   <!-- ============ MAIN ============ -->
   <div style="flex:1 1 auto;display:flex;min-height:0">
@@ -289,14 +271,6 @@
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:920},&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#2b5d7a&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;配色&quot;},&quot;graphFill&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;タイドグラフ&quot;},&quot;nightShading&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;タイドグラフ&quot;}}">
 // =====================================================================
-// 潮汐 API 設定
-// Stormglass.io の無料APIキーを入力: https://stormglass.io (10回/日)
-// 空のままにすると調和定数モデル（推算値）を使用します
-// =====================================================================
-// APIキーはlocalStorageから読み込む（コードに埋め込まない）
-const TIDE_API_KEY = localStorage.getItem('stormglass_api_key') || '';
-
-// =====================================================================
 // 三次スプライン補間
 // 1時間ごとの観測/推算値 → 10分ごとのデータを滑らかに生成
 // =====================================================================
@@ -373,9 +347,11 @@ function extremesFrom10min(levels10min) {
   return ex;
 }
 
-// API データキャッシュ (localStorage 永続化・翌日以降も再利用してAPI回数を節約)
-const TIDE_CACHE_KEY = 'stormglass_tide_cache_v1';
-const TIDE_CACHE_MAX = 90; // 観測点12×週7日程度をカバーする上限件数
+// 気象庁 潮位表(推算)キャッシュ (localStorage 永続化・翌日以降も再利用してリクエスト数を節約)
+// 気象庁の suisan.php は Access-Control-Allow-Origin が開放されており、
+// ブラウザから直接 fetch して本文を読み取れることを確認済み(CORSブロックなし)。
+const TIDE_CACHE_KEY = 'jma_tide_cache_v1';
+const TIDE_CACHE_MAX = 400; // 観測点12×最大35日分をまとめてキャッシュしても十分な余裕
 function _loadTideCache() {
   try { return JSON.parse(localStorage.getItem(TIDE_CACHE_KEY)) || {}; }
   catch (e) { return {}; }
@@ -386,65 +362,141 @@ function _saveTideCache(cache) {
 }
 const _tideCache = _loadTideCache();
 
-async function fetchTideDay(lat, lon, dayMs) {
-  const ckey = lat.toFixed(4) + '_' + lon.toFixed(4) + '_' + dayMs;
-  if (_tideCache[ckey]) { _tideCache[ckey]._t = Date.now(); return _tideCache[ckey]; }
-  if (!TIDE_API_KEY) return null;
-
-  // JST 0:00 〜 翌 JST 1:00 (スプライン端点確保のため+1h)
-  const jstMidUTC = dayMs - 9 * 3600000;
-  const startISO = new Date(jstMidUTC - 3600000).toISOString();   // 前日23:00 UTC
-  const endISO   = new Date(jstMidUTC + 25 * 3600000).toISOString(); // 翌01:00 UTC
-
-  // Stormglass sea-level API (1時間毎)
-  const url = 'https://api.stormglass.io/v2/tide/sea-level/point' +
-    '?lat=' + lat + '&lng=' + lon +
-    '&start=' + encodeURIComponent(startISO) +
-    '&end='   + encodeURIComponent(endISO);
-  const resp = await fetch(url, { headers: { Authorization: TIDE_API_KEY } });
-  if (!resp.ok) throw new Error('Stormglass API HTTP ' + resp.status);
-  const json = await resp.json();
-  if (!json.data || !json.data.length) throw new Error('Stormglass: データなし');
-
-  // JST 0〜24h の正時ごとの潮位 (cm) を取得
-  const hourlyCm = [];
-  for (let h = 0; h <= 24; h++) {
-    const targetUTC = jstMidUTC + h * 3600000;
-    // 最も近い時刻のデータを使用
-    let best = null, bestDiff = Infinity;
-    json.data.forEach(pt => {
-      const diff = Math.abs(new Date(pt.time).getTime() - targetUTC);
-      if (diff < bestDiff) { bestDiff = diff; best = pt; }
-    });
-    const val = best ? (best.sg ?? best.noaa ?? Object.values(best)[0]) : null;
-    hourlyCm.push(val != null ? Math.round(val * 100) : null);
-  }
-
-  // null を線形補間で埋める
-  for (let i = 0; i < hourlyCm.length; i++) {
-    if (hourlyCm[i] == null) {
-      let p = i-1; while (p>=0 && hourlyCm[p]==null) p--;
-      let n = i+1; while (n<hourlyCm.length && hourlyCm[n]==null) n++;
-      hourlyCm[i] = (p>=0 && n<hourlyCm.length)
-        ? Math.round(hourlyCm[p] + (hourlyCm[n]-hourlyCm[p])*(i-p)/(n-p))
-        : (p>=0 ? hourlyCm[p] : hourlyCm[n] ?? 200);
+function _dayKey(y,mo,da){ return y+'-'+pad2(mo)+'-'+pad2(da); }
+function _nextDayKey(dk) {
+  const [y,mo,da] = dk.split('-').map(Number);
+  const d = new Date(Date.UTC(y,mo-1,da+1));
+  return _dayKey(d.getUTCFullYear(), d.getUTCMonth()+1, d.getUTCDate());
+}
+function _fillNulls(arr) {
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i] == null) {
+      let p = i-1; while (p>=0 && arr[p]==null) p--;
+      let n = i+1; while (n<arr.length && arr[n]==null) n++;
+      arr[i] = (p>=0 && n<arr.length)
+        ? Math.round(arr[p] + (arr[n]-arr[p])*(i-p)/(n-p))
+        : (p>=0 ? arr[p] : (n<arr.length ? arr[n] : 200));
     }
   }
+}
+// 公式観測点がない地点向けの近隣補正: 最寄り観測点の実データの「その日の平均潮位」を基準に
+// damp(振幅倍率)・dz(レベル補正)を適用する。dphase(位相の時間差)は実データでは未検証のため適用しない。
+function _applyAnchor(hourly, ex, st) {
+  const valid = hourly.filter(v => v != null);
+  const mean = valid.length ? valid.reduce((a,b)=>a+b,0) / valid.length : 200;
+  const xform = v => Math.round(mean + st.dz + st.damp * (v - mean));
+  return {
+    hourly: hourly.map(xform),
+    ex: ex.map(e => ({ type: e.type, time: e.time, level: mean + st.dz + st.damp * (e.level - mean) })),
+  };
+}
 
-  // スプライン補間で 10分毎データ生成
-  const levels = hourlyTo10min(hourlyCm);
-  const extremes = extremesFrom10min(levels);
-  const result = { levels, extremes, source: 'stormglass', _t: Date.now() };
-  _tideCache[ckey] = result;
+// 気象庁 潮位表 HTML(満潮・干潮表 + 毎時潮位表)をパースして日付ごとのデータに分解
+function _parseJmaHtml(html) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const tables = Array.from(doc.querySelectorAll('table'));
+  const hiloByDay = {}, hourByDay = {};
+  const clean = s => s.replace(/ /g, ' ').trim();
+  for (const tbl of tables) {
+    const firstTr = tbl.querySelector('tr');
+    const headText = firstTr ? firstTr.textContent : '';
+    if (headText.includes('満潮') && headText.includes('干潮')) {
+      for (const tr of tbl.querySelectorAll('tr')) {
+        const tds = Array.from(tr.querySelectorAll('td'));
+        if (tds.length < 18) continue;
+        const dm = clean(tds[0].textContent).match(/(\d{4})\/(\d{2})\/(\d{2})/);
+        if (!dm) continue;
+        const cells = tds.slice(2, 18).map(td => clean(td.textContent));
+        const ex = [];
+        for (let i = 0; i < 4; i++) {
+          const t = cells[i*2], l = cells[i*2+1];
+          if (t && t !== '*') ex.push({ type:'満潮', timeStr:t, level:parseFloat(l) });
+        }
+        for (let i = 0; i < 4; i++) {
+          const t = cells[8+i*2], l = cells[8+i*2+1];
+          if (t && t !== '*') ex.push({ type:'干潮', timeStr:t, level:parseFloat(l) });
+        }
+        hiloByDay[_dayKey(+dm[1], +dm[2], +dm[3])] = ex;
+      }
+    } else if (headText.includes('時刻') && tbl.querySelectorAll('th').length >= 24) {
+      for (const tr of tbl.querySelectorAll('tr')) {
+        const tds = Array.from(tr.querySelectorAll('td'));
+        if (tds.length < 25) continue;
+        const dm = clean(tds[0].textContent).match(/(\d{4})\/(\d{2})\/(\d{2})/);
+        if (!dm) continue;
+        const hrs = tds.slice(1, 25).map(td => {
+          const v = clean(td.textContent);
+          return (v === '' || v === '*') ? null : parseFloat(v);
+        });
+        hourByDay[_dayKey(+dm[1], +dm[2], +dm[3])] = hrs;
+      }
+    }
+  }
+  return { hiloByDay, hourByDay };
+}
 
-  // 上限を超えたら最終アクセスが古いものから削除 (LRU)
+async function _fetchJmaWindow(stnCode, startMs, endMs) {
+  const sd = new Date(startMs), ed = new Date(endMs);
+  const url = 'https://www.data.jma.go.jp/kaiyou/db/tide/suisan/suisan.php'
+    + '?stn=' + stnCode
+    + '&ys=' + sd.getUTCFullYear() + '&ms=' + pad2(sd.getUTCMonth()+1) + '&ds=' + pad2(sd.getUTCDate())
+    + '&ye=' + ed.getUTCFullYear() + '&me=' + pad2(ed.getUTCMonth()+1) + '&de=' + pad2(ed.getUTCDate())
+    + '&S_HILO=on&S_HOUR=on&LV=DL';
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error('気象庁サーバーエラー(HTTP ' + resp.status + ')');
+  const html = await resp.text();
+  return _parseJmaHtml(html);
+}
+
+// 指定日を含む最大35日ぶんのウィンドウを1回のリクエストでまとめて取得し、日ごとにキャッシュする
+async function fetchTideDayJMA(st, dayMs) {
+  const dayIdx = Math.floor(dayMs / 86400000);
+  const ckey = st.id + '_' + dayIdx;
+  if (_tideCache[ckey]) { _tideCache[ckey]._t = Date.now(); return _tideCache[ckey]; }
+
+  const startMs = dayMs - 3 * 86400000;
+  const endMs   = dayMs + 31 * 86400000; // 気象庁の上限(35日間)いっぱいまで取得
+  const { hiloByDay, hourByDay } = await _fetchJmaWindow(st.jma, startMs, endMs);
+  const dayKeys = Object.keys(hourByDay).sort();
+  if (!dayKeys.length) throw new Error('気象庁データを取得できませんでした');
+
+  for (const dk of dayKeys) {
+    const hrs = hourByDay[dk].slice();
+    const nextHrs = hourByDay[_nextDayKey(dk)];
+    hrs.push(nextHrs ? nextHrs[0] : hrs[hrs.length-1]); // 25点目(翌日0時)。無ければ直前値で延長
+    _fillNulls(hrs);
+
+    const exRaw = (hiloByDay[dk] || []).map(e => {
+      const [hh, mm] = e.timeStr.split(':').map(Number);
+      return { type: e.type, time: hh + mm/60, level: e.level };
+    });
+
+    let hourly = hrs, ex = exRaw;
+    if (st.jmaAnchor) {
+      const r = _applyAnchor(hrs, exRaw, st);
+      hourly = r.hourly; ex = r.ex;
+    }
+
+    const [dy, dmo, dda] = dk.split('-').map(Number);
+    const entryDayIdx = Math.floor(Date.UTC(dy, dmo-1, dda) / 86400000);
+    _tideCache[st.id + '_' + entryDayIdx] = {
+      levels: hourlyTo10min(hourly),
+      extremes: ex,
+      source: st.jmaAnchor ? 'jma-anchor' : 'jma',
+      stn: st.jma,
+      _t: Date.now(),
+    };
+  }
+
   const keys = Object.keys(_tideCache);
   if (keys.length > TIDE_CACHE_MAX) {
     keys.sort((a, b) => (_tideCache[a]._t || 0) - (_tideCache[b]._t || 0));
     for (let i = 0; i < keys.length - TIDE_CACHE_MAX; i++) delete _tideCache[keys[i]];
   }
   _saveTideCache(_tideCache);
-  return result;
+
+  if (!_tideCache[ckey]) throw new Error('指定日は気象庁データの取得範囲外です');
+  return _tideCache[ckey];
 }
 
 const EPOCH = Date.UTC(2000,0,1,0,0,0,0);
@@ -452,20 +504,23 @@ const NEW_MOON = Date.UTC(2000,0,6,18,14,0,0);
 const SYN = 29.530588853;
 const SHIO = {1:'大潮',2:'大潮',3:'中潮',4:'中潮',5:'中潮',6:'中潮',7:'小潮',8:'小潮',9:'小潮',10:'長潮',11:'若潮',12:'中潮',13:'中潮',14:'大潮',15:'大潮',16:'大潮',17:'大潮',18:'中潮',19:'中潮',20:'中潮',21:'中潮',22:'小潮',23:'小潮',24:'小潮',25:'長潮',26:'若潮',27:'中潮',28:'中潮',29:'大潮',30:'大潮'};
 const WD = ['日','月','火','水','木','金','土'];
+// jma: 気象庁 潮位表の観測点コード。jmaAnchor=false は当地の公式観測点そのもの(完全一致)。
+// jmaAnchor=true は公式観測点が存在しないため最寄り観測点のデータを damp/dz で補正して代用。
 const STATIONS = [
- {id:'hiroshima',name:'広島(宇品)',kana:'ひろしま',lat:34.348,lon:132.459,damp:1.00,dz:0,dphase:0.00},
- {id:'hatsukaichi',name:'廿日市',kana:'はつかいち',lat:34.349,lon:132.331,damp:1.03,dz:8,dphase:-0.05},
- {id:'miyajima',name:'宮島(厳島)',kana:'みやじま',lat:34.296,lon:132.319,damp:0.98,dz:5,dphase:-0.10},
- {id:'ninoshima',name:'似島',kana:'にのしま',lat:34.296,lon:132.452,damp:1.00,dz:2,dphase:0.00},
- {id:'etajima',name:'江田島',kana:'えたじま',lat:34.222,lon:132.434,damp:1.00,dz:0,dphase:0.05},
- {id:'otake',name:'大竹',kana:'おおたけ',lat:34.238,lon:132.222,damp:1.05,dz:10,dphase:-0.15},
- {id:'kure',name:'呉',kana:'くれ',lat:34.232,lon:132.566,damp:1.02,dz:-5,dphase:0.10},
- {id:'ondo',name:'音戸',kana:'おんど',lat:34.190,lon:132.523,damp:1.08,dz:-3,dphase:0.15},
- {id:'takehara',name:'竹原',kana:'たけはら',lat:34.341,lon:132.913,damp:1.05,dz:-4,dphase:0.30},
- {id:'mihara',name:'三原',kana:'みはら',lat:34.401,lon:133.078,damp:1.10,dz:-6,dphase:0.40},
- {id:'onomichi',name:'尾道',kana:'おのみち',lat:34.408,lon:133.205,damp:1.12,dz:-8,dphase:0.45},
- {id:'fukuyama',name:'福山(鞆)',kana:'とものうら',lat:34.383,lon:133.382,damp:1.15,dz:-10,dphase:0.50},
+ {id:'hiroshima',name:'広島(宇品)',kana:'ひろしま',lat:34.348,lon:132.459,damp:1.00,dz:0,dphase:0.00,jma:'Q8',jmaAnchor:false},
+ {id:'hatsukaichi',name:'廿日市',kana:'はつかいち',lat:34.349,lon:132.331,damp:1.03,dz:8,dphase:-0.05,jma:'Q8',jmaAnchor:true},
+ {id:'miyajima',name:'宮島(厳島)',kana:'みやじま',lat:34.296,lon:132.319,damp:0.98,dz:5,dphase:-0.10,jma:'Q8',jmaAnchor:true},
+ {id:'ninoshima',name:'似島',kana:'にのしま',lat:34.296,lon:132.452,damp:1.00,dz:2,dphase:0.00,jma:'Q8',jmaAnchor:true},
+ {id:'etajima',name:'江田島',kana:'えたじま',lat:34.222,lon:132.434,damp:1.00,dz:0,dphase:0.05,jma:'Q9',jmaAnchor:true},
+ {id:'otake',name:'大竹',kana:'おおたけ',lat:34.238,lon:132.222,damp:1.05,dz:10,dphase:-0.15,jma:'Q8',jmaAnchor:true},
+ {id:'kure',name:'呉',kana:'くれ',lat:34.232,lon:132.566,damp:1.02,dz:-5,dphase:0.10,jma:'Q9',jmaAnchor:false},
+ {id:'ondo',name:'音戸',kana:'おんど',lat:34.190,lon:132.523,damp:1.08,dz:-3,dphase:0.15,jma:'Q9',jmaAnchor:true},
+ {id:'takehara',name:'竹原',kana:'たけはら',lat:34.341,lon:132.913,damp:1.05,dz:-4,dphase:0.30,jma:'TH',jmaAnchor:false},
+ {id:'mihara',name:'三原',kana:'みはら',lat:34.401,lon:133.078,damp:1.10,dz:-6,dphase:0.40,jma:'IZ',jmaAnchor:true},
+ {id:'onomichi',name:'尾道',kana:'おのみち',lat:34.408,lon:133.205,damp:1.12,dz:-8,dphase:0.45,jma:'IZ',jmaAnchor:true},
+ {id:'fukuyama',name:'福山(鞆)',kana:'とものうら',lat:34.383,lon:133.382,damp:1.15,dz:-10,dphase:0.50,jma:'IZ',jmaAnchor:true},
 ];
+const JMA_STN_NAME = {Q8:'広島',Q9:'呉',TH:'竹原',IZ:'糸崎(三原)'};
 const D2R = Math.PI/180;
 function mod24(x){x%=24; if(x<0)x+=24; return x;}
 function pad2(n){return String(n).padStart(2,'0');}
@@ -643,21 +698,9 @@ function dms(v,pos,neg){ const dir=v>=0?pos:neg; v=Math.abs(v); const dd=Math.fl
 function rnd(seed){ const x=Math.sin(seed*127.1+311.7)*43758.5453; return x-Math.floor(x); }
 
 class Component extends DCLogic {
-  state = { sel:'hiroshima', offset:0, apiData: null, apiError: null, apiModalOpen: false };
+  state = { sel:'hiroshima', offset:0, tideData: null, tideError: null };
   pick(id){ return () => this.setState({sel:id}); }
   setOffset(o){ return () => this.setState({offset:o}); }
-
-  openApiSetting = () => this.setState({ apiModalOpen: true });
-  closeApiModal  = () => this.setState({ apiModalOpen: false });
-  saveApiKey = () => {
-    const el = this._apiInput;
-    if (!el) return;
-    const key = el.value.trim();
-    if (key) localStorage.setItem('stormglass_api_key', key);
-    location.reload();
-  };
-  clearApiKey = () => { localStorage.removeItem('stormglass_api_key'); location.reload(); };
-  apiInputRefCb = (el) => { this._apiInput = el; if (el) el.value = localStorage.getItem('stormglass_api_key') || ''; };
 
   componentDidMount(){ this._syncMarkers(); this._loadTide(); }
 
@@ -666,28 +709,23 @@ class Component extends DCLogic {
     return sel + '_' + Math.floor(dayMs / 86400000);
   }
   _loadTide(){
-    if (!TIDE_API_KEY) return;
     const { sel, offset } = this.state;
     const k = this._loadTile_key(sel, offset);
     if (this._tideLoadKey === k) return;
     this._tideLoadKey = k;
     // 観測点・日付が変わったら旧データを即クリア → 数学モデルで仮表示
-    this.setState({ apiData: null, apiError: null });
+    this.setState({ tideData: null, tideError: null });
     const st = STATIONS.find(s => s.id === sel) || STATIONS[0];
     const dayMs = todayJSTMs() + offset * 86400000;
-    fetchTideDay(st.lat, st.lon, dayMs)
+    fetchTideDayJMA(st, dayMs)
       .then(data => {
         if (this._tideLoadKey !== k) return; // 遅延レスポンスを捨てる
-        this.setState({ apiData: data ? { _key: k, ...data } : null, apiError: null });
+        this.setState({ tideData: data ? { _key: k, ...data } : null, tideError: null });
       })
       .catch(err => {
-        console.error('[TideAPI]', err);
+        console.error('[TideJMA]', err);
         if (this._tideLoadKey !== k) return;
-        const msg = /HTTP 402/.test(err.message) ? 'API利用回数の上限に達しました(402)'
-          : /HTTP 429/.test(err.message) ? 'APIリクエストが混み合っています(429)'
-          : /HTTP \d+/.test(err.message) ? err.message.replace('Stormglass API ', '')
-          : '通信エラー';
-        this.setState({ apiData: null, apiError: msg });
+        this.setState({ tideData: null, tideError: (err && err.message) || '通信エラー' });
       });
   }
 
@@ -743,14 +781,14 @@ class Component extends DCLogic {
     const st = STATIONS.find(s=>s.id===this.state.sel) || STATIONS[0];
     const off = this.state.offset;
     const dd = dayData(st, off);
-    // apiData のキーが現在の観測点・日付と一致するときだけ使用
+    // tideData のキーが現在の観測点・日付と一致するときだけ使用
     const currentKey = this._loadTile_key(st.id, off);
-    const raw = this.state.apiData;
+    const raw = this.state.tideData;
     const td = (raw && raw._key === currentKey) ? raw : null;
     function hexA(hex,a){ const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16); return 'rgba('+r+','+g+','+b+','+a+')'; }
 
     // ----- 10分毎潮位配列 (144点) -----
-    // API データがあれば使用、なければ調和定数モデルで計算
+    // 気象庁データがあれば使用、なければ調和定数モデルで計算
     const lvArr = (td && td.levels && td.levels.length >= 144)
       ? td.levels.slice(0, 144)
       : height10min(st, dd.t0);
@@ -850,8 +888,11 @@ class Component extends DCLogic {
     const weekly=[];
     for(let i=0;i<7;i++){
       const wdd = dayData(st, off+i);
-      const wh = wdd.ex.filter(e=>e.type==='満潮').sort((a,b)=>a.time-b.time)[0];
-      const wl = wdd.ex.filter(e=>e.type==='干潮').sort((a,b)=>a.time-b.time)[0];
+      // 気象庁ウィンドウ取得ですでにキャッシュ済みなら実データを優先使用
+      const wCached = _tideCache[this._loadTile_key(st.id, off+i)];
+      const wEx = (wCached && wCached.extremes && wCached.extremes.length) ? wCached.extremes : wdd.ex;
+      const wh = wEx.filter(e=>e.type==='満潮').sort((a,b)=>a.time-b.time)[0];
+      const wl = wEx.filter(e=>e.type==='干潮').sort((a,b)=>a.time-b.time)[0];
       const cur = i===0;
       weekly.push({ dateStr:(wdd.Mo+1)+'/'+wdd.Da, wd: WD[wdd.wd],
         wdColor: wdd.wd===0?'#b04a3f':(wdd.wd===6?'#2b5d7a':'#8a8073'),
@@ -885,19 +926,14 @@ class Component extends DCLogic {
       weatherText, isSunny, isCloudy, isRainy,
       airHi, airLo, windText, waveText, waterText, pressureText,
       weekly,
-      apiModalOpen: this.state.apiModalOpen,
-      openApiSetting: this.openApiSetting,
-      closeApiModal: this.closeApiModal,
-      saveApiKey: this.saveApiKey,
-      clearApiKey: this.clearApiKey,
-      apiInputRef: this.apiInputRefCb,
-      apiKeyBtnBg: TIDE_API_KEY ? 'rgba(43,93,122,.12)' : 'rgba(176,106,63,.10)',
       dataSourceNote: (td && td.levels)
-        ? '※ 潮位データ: Stormglass.io API (MSL基準 / 三次スプライン補間による10分間隔)。潮名・日月データは調和定数モデルによる推算値。'
-        : this.state.apiError
-          ? '⚠ APIエラーのため推算値を表示中（' + this.state.apiError + '）。調和定数モデルによる近似のため、実際の満干潮時刻とは前後する場合があります。'
-          : '※ 潮位は調和定数による近似モデルの推算値（デモ表示）。TIDE_API_KEY を設定すると Stormglass.io のリアルデータに切り替わります。',
-      dataSourceNoteColor: this.state.apiError ? '#b04a2f' : '#a99e8c'
+        ? (st.jmaAnchor
+            ? '※ 潮位データ: 気象庁 潮位表(' + JMA_STN_NAME[st.jma] + ')の公式推算値を基に近隣補正(振幅×' + st.damp.toFixed(2) + ' / レベル' + (st.dz>=0?'+':'') + st.dz + 'cm)を適用。' + st.name + 'に公式観測点がないための近似値。'
+            : '※ 潮位データ: 気象庁 潮位表(' + st.name + ')による公式推算値をそのまま使用。')
+        : this.state.tideError
+          ? '⚠ 気象庁データ取得エラーのため推算値を表示中（' + this.state.tideError + '）。調和定数モデルによる近似のため、実際の満干潮時刻とは前後する場合があります。'
+          : '※ 気象庁データを取得中…（取得できない場合は調和定数モデルによる近似値を表示します）',
+      dataSourceNoteColor: this.state.tideError ? '#b04a2f' : '#a99e8c'
     };
   }
 }
