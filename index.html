@@ -278,7 +278,7 @@
           </sc-for>
         </div>
 
-        <div style="margin-top:22px;font-family:'DM Mono',monospace;font-size:10px;color:#a99e8c;line-height:1.7">
+        <div style="margin-top:22px;font-family:'DM Mono',monospace;font-size:10px;color:{{ dataSourceNoteColor }};line-height:1.7">
           {{ dataSourceNote }}
         </div>
 
@@ -549,7 +549,7 @@ function dms(v,pos,neg){ const dir=v>=0?pos:neg; v=Math.abs(v); const dd=Math.fl
 function rnd(seed){ const x=Math.sin(seed*127.1+311.7)*43758.5453; return x-Math.floor(x); }
 
 class Component extends DCLogic {
-  state = { sel:'hiroshima', offset:0, apiData: null, apiModalOpen: false };
+  state = { sel:'hiroshima', offset:0, apiData: null, apiError: null, apiModalOpen: false };
   pick(id){ return () => this.setState({sel:id}); }
   setOffset(o){ return () => this.setState({offset:o}); }
 
@@ -578,15 +578,23 @@ class Component extends DCLogic {
     if (this._tideLoadKey === k) return;
     this._tideLoadKey = k;
     // 観測点・日付が変わったら旧データを即クリア → 数学モデルで仮表示
-    this.setState({ apiData: null });
+    this.setState({ apiData: null, apiError: null });
     const st = STATIONS.find(s => s.id === sel) || STATIONS[0];
     const dayMs = todayJSTMs() + offset * 86400000;
     fetchTideDay(st.lat, st.lon, dayMs)
       .then(data => {
         if (this._tideLoadKey !== k) return; // 遅延レスポンスを捨てる
-        this.setState({ apiData: data ? { _key: k, ...data } : null });
+        this.setState({ apiData: data ? { _key: k, ...data } : null, apiError: null });
       })
-      .catch(err => { console.error('[TideAPI]', err); if (this._tideLoadKey === k) this.setState({ apiData: null }); });
+      .catch(err => {
+        console.error('[TideAPI]', err);
+        if (this._tideLoadKey !== k) return;
+        const msg = /HTTP 402/.test(err.message) ? 'API利用回数の上限に達しました(402)'
+          : /HTTP 429/.test(err.message) ? 'APIリクエストが混み合っています(429)'
+          : /HTTP \d+/.test(err.message) ? err.message.replace('Stormglass API ', '')
+          : '通信エラー';
+        this.setState({ apiData: null, apiError: msg });
+      });
   }
 
   mapRefCb = (el) => { if(el){ this._mapEl = el; this._initMap(); } };
@@ -792,7 +800,10 @@ class Component extends DCLogic {
       apiKeyBtnBg: TIDE_API_KEY ? 'rgba(43,93,122,.12)' : 'rgba(176,106,63,.10)',
       dataSourceNote: (td && td.levels)
         ? '※ 潮位データ: Stormglass.io API (MSL基準 / 三次スプライン補間による10分間隔)。潮名・日月データは調和定数モデルによる推算値。'
-        : '※ 潮位は調和定数による近似モデルの推算値（デモ表示）。TIDE_API_KEY を設定すると Stormglass.io のリアルデータに切り替わります。'
+        : this.state.apiError
+          ? '⚠ APIエラーのため推算値を表示中（' + this.state.apiError + '）。調和定数モデルによる近似のため、実際の満干潮時刻とは前後する場合があります。'
+          : '※ 潮位は調和定数による近似モデルの推算値（デモ表示）。TIDE_API_KEY を設定すると Stormglass.io のリアルデータに切り替わります。',
+      dataSourceNoteColor: this.state.apiError ? '#b04a2f' : '#a99e8c'
     };
   }
 }
