@@ -373,12 +373,22 @@ function extremesFrom10min(levels10min) {
   return ex;
 }
 
-// API データキャッシュ (同一ページセッション内)
-const _tideCache = {};
+// API データキャッシュ (localStorage 永続化・翌日以降も再利用してAPI回数を節約)
+const TIDE_CACHE_KEY = 'stormglass_tide_cache_v1';
+const TIDE_CACHE_MAX = 90; // 観測点12×週7日程度をカバーする上限件数
+function _loadTideCache() {
+  try { return JSON.parse(localStorage.getItem(TIDE_CACHE_KEY)) || {}; }
+  catch (e) { return {}; }
+}
+function _saveTideCache(cache) {
+  try { localStorage.setItem(TIDE_CACHE_KEY, JSON.stringify(cache)); }
+  catch (e) { /* 容量超過等は無視(キャッシュなしで継続) */ }
+}
+const _tideCache = _loadTideCache();
 
 async function fetchTideDay(lat, lon, dayMs) {
   const ckey = lat.toFixed(4) + '_' + lon.toFixed(4) + '_' + dayMs;
-  if (_tideCache[ckey]) return _tideCache[ckey];
+  if (_tideCache[ckey]) { _tideCache[ckey]._t = Date.now(); return _tideCache[ckey]; }
   if (!TIDE_API_KEY) return null;
 
   // JST 0:00 〜 翌 JST 1:00 (スプライン端点確保のため+1h)
@@ -424,8 +434,16 @@ async function fetchTideDay(lat, lon, dayMs) {
   // スプライン補間で 10分毎データ生成
   const levels = hourlyTo10min(hourlyCm);
   const extremes = extremesFrom10min(levels);
-  const result = { levels, extremes, source: 'stormglass' };
+  const result = { levels, extremes, source: 'stormglass', _t: Date.now() };
   _tideCache[ckey] = result;
+
+  // 上限を超えたら最終アクセスが古いものから削除 (LRU)
+  const keys = Object.keys(_tideCache);
+  if (keys.length > TIDE_CACHE_MAX) {
+    keys.sort((a, b) => (_tideCache[a]._t || 0) - (_tideCache[b]._t || 0));
+    for (let i = 0; i < keys.length - TIDE_CACHE_MAX; i++) delete _tideCache[keys[i]];
+  }
+  _saveTideCache(_tideCache);
   return result;
 }
 
