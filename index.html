@@ -39,6 +39,16 @@
   .leaflet-tooltip.tdtip::before{display:none}
   .leaflet-control-attribution{font-size:9px;background:rgba(251,250,245,.82)!important}
   .leaflet-bar a{color:#2b2620}
+  /* 10分毎潮位グリッド。1か月表示では5000超のセルを並べるため、
+     セルごとに変わるのは背景色だけにして、残りはクラスに逃がしてある。
+     全部をインラインstyleで書くと再描画のたびに巨大な文字列を作ることになる。 */
+  .tdgrid{display:grid;grid-template-columns:46px repeat(6,1fr);gap:1px;background:rgba(60,50,35,.1);border:1px solid rgba(60,50,35,.1);border-radius:2px;overflow:hidden}
+  .tdcell{font-family:"DM Mono",monospace;font-size:11.5px;padding:5px 0;text-align:center;position:relative;z-index:1;color:#2b2620;font-weight:500}
+  .tdgrid.sm .tdcell{font-size:10.5px;padding:3px 0}
+  .tdcell.hd{color:#8a8073;font-weight:600}
+  .tdcell.hd0{color:#8a8073;font-weight:700}
+  .tdcell.hh{color:#4a4034;font-weight:600}
+  .tdcell.now{font-weight:700;box-shadow:inset 0 0 0 2px #b06a3f;z-index:2}
 </style>
 </helmet>
 
@@ -212,26 +222,56 @@
           </div>
         </div>
 
-        <!-- ===== 10-min detail grid ===== -->
-        <sc-if value="{{ hasTide }}" hint-placeholder-val="{{ true }}">
+        <!-- ===== 10-min detail grid (1日 / 1週間 / 1か月) ===== -->
+        <sc-if value="{{ hasDetail }}" hint-placeholder-val="{{ true }}">
           <div style="margin-top:14px;background:#fbfaf5;border:1px solid rgba(60,50,35,.14);border-radius:3px;padding:14px 16px 16px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:10px">
               <div style="display:flex;align-items:baseline;gap:10px">
                 <span style="font-family:'Zen Old Mincho',serif;font-size:14px;color:#2b2620">10分毎潮位</span>
-                <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#8a8073">Tide Heights · 10-min · cm</span>
+                <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#8a8073">{{ detailTitleEn }}</span>
               </div>
-              <div style="display:flex;align-items:center;gap:8px">
-                <span style="font-family:'DM Mono',monospace;font-size:10px;color:#8a8073">{{ gridLo }}</span>
-                <span style="width:84px;height:8px;border-radius:2px;background:{{ gridGradient }};border:1px solid rgba(60,50,35,.12)"></span>
-                <span style="font-family:'DM Mono',monospace;font-size:10px;color:#8a8073">{{ gridHi }}</span>
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                <!-- segmented control -->
+                <div style="display:flex;border:1px solid rgba(60,50,35,.2);border-radius:3px;overflow:hidden">
+                  <button onClick="{{ setDetailDay }}" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;padding:5px 12px;border:0;cursor:pointer;background:{{ dayBtnBg }};color:{{ dayBtnColor }}">1日</button>
+                  <button onClick="{{ setDetailWeek }}" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;padding:5px 12px;border:0;border-left:1px solid rgba(60,50,35,.2);cursor:pointer;background:{{ dWeekBtnBg }};color:{{ dWeekBtnColor }}">1週間</button>
+                  <button onClick="{{ setDetailMonth }}" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;padding:5px 12px;border:0;border-left:1px solid rgba(60,50,35,.2);cursor:pointer;background:{{ dMonthBtnBg }};color:{{ dMonthBtnColor }}">1か月</button>
+                </div>
+                <div style="display:flex;align-items:center;gap:4px">
+                  <button onClick="{{ prevDetail }}" style="width:26px;height:26px;border:1px solid rgba(60,50,35,.2);background:#fbfaf5;border-radius:3px;cursor:pointer;color:#2b2620;font-size:13px;display:flex;align-items:center;justify-content:center" style-hover="background:#efe9dc">‹</button>
+                  <span style="min-width:104px;text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:#6b6357">{{ detailLabel }}</span>
+                  <button onClick="{{ nextDetail }}" style="width:26px;height:26px;border:1px solid rgba(60,50,35,.2);background:#fbfaf5;border-radius:3px;cursor:pointer;color:#2b2620;font-size:13px;display:flex;align-items:center;justify-content:center" style-hover="background:#efe9dc">›</button>
+                </div>
               </div>
             </div>
-            <div style="display:grid;grid-template-columns:46px repeat(6,1fr);gap:1px;background:rgba(60,50,35,.1);border:1px solid rgba(60,50,35,.1);border-radius:2px;overflow:hidden">
-              <sc-for list="{{ gridCells }}" as="c" hint-placeholder-count="175">
-                <div style="background:{{ c.bg }};color:{{ c.color }};font-weight:{{ c.weight }};box-shadow:{{ c.shadow }};font-family:'DM Mono',monospace;font-size:11.5px;text-align:center;padding:5px 0;position:relative;z-index:{{ c.z }}">{{ c.txt }}</div>
-              </sc-for>
+            <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end;margin-bottom:10px">
+              <span style="font-family:'DM Mono',monospace;font-size:10px;color:#8a8073">{{ gridLo }}</span>
+              <span style="width:84px;height:8px;border-radius:2px;background:{{ gridGradient }};border:1px solid rgba(60,50,35,.12)"></span>
+              <span style="font-family:'DM Mono',monospace;font-size:10px;color:#8a8073">{{ gridHi }}</span>
             </div>
-            <div style="margin-top:9px;font-family:'DM Mono',monospace;font-size:10px;color:#a99e8c">行=時 / 列=分。セル濃淡は潮位の高低。<span style="color:#b06a3f">枠</span>=現在時刻。</div>
+            <sc-for list="{{ detailDays }}" as="d" hint-placeholder-count="1">
+              <div style="margin-top:{{ d.mt }}">
+                <sc-if value="{{ d.showHead }}" hint-placeholder-val="{{ false }}">
+                  <div onClick="{{ d.onClick }}" style="display:flex;align-items:baseline;gap:10px;padding:6px 4px;cursor:pointer;background:{{ d.headBg }};border-bottom:1px solid {{ d.headLine }}" style-hover="background:#efe9dc">
+                    <span style="font-family:'DM Mono',monospace;font-size:13px;color:#2b2620;font-weight:{{ d.dateWeight }}">{{ d.dateStr }}</span>
+                    <span style="font-size:11.5px;color:{{ d.wdColor }}">{{ d.wd }}</span>
+                    <span style="font-family:'Zen Old Mincho',serif;font-size:12px;color:{{ d.shioColor }}">{{ d.shio }}</span>
+                    <span style="margin-left:auto;font-family:'DM Mono',monospace;font-size:10.5px;color:#8a8073">{{ d.summary }}</span>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ d.hasData }}" hint-placeholder-val="{{ true }}">
+                  <div class="{{ d.gridCls }}" style="margin-top:{{ d.gridMt }}">
+                    <sc-for list="{{ d.cells }}" as="c" hint-placeholder-count="175">
+                      <div class="{{ c.cls }}" style="background:{{ c.bg }}">{{ c.txt }}</div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ d.noData }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top:6px;padding:13px;text-align:center;font-size:11.5px;color:#a99e8c;border:1px dashed rgba(60,50,35,.16);border-radius:2px">{{ d.noDataText }}</div>
+                </sc-if>
+              </div>
+            </sc-for>
+            <div style="margin-top:9px;font-family:'DM Mono',monospace;font-size:10px;color:#a99e8c">行=時 / 列=分。セル濃淡は潮位の高低{{ detailScaleNote }}。<span style="color:#b06a3f">枠</span>=現在時刻。</div>
           </div>
         </sc-if>
 
@@ -362,7 +402,8 @@ class Component extends DCLogic {
   state = {
     sel: 'hiroshima',
     offset: 0,
-    rangeMode: 'week',      // 'week' | 'month'
+    rangeMode: 'week',      // 満干潮テーブルの範囲: 'week' | 'month'
+    detailMode: 'day',      // 10分毎潮位の範囲: 'day' | 'week' | 'month'
     openPref: 'hiroshima',
     rev: 0,                 // データ到着で再描画するためのカウンタ
     tideError: null,
@@ -381,27 +422,32 @@ class Component extends DCLogic {
     return () => this.setState({ openPref: this.state.openPref === id ? null : id });
   }
   setRange(mode) { return () => this.setState({ rangeMode: mode }); }
+  setDetail(mode) { return () => this.setState({ detailMode: mode }); }
 
-  // 表示中の期間 [from, to] (UTCミリ秒)
-  periodRange() {
+  // 選択日を起点とする表示範囲 [from, to] (UTCミリ秒)。
+  // 満干潮テーブルと 10分毎潮位 が同じ規則を共有する。
+  rangeOf(mode) {
     const cur = offsetToMs(this.state.offset);
-    if (this.state.rangeMode === 'month') {
+    if (mode === 'month') {
       const b = monthBounds(cur);
       return { from: b.first, to: b.last };
     }
-    return { from: cur, to: cur + 6 * DAY_MS };
+    if (mode === 'week') return { from: cur, to: cur + 6 * DAY_MS };
+    return { from: cur, to: cur };
   }
 
-  shiftPeriod(dir) {
+  periodRange() { return this.rangeOf(this.state.rangeMode); }
+
+  shiftBy(mode, dir) {
     return () => {
       const cur = offsetToMs(this.state.offset);
-      if (this.state.rangeMode === 'month') {
+      if (mode === 'month') {
         const d = new Date(cur);
         // 前月/翌月の1日へ移動する(日付を保持するより挙動が読みやすい)
         const target = Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + dir, 1);
         this.setState({ offset: msToOffset(target) });
       } else {
-        this.setState({ offset: this.state.offset + dir * 7 });
+        this.setState({ offset: this.state.offset + dir * (mode === 'week' ? 7 : 1) });
       }
     };
   }
@@ -416,13 +462,17 @@ class Component extends DCLogic {
   _loadData() {
     const st = this.station();
     const r = this.periodRange();
+    const dr = this.rangeOf(this.state.detailMode);
     const dayMs = offsetToMs(this.state.offset);
-    const key = st.id + '_' + r.from + '_' + r.to;
+
+    // 潮汐: 満干潮テーブル + 10分毎潮位 + 選択日 を覆う範囲をまとめて取得。
+    // 気象庁の上限(35日)を超える場合は ensureTideRange 側で分割される。
+    const from = Math.min(r.from, dr.from, dayMs);
+    const to = Math.max(r.to, dr.to, dayMs);
+    const key = st.id + '_' + from + '_' + to;
     if (this._loadKey === key) return;
     this._loadKey = key;
 
-    // 潮汐: 表示期間 + 選択日 を覆う範囲をまとめて取得
-    const from = Math.min(r.from, dayMs), to = Math.max(r.to, dayMs);
     ensureTideRange(st, from, to)
       .then(() => {
         if (this._loadKey !== key) return;    // 遅れて届いた応答は捨てる
@@ -446,12 +496,15 @@ class Component extends DCLogic {
   // ---------- 地図 ----------
   mapRefCb = (el) => { if (el) { this._mapEl = el; this._initMap(); } };
 
+  // 見えているピンの半径。当たり判定はこれとは別に HIT_RADIUS で広げる。
+  _mkRadius(sel) { return sel ? 10 : 7; }
+
   _mkStyle(st, sel) {
     const accent = this.props.accent ?? '#2b5d7a';
     return {
-      radius: sel ? 8 : 5,
+      radius: this._mkRadius(sel),
       color: sel ? '#fbfaf5' : (st.jmaAnchor ? accent : '#fbfaf5'),
-      weight: sel ? 3 : (st.jmaAnchor ? 1.5 : 1.5),
+      weight: sel ? 3 : 2,
       fillColor: sel ? '#b06a3f' : (st.jmaAnchor ? '#fbfaf5' : accent),
       fillOpacity: 1,
     };
@@ -469,11 +522,32 @@ class Component extends DCLogic {
 
     this._markers = {};
     const pts = [];
+    // ピンそのものを大きくすると隣接する地点どうしが重なって潰れるため、
+    // 見た目の半径は控えめに保ったまま、クリック判定だけを広げる。
+    // 透明(fillOpacity:0)でも fill が none でなければ SVG の当たり判定は残る。
+    const HIT_RADIUS = 13;
     TIDE_STATIONS.forEach(s => {
       pts.push([s.lat, s.lon]);
+      const select = () => this.setState({ sel: s.id, openPref: s.pref });
+
+      const hit = L.circleMarker([s.lat, s.lon], {
+        radius: HIT_RADIUS, stroke: false, fill: true, fillColor: '#000',
+        fillOpacity: 0, interactive: true, bubblingMouseEvents: false,
+      }).addTo(map);
+      hit.on('click', select);
+
       const mk = L.circleMarker([s.lat, s.lon], this._mkStyle(s, false)).addTo(map);
-      mk.on('click', () => this.setState({ sel: s.id, openPref: s.pref }));
+      mk.on('click', select);
       this._markers[s.id] = mk;
+
+      // 広い当たり判定に入ったことが分かるよう、ピンを少しだけ膨らませる
+      hit.on('mouseover', () => {
+        if (this.state.sel !== s.id) mk.setRadius(this._mkRadius(false) + 2);
+        mk.bringToFront();
+      });
+      hit.on('mouseout', () => {
+        mk.setRadius(this._mkRadius(this.state.sel === s.id));
+      });
     });
     map.fitBounds(pts, { padding: [30, 30] });
     // 51地点すべてに常時ラベルを出すと中国地方の縮尺では完全に潰れるため、
@@ -500,7 +574,7 @@ class Component extends DCLogic {
       if (!mk) return;
       const isSel = s.id === sel;
       mk.setStyle(this._mkStyle(s, isSel));
-      mk.setRadius(isSel ? 8 : 5);
+      mk.setRadius(this._mkRadius(isSel));
 
       const wantPermanent = isSel || showAll;
       // permanent の切り替えは再バインドが必要
@@ -617,7 +691,6 @@ class Component extends DCLogic {
 
     // ----- 現在時刻マーカー -----
     let hasNow = false, nowX = '0', nowDotY = '0', nowText = '', nowLabelX = '0', nowAnchor = 'middle';
-    let gnowH = -1, gnowMi = -1;
     if (off === 0 && hasTide) {
       const n = new Date();
       const nh = mod24(n.getUTCHours() + 9 + n.getUTCMinutes() / 60);
@@ -629,8 +702,6 @@ class Component extends DCLogic {
       nowText = '現在 ' + fmtHM(nh) + ' / ' + Math.round(nv) + 'cm';
       nowAnchor = nh > 20 ? 'end' : (nh < 4 ? 'start' : 'middle');
       nowLabelX = X(nh).toFixed(1);
-      gnowH = (n.getUTCHours() + 9) % 24;
-      gnowMi = Math.floor(n.getUTCMinutes() / 10);
     }
 
     const mkRow = e => ({ timeStr: fmtHM(e.time), levelStr: Math.round(e.level) + ' cm' });
@@ -639,31 +710,113 @@ class Component extends DCLogic {
     const maxHi = highs.length ? Math.max(...highs.map(e => e.level)) : maxV;
     const minLo = lows.length ? Math.min(...lows.map(e => e.level)) : minV;
 
-    // ----- 10分毎グリッド -----
-    const gridCells = [];
-    let gridGradient = '', gridLo = '--', gridHi = '--';
-    if (hasTide) {
-      const mins = ['00', '10', '20', '30', '40', '50'];
-      const gLo = Math.min(...lvArr), gHi = Math.max(...lvArr);
-      gridCells.push({ txt: '時＼分', bg: '#efe9dc', color: '#8a8073', weight: 700, shadow: 'none', z: '1' });
-      mins.forEach(m => gridCells.push({ txt: m, bg: '#efe9dc', color: '#8a8073', weight: 600, shadow: 'none', z: '1' }));
-      let kk = 0;
-      for (let h = 0; h < 24; h++) {
-        gridCells.push({ txt: pad2(h), bg: '#efe9dc', color: '#4a4034', weight: 600, shadow: 'none', z: '1' });
-        for (let mi = 0; mi < 6; mi++) {
-          const v = lvArr[kk++];
-          const frac = (v - gLo) / ((gHi - gLo) || 1);
-          const isNow = (h === gnowH && mi === gnowMi);
-          gridCells.push({
-            txt: String(Math.round(v)), bg: hexA(accent, 0.05 + 0.30 * frac), color: '#2b2620',
-            weight: isNow ? 700 : 500, shadow: isNow ? 'inset 0 0 0 2px #b06a3f' : 'none',
-            z: isNow ? '2' : '1',
-          });
+    // ----- 10分毎グリッド (1日 / 1週間 / 1か月) -----
+    const dMode = this.state.detailMode;
+    const dRange = this.rangeOf(dMode);
+    const multiDay = dMode !== 'day';
+    const MINS = ['00', '10', '20', '30', '40', '50'];
+
+    // まず期間内の各日の潮位を集める。
+    // 選択日は上のグラフと同じデータを使い、それ以外の日はキャッシュ済みの
+    // 気象庁データだけを読む(31日ぶん調和計算を回すと重いため)。
+    const daySrc = [];
+    let gLo = Infinity, gHi = -Infinity;
+    for (let ms = dRange.from; ms <= dRange.to; ms += DAY_MS) {
+      const o = msToOffset(ms);
+      let lv = null;
+      if (o === off) {
+        lv = hasTide ? lvArr : null;
+      } else {
+        const c = getCachedTide(st, ms);
+        if (c && c.levels && c.levels.length >= 144) lv = c.levels.slice(0, 144);
+      }
+      if (lv) {
+        for (let i = 0; i < lv.length; i++) {
+          if (lv[i] < gLo) gLo = lv[i];
+          if (lv[i] > gHi) gHi = lv[i];
         }
       }
-      gridGradient = 'linear-gradient(90deg,' + hexA(accent, 0.05) + ',' + hexA(accent, 0.35) + ')';
-      gridLo = Math.round(gLo) + 'cm'; gridHi = Math.round(gHi) + 'cm';
+      daySrc.push({ o, lv });
     }
+    const hasDetail = daySrc.some(x => !!x.lv);
+    if (!hasDetail) { gLo = 0; gHi = 100; }
+
+    // 色の濃淡は期間全体で共通のスケールにする。
+    // 日ごとにスケールを取り直すと、小潮の日と大潮の日が同じ濃さになって
+    // 日どうしを見比べられなくなるため。
+    const gridGradient = hasDetail
+      ? 'linear-gradient(90deg,' + hexA(accent, 0.05) + ',' + hexA(accent, 0.35) + ')' : '';
+    const gridLo = hasDetail ? Math.round(gLo) + 'cm' : '--';
+    const gridHi = hasDetail ? Math.round(gHi) + 'cm' : '--';
+
+    // セル背景は 64段階に量子化して使い回す。1か月表示では5000回近く呼ばれるので、
+    // 毎回 rgba 文字列を作り直すのは無駄(64段階なら見た目の差は分からない)。
+    const shadeCache = [];
+    const shade = frac => {
+      const q = Math.max(0, Math.min(63, Math.round(frac * 63)));
+      return shadeCache[q] || (shadeCache[q] = hexA(accent, 0.05 + 0.30 * (q / 63)));
+    };
+
+    const detailDays = daySrc.map((x, di) => {
+      const wdd = celestialData(st, x.o);
+      const cur = (x.o === off);
+      let nowH = -1, nowMi = -1;
+      if (x.o === 0) {
+        const n = new Date();
+        nowH = (n.getUTCHours() + 9) % 24;
+        nowMi = Math.floor(n.getUTCMinutes() / 10);
+      }
+      const cells = [];
+      if (x.lv) {
+        cells.push({ txt: '時＼分', cls: 'tdcell hd0', bg: '#efe9dc' });
+        MINS.forEach(m => cells.push({ txt: m, cls: 'tdcell hd', bg: '#efe9dc' }));
+        let kk = 0;
+        for (let h = 0; h < 24; h++) {
+          cells.push({ txt: pad2(h), cls: 'tdcell hh', bg: '#efe9dc' });
+          for (let mi = 0; mi < 6; mi++) {
+            const v = x.lv[kk++];
+            const frac = (v - gLo) / ((gHi - gLo) || 1);
+            const isNow = (h === nowH && mi === nowMi);
+            cells.push({
+              txt: String(Math.round(v)),
+              cls: isNow ? 'tdcell now' : 'tdcell',
+              bg: shade(frac),
+            });
+          }
+        }
+      }
+      const dLo = x.lv ? Math.min.apply(null, x.lv) : 0;
+      const dHi = x.lv ? Math.max.apply(null, x.lv) : 0;
+      return {
+        cells, hasData: !!x.lv, noData: !x.lv,
+        noDataText: this.state.tideError
+          ? 'この日の潮位データは取得できませんでした' : '取得中…',
+        showHead: multiDay,
+        mt: (multiDay && di > 0) ? '18px' : '0',
+        gridMt: multiDay ? '6px' : '0',
+        dateStr: (wdd.Mo + 1) + '/' + wdd.Da,
+        wd: WD[wdd.wd],
+        wdColor: wdd.wd === 0 ? '#b04a3f' : (wdd.wd === 6 ? '#2b5d7a' : '#8a8073'),
+        shio: wdd.shio,
+        shioColor: wdd.shio === '大潮' ? '#b06a3f' : (wdd.shio === '小潮' ? '#2b5d7a' : '#4a4034'),
+        summary: x.lv
+          ? '最高 ' + Math.round(dHi) + 'cm / 最低 ' + Math.round(dLo) + 'cm / 干満差 ' + Math.round(dHi - dLo) + 'cm'
+          : '—',
+        dateWeight: cur ? 700 : 400,
+        headBg: cur ? 'rgba(176,106,63,.09)' : 'transparent',
+        headLine: cur ? 'rgba(176,106,63,.35)' : 'rgba(60,50,35,.14)',
+        onClick: this.setOffset(x.o),
+        // 週/月では日数ぶん縦に並ぶので少し詰める
+        gridCls: multiDay ? 'tdgrid sm' : 'tdgrid',
+      };
+    });
+
+    const dF = new Date(dRange.from), dT = new Date(dRange.to);
+    const detailLabel = dMode === 'month'
+      ? dF.getUTCFullYear() + '年' + (dF.getUTCMonth() + 1) + '月'
+      : dMode === 'week'
+        ? (dF.getUTCMonth() + 1) + '/' + dF.getUTCDate() + ' – ' + (dT.getUTCMonth() + 1) + '/' + dT.getUTCDate()
+        : (dF.getUTCMonth() + 1) + '/' + dF.getUTCDate();
 
     // ----- 気象・海象 (Open-Meteo の実データ。取れなければ空欄) -----
     const wx = getCachedWeather(st, dayMs);
@@ -798,7 +951,23 @@ class Component extends DCLogic {
       minText: hasTide ? Math.round(minLo) + 'cm' : dash,
       rangeText: hasTide ? Math.round(maxHi - minLo) + 'cm' : dash,
       highTides, lowTides,
-      gridCells, gridGradient, gridLo, gridHi,
+
+      hasDetail, detailDays, detailLabel,
+      gridGradient, gridLo, gridHi,
+      detailTitleEn: dMode === 'month' ? 'Tide Heights · 10-min · Monthly'
+        : dMode === 'week' ? 'Tide Heights · 10-min · 7-Day'
+          : 'Tide Heights · 10-min · cm',
+      detailScaleNote: multiDay ? '（期間全体で共通のスケール）' : '',
+      setDetailDay: this.setDetail('day'),
+      setDetailWeek: this.setDetail('week'),
+      setDetailMonth: this.setDetail('month'),
+      prevDetail: this.shiftBy(dMode, -1), nextDetail: this.shiftBy(dMode, 1),
+      dayBtnBg: dMode === 'day' ? '#b06a3f' : 'transparent',
+      dayBtnColor: dMode === 'day' ? '#fff' : '#6b6357',
+      dWeekBtnBg: dMode === 'week' ? '#b06a3f' : 'transparent',
+      dWeekBtnColor: dMode === 'week' ? '#fff' : '#6b6357',
+      dMonthBtnBg: dMode === 'month' ? '#b06a3f' : 'transparent',
+      dMonthBtnColor: dMode === 'month' ? '#fff' : '#6b6357',
 
       sunrise: fmtHM(dd.sunrise), sunset: fmtHM(dd.sunset), dayLen: fmtDur(dd.sunset - dd.sunrise),
       moonrise: fmtHM(dd.moonrise), moonset: fmtHM(dd.moonset), moonculm: fmtHM(dd.moonculm),
@@ -826,7 +995,8 @@ class Component extends DCLogic {
       periodTitle: isMonth ? '月間潮汐' : '週間潮汐',
       periodTitleEn: isMonth ? 'Monthly' : '7-Day',
       setWeek: this.setRange('week'), setMonth: this.setRange('month'),
-      prevPeriod: this.shiftPeriod(-1), nextPeriod: this.shiftPeriod(1),
+      prevPeriod: this.shiftBy(this.state.rangeMode, -1),
+      nextPeriod: this.shiftBy(this.state.rangeMode, 1),
       weekBtnBg: isMonth ? 'transparent' : '#b06a3f',
       weekBtnColor: isMonth ? '#6b6357' : '#fff',
       monthBtnBg: isMonth ? '#b06a3f' : 'transparent',
