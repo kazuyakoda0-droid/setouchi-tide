@@ -257,7 +257,7 @@
             <div style="margin-top:9px;font-family:'DM Mono',monospace;font-size:10px;color:#a99e8c">行=時 / 列=分。セル濃淡は潮位の高低。<span style="color:#b06a3f">枠</span>=現在時刻。</div>
           </sc-if>
 
-          <!-- ---- 1週間 / 1か月: 満潮・干潮の一覧 ---- -->
+          <!-- ---- 1週間: 満潮・干潮の一覧 ---- -->
           <sc-if value="{{ showTable }}" hint-placeholder-val="{{ false }}">
             <div style="border:1px solid rgba(60,50,35,.12);border-radius:2px;overflow:hidden">
               <div style="display:grid;grid-template-columns:96px 62px 1fr 1fr 56px;padding:9px 14px;background:#efe9dc;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;color:#8a8073;text-transform:uppercase">
@@ -285,6 +285,31 @@
               </sc-for>
             </div>
             <div style="margin-top:9px;font-family:'DM Mono',monospace;font-size:10px;color:#a99e8c">行をクリックするとその日を選択します。<span style="color:#b06a3f">橙</span>=選択中の日。</div>
+          </sc-if>
+
+          <!-- ---- 1か月: カレンダー ---- -->
+          <sc-if value="{{ showCalendar }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:rgba(60,50,35,.12);border:1px solid rgba(60,50,35,.12);border-radius:2px;overflow:hidden">
+              <sc-for list="{{ calHead }}" as="h" hint-placeholder-count="7">
+                <div style="background:#efe9dc;text-align:center;padding:6px 0;font-family:'Zen Kaku Gothic New',sans-serif;font-size:11px;font-weight:500;color:{{ h.color }}">{{ h.name }}</div>
+              </sc-for>
+              <sc-for list="{{ calCells }}" as="c" hint-placeholder-count="35">
+                <div onClick="{{ c.onClick }}" style="background:{{ c.bg }};min-height:76px;padding:4px 5px 5px;cursor:{{ c.cursor }};box-shadow:{{ c.ring }}" style-hover="background:#efe9dc">
+                  <sc-if value="{{ c.isDay }}" hint-placeholder-val="{{ true }}">
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:3px">
+                      <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:{{ c.dateWeight }};color:{{ c.dateColor }}">{{ c.date }}</span>
+                      <span style="font-family:'Zen Old Mincho',serif;font-size:9.5px;color:{{ c.shioColor }}">{{ c.shio }}</span>
+                    </div>
+                    <div style="margin-top:3px;display:flex;flex-direction:column;gap:1px">
+                      <sc-for list="{{ c.tides }}" as="e" hint-placeholder-count="4">
+                        <div style="display:flex;justify-content:space-between;gap:2px;font-family:'DM Mono',monospace;font-size:9.5px;line-height:1.35;color:{{ e.color }}"><span>{{ e.t }}</span><span style="color:#6b6357">{{ e.v }}</span></div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+            <div style="margin-top:9px;font-family:'DM Mono',monospace;font-size:10px;color:#a99e8c"><span style="color:{{ accent }}">▲</span>満潮 <span style="color:#b06a3f">▼</span>干潮（単位 cm）。日付をクリックするとその日を選択します。</div>
           </sc-if>
 
           <!-- ---- 1日で潮位が取れないとき ---- -->
@@ -734,17 +759,23 @@ class Component extends DCLogic {
       gridLo = Math.round(lo) + 'cm'; gridHi = Math.round(hi) + 'cm';
     }
 
-    // --- 1週間 / 1か月: 満潮・干潮の一覧 ---
-    // 選択日は上のグラフと同じデータを使い、それ以外の日はキャッシュ済みの
-    // 気象庁データだけを読む(31日ぶん調和計算を回すと重いため)。
+    // 1日分の満干潮を取り出す。選択日は上のグラフと同じデータを使い、
+    // それ以外の日はキャッシュ済みの気象庁データだけを読む
+    // (31日ぶん調和計算を回すと重いため)。
+    const extremesOf = (ms, o) => {
+      const src = (o === off && hasTide) ? tide : getCachedTide(st, ms);
+      return (src && src.extremes) ? src.extremes.slice().sort((a, b) => a.time - b.time) : [];
+    };
+    const tidePending = !this.state.tideError;
+
+    // --- 1週間: 満潮・干潮の一覧 ---
     const tableRows = [];
-    if (!isDay) {
-      const pending = !this.state.tideError;
+    if (vMode === 'week') {
+      const pending = tidePending;
       for (let ms = vRange.from; ms <= vRange.to; ms += DAY_MS) {
         const o = msToOffset(ms);
         const wdd = celestialData(st, o);
-        const src = (o === off && hasTide) ? tide : getCachedTide(st, ms);
-        const rEx = (src && src.extremes) ? src.extremes : [];
+        const rEx = extremesOf(ms, o);
         const fmt = (list, color) => list.length
           ? list.sort((a, b) => a.time - b.time)
               .map(e => ({ txt: fmtHM(e.time) + '　' + Math.round(e.level) + 'cm', color }))
@@ -761,6 +792,55 @@ class Component extends DCLogic {
           age: wdd.age.toFixed(1),
           rowBg: cur ? 'rgba(176,106,63,.09)' : 'transparent',
           dateWeight: cur ? 700 : 400,
+          onClick: this.setOffset(o),
+        });
+      }
+    }
+
+    // --- 1か月: カレンダー(7列 × 5〜6行) ---
+    // 一覧を31行並べると縦に長くなりすぎるため、月表示だけはカレンダーにする。
+    // 行数は月によって5行にも6行にもなるので、必要な分だけ描く。
+    const calHead = [];
+    const calCells = [];
+    if (vMode === 'month') {
+      const WD_COLOR = i => (i === 0 ? '#b04a3f' : (i === 6 ? '#2b5d7a' : '#8a8073'));
+      WD.forEach((n, i) => calHead.push({ name: n, color: WD_COLOR(i) }));
+
+      const firstWd = new Date(vRange.from).getUTCDay();
+      const dayCount = Math.round((vRange.to - vRange.from) / DAY_MS) + 1;
+      const rows = Math.ceil((firstWd + dayCount) / 7);
+      const blank = { isDay: false, bg: '#f0ece2', cursor: 'default', ring: 'none', tides: [] };
+
+      for (let i = 0; i < rows * 7; i++) {
+        const dayNo = i - firstWd + 1;
+        if (dayNo < 1 || dayNo > dayCount) { calCells.push(blank); continue; }
+        const ms = vRange.from + (dayNo - 1) * DAY_MS;
+        const o = msToOffset(ms);
+        const wdd = celestialData(st, o);
+        const rEx = extremesOf(ms, o);
+        const cur = (o === off);
+        const isToday = (o === 0);
+        const tides = rEx.length
+          ? rEx.map(e => {
+              const isHigh = e.type === '満潮';
+              return {
+                t: (isHigh ? '▲' : '▼') + fmtHM(e.time),
+                v: String(Math.round(e.level)),
+                color: isHigh ? accent : '#b06a3f',
+              };
+            })
+          : [{ t: tidePending ? '取得中' : '—', v: '', color: '#a99e8c' }];
+        calCells.push({
+          isDay: true,
+          date: String(wdd.Da),
+          dateColor: isToday ? '#b06a3f' : (i % 7 === 0 ? '#b04a3f' : (i % 7 === 6 ? '#2b5d7a' : '#2b2620')),
+          dateWeight: (cur || isToday) ? 700 : 500,
+          shio: wdd.shio,
+          shioColor: wdd.shio === '大潮' ? '#b06a3f' : (wdd.shio === '小潮' ? '#2b5d7a' : '#a99e8c'),
+          tides,
+          bg: cur ? 'rgba(176,106,63,.14)' : '#fbfaf5',
+          ring: cur ? 'inset 0 0 0 2px #b06a3f' : 'none',
+          cursor: 'pointer',
           onClick: this.setOffset(o),
         });
       }
@@ -877,7 +957,9 @@ class Component extends DCLogic {
       // 潮汐エリア (1日 / 1週間 / 1か月)
       showGrid: isDay && hasTide,
       showGridEmpty: isDay && !hasTide,
-      showTable: !isDay,
+      showTable: vMode === 'week',
+      showCalendar: vMode === 'month',
+      calHead, calCells,
       gridCells, gridGradient, gridLo, gridHi,
       tableRows, viewLabel,
       viewTitle: isDay ? '10分毎潮位' : (vMode === 'month' ? '月間潮汐' : '週間潮汐'),
