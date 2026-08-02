@@ -7,6 +7,7 @@
      1. 現在時刻の潮位マーカー（当日ページのみ）
      2. 気象・海象の取得（Open-Meteo。刻々変わるので静的化しない）
      3. 地図（トップ・地方・都道府県ページのみ）
+     4. 表のコピー / CSV 書き出し
 
    JS が動かなくてもページの中身は完全に読める。これが検索エンジンに
    内容を渡す唯一の方法であり、旧版が取りこぼしていた点でもある。
@@ -255,6 +256,266 @@
     map.on('click', function () { map.scrollWheelZoom.enable(); });
   }
 
+  // -------------------------------------------------------------------
+  // 4. 表のコピー / CSV 書き出し
+  //
+  // 潮見表は「表計算ソフトに持っていって自分で加工したい」という需要が
+  // 大きい。ビルド時に .csv を1万ページぶん吐く手もあるが、配信物が
+  // 20MB 以上ふくらむ割に大半はダウンロードされない。画面に出ている表を
+  // その場で組み立てるほうが、追加コスト0でどのページでも同じように効く。
+  // -------------------------------------------------------------------
+
+  // 要素のテキスト。<br> は区切りとして残す。
+  // 週間表のセルは「05:12 <small>340</small><br>17:30 <small>210</small>」なので、
+  // textContent をそのまま取ると "05:12 34017:30 210" と癒着して読めなくなる。
+  function txt(el) {
+    if (!el) return '';
+    var out = '';
+    (function walk(n) {
+      for (var c = n.firstChild; c; c = c.nextSibling) {
+        if (c.nodeType === 3) out += c.nodeValue;
+        else if (c.nodeType === 1) {
+          if (c.tagName === 'BR') out += ' / ';
+          else walk(c);
+        }
+      }
+    })(el);
+    return out.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  function num(s) {
+    var m = /-?\d+(?:\.\d+)?/.exec(s || '');
+    return m ? m[0] : '';
+  }
+
+  // 「05:12 340 / 17:30 210」→ [['05:12','340'], ['17:30','210']]
+  // 区切りに \D* ではなく [^\d-]* を使うのは、潮位が負値(-5cm)のとき
+  // \D* が先にマイナス記号を食べてしまい "5" と読めてしまうため。
+  function pairs(s) {
+    var out = [], re = /(\d{1,2}:\d{2})[^\d-]*(-?\d+)/g, m;
+    while ((m = re.exec(s))) out.push([m[1], m[2]]);
+    return out;
+  }
+
+  function liText(el, sel) {
+    return Array.prototype.map.call(el.querySelectorAll(sel), function (n) { return txt(n); }).join(' / ');
+  }
+
+  // 満潮・干潮は日によって本数が変わる（1〜3回）。セル内で改行して
+  // 詰め込むと表計算側で分解できないので、その月・その週の最大本数に
+  // 合わせて「満潮1時刻 / 満潮1潮位cm / 満潮2時刻 …」と桁を開く。
+  function expand(headLead, headTail, recs) {
+    var mh = 0, ml = 0, i;
+    recs.forEach(function (r) {
+      if (r.h.length > mh) mh = r.h.length;
+      if (r.l.length > ml) ml = r.l.length;
+    });
+    var hd = headLead.slice();
+    for (i = 0; i < mh; i++) hd.push('満潮' + (i + 1) + '時刻', '満潮' + (i + 1) + '潮位cm');
+    for (i = 0; i < ml; i++) hd.push('干潮' + (i + 1) + '時刻', '干潮' + (i + 1) + '潮位cm');
+    var out = [hd.concat(headTail)];
+    recs.forEach(function (r) {
+      var row = r.lead.slice();
+      for (i = 0; i < mh; i++) row.push(r.h[i] ? r.h[i][0] : '', r.h[i] ? r.h[i][1] : '');
+      for (i = 0; i < ml; i++) row.push(r.l[i] ? r.l[i][0] : '', r.l[i] ? r.l[i][1] : '');
+      out.push(row.concat(r.tail));
+    });
+    return out;
+  }
+
+  // 満潮・干潮の一覧
+  function extExtract(t) {
+    var rows = [['区分', '時刻', '潮位cm']];
+    Array.prototype.forEach.call(t.tBodies[0].rows, function (tr) {
+      rows.push([
+        txt(tr.cells[0]).replace(/[▲▼\s]/g, ''),
+        txt(tr.cells[1]),
+        num(txt(tr.cells[2])),
+      ]);
+    });
+    return rows;
+  }
+
+  // 10分毎グリッド。画面は 24行×6列だが、書き出しは1行1時刻の縦持ちにする。
+  // 表計算でグラフを描いたり関数をかけたりするには横持ちだと使えない。
+  function gridExtract(g) {
+    var c = g.children, date = pageDate(), rows = [['日付', '時刻', '潮位cm']];
+    for (var h = 0; h < 24; h++) {
+      for (var k = 0; k < 6; k++) {
+        // 先頭7セルはヘッダー行。以降は 1時間あたり 1(時ラベル) + 6(値)。
+        var cell = c[7 + h * 7 + 1 + k];
+        if (!cell) continue;
+        rows.push([date, pad2(h) + ':' + pad2(k * 10), txt(cell)]);
+      }
+    }
+    return rows;
+  }
+
+  function pageDate() {
+    var w = document.querySelector('[data-wx]');
+    return (w && w.dataset.date) || '';
+  }
+
+  function weekExtract(t) {
+    var recs = [];
+    Array.prototype.forEach.call(t.tBodies[0].rows, function (tr) {
+      // 見出しセルは「8/2 土」。年が入らないので日別ページへのリンクから拾う。
+      var a = tr.cells[0].querySelector('a');
+      var m = a && /(\d{4}-\d{2}-\d{2})/.exec(decodeURIComponent(a.getAttribute('href') || ''));
+      recs.push({
+        lead: [m ? m[1] : txt(tr.cells[0]), txt(tr.cells[0].querySelector('.wd')), txt(tr.cells[1])],
+        h: pairs(txt(tr.cells[2])),
+        l: pairs(txt(tr.cells[3])),
+        tail: [txt(tr.cells[4])],
+      });
+    });
+    return expand(['日付', '曜日', '潮名'], ['月齢'], recs);
+  }
+
+  function prefExtract(t) {
+    var recs = [];
+    Array.prototype.forEach.call(t.tBodies[0].rows, function (tr) {
+      recs.push({
+        lead: [txt(tr.cells[0]), txt(tr.cells[1])],
+        h: pairs(txt(tr.cells[2])),
+        l: pairs(txt(tr.cells[3])),
+        tail: [num(txt(tr.cells[4]))],
+      });
+    });
+    return expand(['地点', '潮名'], ['干満差cm'], recs);
+  }
+
+  function calExtract(cal) {
+    // カレンダーのセルには日だけしか出ていないので、年月は URL から取る。
+    var ym = /(\d{4}-\d{2})(?:\/|$)/.exec(decodeURIComponent(location.pathname));
+    var recs = [];
+    Array.prototype.forEach.call(cal.querySelectorAll('.cal-cell'), function (c) {
+      var d = c.querySelector('.cal-d');
+      if (!d) return;
+      var dd = pad2(txt(d));
+      recs.push({
+        lead: [ym ? ym[1] + '-' + dd : dd, txt(c.querySelector('.cal-w')), txt(c.querySelector('.cal-s'))],
+        h: pairs(liText(c, 'li.h')),
+        l: pairs(liText(c, 'li.l')),
+        tail: [],
+      });
+    });
+    return expand(['日付', '曜日', '潮名'], [], recs);
+  }
+
+  // [セレクタ, 名前, 抽出関数, ボタンを差し込む位置(祖先セレクタ), 形の補足]
+  var TABLES = [
+    ['table.ext', '満干潮', extExtract, null, ''],
+    ['.tdgrid', '10分毎潮位', gridExtract, null,
+      '画面は24行×6列ですが、書き出しは1行1時刻（日付・時刻・潮位cm）の形になります。'],
+    ['table.week', '週間', weekExtract, '.tw',
+      '満潮・干潮は「満潮1時刻・満潮1潮位cm・満潮2時刻…」と列に開いて書き出します。'],
+    ['table.prefsum', '地点別', prefExtract, '.tw',
+      '満潮・干潮は「満潮1時刻・満潮1潮位cm・満潮2時刻…」と列に開いて書き出します。'],
+    ['.cal', '月間', calExtract, null,
+      '満潮・干潮は「満潮1時刻・満潮1潮位cm・満潮2時刻…」と列に開いて書き出します。'],
+  ];
+
+  function csvField(v) {
+    var s = String(v == null ? '' : v);
+    return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+  function toCSV(rows) {
+    return rows.map(function (r) { return r.map(csvField).join(','); }).join('\r\n');
+  }
+  function toTSV(rows) {
+    // 貼り付け用。セル内にタブや改行が混じると列がずれるので潰す。
+    return rows.map(function (r) {
+      return r.map(function (v) {
+        return String(v == null ? '' : v).replace(/[\t\r\n]+/g, ' ');
+      }).join('\t');
+    }).join('\r\n');
+  }
+
+  function legacyCopy(text) {
+    // navigator.clipboard は https / localhost でしか使えない。
+    // 素の http で開かれた場合のための代替。
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:0;left:-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    return ok;
+  }
+
+  function copy(text, btn) {
+    var done = function (ok) {
+      btn.textContent = ok ? 'コピーしました' : 'コピーできません';
+      btn.className = 'tbtn' + (ok ? ' ok' : '');
+      setTimeout(function () { btn.textContent = 'コピー'; btn.className = 'tbtn'; }, 1800);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        function () { done(true); },
+        function () { done(legacyCopy(text)); });
+    } else {
+      done(legacyCopy(text));
+    }
+  }
+
+  function download(text, name) {
+    // 先頭の BOM は必須。これが無いと Excel は UTF-8 の CSV を Shift_JIS と
+    // 誤認し、地点名も見出しもすべて文字化けする。
+    var url = URL.createObjectURL(new Blob(['\ufeff' + text], { type: 'text/csv;charset=utf-8' }));
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  function fileName(name) {
+    var base = (document.body.dataset.file || 'tide').replace(/[\\/:*?"<>|]/g, '');
+    return base + '_' + name + '.csv';
+  }
+
+  function bar(name, build, el, hint) {
+    var d = document.createElement('div');
+    d.className = 'tbar';
+
+    var b1 = document.createElement('button');
+    b1.type = 'button';
+    b1.className = 'tbtn';
+    b1.textContent = 'コピー';
+    b1.title = name + 'の表をタブ区切りでコピーします。Excel やスプレッドシートにそのまま貼れます。' + hint;
+    b1.setAttribute('aria-label', name + 'の表をコピー');
+    b1.addEventListener('click', function () { copy(toTSV(build(el)), b1); });
+
+    var b2 = document.createElement('button');
+    b2.type = 'button';
+    b2.className = 'tbtn';
+    b2.textContent = 'CSV';
+    b2.title = name + 'の表を CSV ファイルとして保存します。' + hint;
+    b2.setAttribute('aria-label', name + 'の表を CSV で保存');
+    b2.addEventListener('click', function () { download(toCSV(build(el)), fileName(name)); });
+
+    d.appendChild(b1);
+    d.appendChild(b2);
+    return d;
+  }
+
+  // ボタンは HTML に埋め込まず JS で差し込む。JS が動かない環境で
+  // 押しても何も起きないボタンが残るのを避けるため。
+  function tables() {
+    TABLES.forEach(function (spec) {
+      Array.prototype.forEach.call(document.querySelectorAll(spec[0]), function (el) {
+        var anchor = spec[3] ? (el.closest(spec[3]) || el) : el;
+        anchor.parentNode.insertBefore(bar(spec[1], spec[2], el, spec[4]), anchor);
+      });
+    });
+  }
+
   // 例外は握り潰さずコンソールに出す。1つの機能が落ちても他は動かしたいので
   // 個別に囲うが、黙って消すと地図が真っ白でも気づけない。
   function run(name, fn) {
@@ -265,6 +526,7 @@
     run('currentTide', currentTide);
     run('weather', weather);
     run('maps', maps);
+    run('tables', tables);
   }
 
   if (document.readyState === 'loading') {
