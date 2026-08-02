@@ -403,8 +403,17 @@ ul.feat li { margin-bottom: 6px; }
    スマホは1カラム。DOM 順は「潮汐 → 地図」で、スクロールして最初に
    出るのが満潮・干潮の数字になるようにしてある。PC でだけ order で
    地図を左へ回す。 */
-.split { display: grid; gap: 16px; margin: 14px 0; }
+/* 1カラムのときも列を minmax(0,1fr) にしておく。既定の auto 列は
+   中身の min-content より狭くなれないので、min-width:340px を持つ
+   都道府県の一覧表が入ると列ごと 340px に広がり、本文の余白を
+   食って右へはみ出す。0 を下限にすれば表は .tw の中で横スクロールする。 */
+.split { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin: 14px 0; }
+.split-info, .split-map { min-width: 0; }
 .split-info > .now:first-child, .split-info > .blk:first-child { margin-top: 0; }
+/* 左右どちらの列も見出し（.blk-hd）から始まるので、見出しの下の中身が
+   同じ高さで揃う。地図側だけ見出しが無いと、地図の上端が右の見出しと
+   並んでしまい、一覧の開始位置と49pxずれる。 */
+.split-map > .blk { margin: 0; }
 .split-map .map { height: 260px; }
 .split-map .map.tall { height: 320px; }
 .split-map .note { margin-top: 6px; }
@@ -459,7 +468,15 @@ ul.feat li { margin-bottom: 6px; }
      右側の表と丈が合わず、片方だけ余白が余った見た目になる。 */
   .split { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 20px; align-items: stretch; }
   .split-map { order: -1; display: flex; flex-direction: column; }
+  /* 見出しを挟んでも地図が列の高さいっぱいまで伸びるよう、
+     section 自体も縦のフレックスにして地図に余りを渡す。 */
+  .split-map > .blk { flex: 1 1 auto; display: flex; flex-direction: column; }
   .split-map .map, .split-map .map.tall { flex: 1 1 auto; height: auto; min-height: 280px; }
+
+  /* 右が「地方名 + 地点数」だけの短い一覧のページ（トップ）は、
+     右に余白が余るぶんを地図へ回す。5:6 のままだと地図365px・
+     一覧439pxで、文字が2語しか無い側のほうが広くなってしまう。 */
+  .split.wide-map { grid-template-columns: minmax(0, 7fr) minmax(0, 4fr); }
 
   /* 右カラムが長い一覧のページ（都道府県ページ）は、地図を貼り付けて
      追従させる。伸ばすと一覧の丈に合わせて地図が間延びしてしまう
