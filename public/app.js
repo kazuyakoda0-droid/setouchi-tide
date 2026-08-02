@@ -144,18 +144,27 @@
     // 先に fitBounds でビューを確定させてからマーカーを載せる。
     // 順序を逆にすると例外になり、地図はタイルだけが出て点が1つも描かれない。
     var bounds = pts.map(function (p) { return [p.la, p.lo]; });
-    map.fitBounds(bounds, { padding: [24, 24] });
+    // 地点ページは自分＋近隣6点しか載らない。密集した瀬戸内では
+    // fitBounds が z16 まで寄ってしまい、海岸線しか映らなくなる。
+    // data-fit-max があるときは寄せすぎを止める。
+    var fitMax = Number(el.dataset.fitMax) || 0;
+    map.fitBounds(bounds, fitMax ? { padding: [24, 24], maxZoom: fitMax } : { padding: [24, 24] });
 
     pts.forEach(function (p) {
-      var m = L.circleMarker([p.la, p.lo], {
+      // p.c = このページの地点。近隣と同じ見た目だとどれが自分か分からない。
+      var m = L.circleMarker([p.la, p.lo], p.c ? {
+        radius: 8, color: '#b06a3f', weight: 3,
+        fillColor: '#b06a3f', fillOpacity: .9,
+      } : {
         radius: 5,
         color: p.o ? '#2b5d7a' : '#a99e8c',
         weight: p.o ? 2 : 1.5,
         fillColor: p.o ? '#2b5d7a' : '#fbfaf5',
         fillOpacity: p.o ? .85 : 1,
       }).addTo(map);
-      m.bindTooltip(p.n, { direction: 'top', className: 'tdtip' });
-      m.on('click', function () { location.href = p.h; });
+      // 自分の点は常時ラベルを出す。近隣はホバー時だけ出し、押すと移動する。
+      m.bindTooltip(p.n, { direction: 'top', className: 'tdtip', permanent: !!p.c });
+      if (!p.c) m.on('click', function () { location.href = p.h; });
     });
 
     // ホイールでそのまま拡大縮小できるようにしてある。ただし常時有効に
@@ -173,6 +182,17 @@
       clearTimeout(reenable);
       reenable = setTimeout(function () { map.scrollWheelZoom.enable(); }, 300);
     }, { passive: true });
+
+    // 地点ページの地図は grid の伸縮で高さが決まる。Leaflet は初期化時の
+    // 寸法を覚えるので、レイアウトが確定したあとに測り直させないと
+    // タイルが欠けたり中心がずれたりする。
+    var resized = null;
+    var remeasure = function () { map.invalidateSize({ animate: false }); };
+    window.addEventListener('load', remeasure);
+    window.addEventListener('resize', function () {
+      clearTimeout(resized);
+      resized = setTimeout(remeasure, 200);
+    });
   }
 
   // -------------------------------------------------------------------

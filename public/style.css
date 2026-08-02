@@ -397,6 +397,15 @@ ul.feat li { margin-bottom: 6px; }
 .map.tall { height: 420px; }
 .leaflet-container { font-family: var(--sans); }
 
+/* ---------- 地点ページの主役ブロック（地図 + 潮汐） ----------
+   スマホは1カラム。DOM 順は「潮汐 → 地図」で、スクロールして最初に
+   出るのが満潮・干潮の数字になるようにしてある。PC でだけ order で
+   地図を左へ回す。 */
+.split { display: grid; gap: 16px; margin: 14px 0; }
+.split-info > .now:first-child { margin-top: 0; }
+.split-map .map { height: 260px; }
+.split-map .note { margin-top: 6px; }
+
 /* ---------- 表の書き出しボタン（JS が表の直前に差し込む） ---------- */
 .tbar { display: flex; justify-content: flex-end; gap: 6px; margin: 0 0 7px; }
 .tbtn {
@@ -441,6 +450,13 @@ ul.feat li { margin-bottom: 6px; }
    ===================================================================== */
 @media (min-width: 900px) {
   main { max-width: 880px; }
+
+  /* 地点ページ: 左に地図、右に潮汐。DOM は潮汐が先なので order で入れ替える。
+     地図は grid の行高（＝潮汐側の高さ）いっぱいまで伸ばす。高さを固定すると
+     右側の表と丈が合わず、片方だけ余白が余った見た目になる。 */
+  .split { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 20px; align-items: stretch; }
+  .split-map { order: -1; display: flex; flex-direction: column; }
+  .split-map .map { flex: 1 1 auto; height: auto; min-height: 280px; }
 }
 
 /* =====================================================================
