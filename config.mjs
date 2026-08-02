@@ -1,25 +1,27 @@
 // =====================================================================
 // サイト設定
 //
-// 独自ドメインを取得したら ORIGIN と BASE を書き換えるだけで移行できる。
+// ドメインを移すときは ORIGIN と CNAME を書き換えるだけでよい。
 // 生成される HTML 内のリンクはすべて BASE 起点の絶対パスなので、
 // ここ以外を触る必要はない。
 // =====================================================================
 
 export const SITE = {
   // ---- ドメイン -----------------------------------------------------
-  // GitHub Pages のプロジェクトページは <user>.github.io/<repo>/ に載るため
-  // BASE にリポジトリ名が必要。独自ドメインに移すときは
-  //   ORIGIN: 'https://example.jp'
-  //   BASE:   ''
-  // にして、public/CNAME を作る(下の CNAME を設定すれば自動生成される)。
-  // 環境変数で上書きできる。ローカルプレビューは SITE_BASE=/ で
-  // ルート配信にすると、そのまま http://localhost:PORT/ で確認できる。
-  ORIGIN: process.env.SITE_ORIGIN || 'https://kazuyakoda0-droid.github.io',
+  // 独自ドメイン japantide.com を apex で運用している。よって BASE は空。
+  // CNAME を入れてあるので dist/CNAME が生成され、Actions デプロイでも
+  // GitHub Pages のカスタムドメイン設定が失われない。
+  //
+  // GitHub Pages のプロジェクトページ配下に戻す場合は
+  //   ORIGIN: 'https://kazuyakoda0-droid.github.io'
+  //   BASE:   '/setouchi-tide'
+  //   CNAME:  ''
+  // にする。いずれも環境変数で上書きできる。
+  ORIGIN: process.env.SITE_ORIGIN || 'https://japantide.com',
   BASE: process.env.SITE_BASE !== undefined
     ? (process.env.SITE_BASE === '/' ? '' : process.env.SITE_BASE.replace(/\/$/, ''))
-    : '/setouchi-tide',
-  CNAME: process.env.SITE_CNAME || '',   // 例: 'tide-atlas.jp'。空なら CNAME を作らない
+    : '',
+  CNAME: process.env.SITE_CNAME || 'japantide.com',
 
   NAME: '全国タイド',
   NAME_EN: 'JAPAN TIDE ATLAS',
