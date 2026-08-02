@@ -25,6 +25,7 @@ import {
 import { paths, pref, region, regionOf, prefStations, regionPrefs, regionStationCount, stationSlug, validateStations } from './lib/routes.mjs';
 import {
   stationPage, dayPage, weekPage, monthPage, prefPage, regionPage, homePage, aboutPage,
+  privacyPage,
 } from './lib/pages.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -299,6 +300,7 @@ write(paths.home(), homePage({
 }), { changefreq: 'daily', priority: 1.0 });
 
 write(url('about'), aboutPage(), { changefreq: 'monthly', priority: 0.3 });
+write(url('privacy'), privacyPage(), { changefreq: 'monthly', priority: 0.3 });
 
 // ---- sitemap / robots ----------------------------------------------
 writeSitemaps();
