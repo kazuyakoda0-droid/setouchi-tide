@@ -1,0 +1,426 @@
+/* =====================================================================
+   全国タイド
+   モバイルファースト。既存アプリのデザイン言語(明朝体 × 等幅、#f4f1ea 基調、
+   弁柄 #b06a3f と藍 #2b5d7a)はそのまま維持している。
+
+   旧版は @media が1つも無く、375px で左カラム165px・地図128px に潰れていた。
+   ここでは 1カラムを基本とし、700px / 1080px で段階的に広げる。
+   ===================================================================== */
+
+:root {
+  --bg: #f4f1ea;
+  --panel: #fbfaf5;
+  --ink: #2b2620;
+  --ink2: #4a4034;
+  --mut: #6b6357;
+  --dim: #8a8073;
+  --faint: #a99e8c;
+  --line: rgba(60, 50, 35, .16);
+  --line2: rgba(60, 50, 35, .08);
+  --warm: #b06a3f;
+  --warm-d: #8f5430;
+  --blue: #2b5d7a;
+  --red: #b04a3f;
+  --serif: 'Zen Old Mincho', 'Yu Mincho', serif;
+  --sans: 'Zen Kaku Gothic New', system-ui, sans-serif;
+  --mono: 'DM Mono', ui-monospace, monospace;
+  --pad: 16px;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+::selection { background: rgba(43, 93, 122, .18); }
+
+.sr {
+  position: absolute; width: 1px; height: 1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+/* ---------- ヘッダー / フッター ---------- */
+header.site {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+  padding: 10px var(--pad);
+  background: rgba(244, 241, 234, .94);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+.brand { display: flex; align-items: center; gap: 8px; color: var(--ink); }
+.brand:hover { text-decoration: none; }
+.brand-ja { font-family: var(--serif); font-weight: 600; font-size: 18px; letter-spacing: .04em; }
+.brand-en {
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--dim); display: none;
+}
+.site-nav a { font-size: 13px; color: var(--mut); }
+
+footer.site {
+  margin-top: 48px; padding: 24px var(--pad) 40px;
+  border-top: 1px solid var(--line);
+  font-size: 12.5px; color: var(--mut); line-height: 1.75;
+}
+footer.site p { margin: 0 0 8px; }
+.foot-nav { display: flex; gap: 18px; margin: 16px 0 8px; }
+.copy { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+
+main { padding: 0 var(--pad); max-width: 780px; margin: 0 auto; }
+
+/* ---------- パンくず ---------- */
+.crumb { margin: 12px 0 4px; font-size: 12px; color: var(--dim); }
+.crumb ol { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; }
+.crumb li + li::before { content: '›'; margin-right: 6px; color: var(--faint); }
+.crumb a { color: var(--mut); }
+
+/* ---------- 見出し ---------- */
+.st-hd { margin: 12px 0 20px; }
+.st-eyebrow { margin: 0 0 6px; font-size: 12px; color: var(--dim); }
+.st-hd h1 {
+  font-family: var(--serif); font-weight: 600;
+  font-size: clamp(22px, 6.2vw, 32px); line-height: 1.3;
+  letter-spacing: .02em; margin: 0;
+}
+.st-hd .kana { margin: 4px 0 0; font-size: 12.5px; color: var(--dim); }
+.st-hd .meta { margin: 10px 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12px; color: var(--mut); }
+.coord { font-family: var(--mono); font-size: 12px; letter-spacing: .03em; }
+.wd { font-size: .82em; }
+
+.home-hd { margin: 20px 0 24px; }
+.home-hd h1 { font-family: var(--serif); font-size: clamp(26px, 7vw, 38px); margin: 0; letter-spacing: .03em; }
+.home-hd h1 .en {
+  display: block; font-family: var(--mono); font-size: 11px;
+  letter-spacing: .18em; color: var(--dim); margin-top: 6px; text-transform: uppercase;
+}
+.home-hd .lede { font-size: 14.5px; color: var(--ink2); margin: 14px 0 6px; }
+.home-hd .meta { font-family: var(--mono); font-size: 12px; color: var(--dim); margin: 0; }
+
+.badge {
+  font-size: 10.5px; padding: 2px 7px; border-radius: 3px;
+  border: 1px solid var(--line); color: var(--mut); white-space: nowrap;
+}
+.badge.off { border-color: rgba(43, 93, 122, .35); color: var(--blue); }
+.badge.apx { border-color: rgba(107, 99, 87, .3); color: var(--dim); }
+.badge.today { background: var(--warm); border-color: var(--warm); color: #fff; }
+
+.shio {
+  font-family: var(--serif); font-size: 14px; font-weight: 600;
+  letter-spacing: .06em; padding: 3px 11px; border-radius: 3px; border: 1px solid;
+  white-space: nowrap;
+}
+
+/* ---------- タブ / ページャ ---------- */
+.tabs { display: flex; gap: 6px; margin: 18px 0 14px; }
+.tab {
+  flex: 1; text-align: center; padding: 9px 4px;
+  font-size: 13.5px; border: 1px solid var(--line); border-radius: 3px;
+  background: var(--panel); color: var(--mut);
+}
+.tab:hover { text-decoration: none; background: #efe9dc; }
+.tab.on { background: var(--ink); border-color: var(--ink); color: var(--bg); font-weight: 500; }
+
+.pager {
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+  gap: 8px; margin: 14px 0;
+}
+.pg {
+  padding: 8px 10px; border: 1px solid var(--line); border-radius: 3px;
+  background: var(--panel); font-family: var(--mono); font-size: 13px;
+  text-align: center; color: var(--ink2);
+}
+.pg.prev { justify-self: start; }
+.pg.next { justify-self: end; }
+.pg.cur { border: 0; background: none; font-family: var(--serif); font-size: 17px; }
+.pg.off { visibility: hidden; }
+.pg:hover { text-decoration: none; background: #efe9dc; }
+
+.daybar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 14px 0; }
+.daybar .date { font-family: var(--serif); font-size: 19px; }
+.daybar .detail { margin-left: auto; font-size: 12.5px; }
+
+/* ---------- 現在の潮位（JS が埋める） ---------- */
+.now:empty { display: none; }
+.now {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 14px;
+  margin: 14px 0; padding: 12px 14px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 3px;
+}
+.now .lbl { font-family: var(--mono); font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--warm); }
+.now .val { font-family: var(--mono); font-size: 26px; font-weight: 500; }
+.now .val small { font-size: 13px; color: var(--mut); }
+.now .dir { font-family: var(--serif); font-size: 16px; color: var(--warm-d); }
+.now .rate { font-family: var(--mono); font-size: 12px; color: var(--mut); }
+.now .nxt { width: 100%; font-size: 12.5px; color: var(--mut); }
+
+/* ---------- 数値サマリ ---------- */
+.stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+  background: var(--line2); border: 1px solid var(--line);
+  border-radius: 3px; overflow: hidden; margin: 14px 0;
+}
+.stats > div { background: var(--panel); padding: 10px 8px; text-align: center; }
+.stats .k { display: block; font-size: 10.5px; color: var(--dim); letter-spacing: .04em; }
+.stats b { font-family: var(--mono); font-size: 19px; font-weight: 500; }
+.stats b small { font-size: 11px; color: var(--mut); margin-left: 1px; }
+
+/* ---------- 潮位グラフ ---------- */
+.graph { margin: 6px 0 14px; padding: 0; }
+.graph svg { display: block; width: 100%; height: auto; }
+.graph .ax { font-family: var(--mono); font-size: 15px; fill: var(--faint); }
+.graph .mk { font-family: var(--sans); font-size: 16px; font-weight: 700; }
+.graph .mk.hi { fill: var(--blue); }
+.graph .mk.lo { fill: var(--warm); }
+.graph .mkv { font-family: var(--mono); font-size: 15px; fill: var(--ink2); }
+.graph .mkv.dim { fill: var(--dim); }
+.graph .nowline { stroke: var(--warm); stroke-width: 2; stroke-dasharray: 5 4; }
+.graph .nowdot { fill: var(--warm); stroke: var(--panel); stroke-width: 2; }
+
+/* ---------- 満干潮表 ---------- */
+table.ext { width: 100%; border-collapse: collapse; margin: 0 0 16px; }
+table.ext th, table.ext td {
+  padding: 9px 10px; border-bottom: 1px solid var(--line2); text-align: left;
+}
+table.ext th { font-weight: 500; font-size: 13.5px; width: 6.5em; }
+table.ext .hi th { color: var(--blue); }
+table.ext .lo th { color: var(--warm); }
+table.ext .t { font-family: var(--mono); font-size: 17px; }
+table.ext .v { font-family: var(--mono); font-size: 15px; text-align: right; color: var(--ink2); }
+table.ext .v small { font-size: 11px; color: var(--dim); }
+
+/* ---------- ブロック ---------- */
+.blk { margin: 30px 0; }
+.blk-hd { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; border-bottom: 1px solid var(--line); padding-bottom: 7px; }
+.blk-hd h2 { font-family: var(--serif); font-size: 17px; font-weight: 600; margin: 0; letter-spacing: .03em; }
+.blk-hd .en { font-family: var(--mono); font-size: 9.5px; letter-spacing: .14em; color: var(--faint); text-transform: uppercase; }
+.blk-hd .blk-more { margin-left: auto; font-size: 12px; }
+h3.sub { font-family: var(--serif); font-size: 14.5px; margin: 22px 0 8px; color: var(--ink2); }
+
+.note { font-size: 11.5px; color: var(--dim); line-height: 1.65; margin: 8px 0 0; }
+.none { font-size: 13px; color: var(--mut); }
+.more { font-size: 13px; margin: 14px 0 0; }
+.src-note {
+  font-size: 12px; color: var(--mut); background: rgba(60, 50, 35, .04);
+  border-left: 2px solid var(--line); padding: 10px 12px; margin: 22px 0 0; line-height: 1.7;
+}
+
+/* ---------- 潮がよく動く時間帯 ---------- */
+ul.flow { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+ul.flow li {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  padding: 9px 12px; border: 1px solid var(--line); border-radius: 3px; background: var(--panel);
+  border-left-width: 3px;
+}
+ul.flow li.up { border-left-color: var(--blue); }
+ul.flow li.down { border-left-color: var(--warm); }
+.fw-t { font-family: var(--mono); font-size: 15px; }
+.fw-t .dash { margin: 0 3px; color: var(--faint); }
+.fw-d { font-family: var(--serif); font-size: 14px; }
+ul.flow li.up .fw-d { color: var(--blue); }
+ul.flow li.down .fw-d { color: var(--warm-d); }
+.fw-r { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--mut); }
+
+/* ---------- 10分毎グリッド ---------- */
+.tdgrid {
+  display: grid; grid-template-columns: 2.6em repeat(6, 1fr); gap: 1px;
+  background: var(--line2); border: 1px solid var(--line2);
+  border-radius: 2px; overflow: hidden;
+}
+.tdcell {
+  font-family: var(--mono); font-size: 11.5px; padding: 5px 0;
+  text-align: center; background: var(--panel); color: var(--ink);
+}
+.tdcell.hd, .tdcell.hd0 { color: var(--dim); font-weight: 600; background: var(--panel); }
+.tdcell.hh { color: var(--ink2); font-weight: 600; background: var(--panel); }
+.tdcell.now { box-shadow: inset 0 0 0 2px var(--warm); font-weight: 700; }
+/* 潮位の濃淡 10段階。セルごとの inline style をやめてここに寄せている。 */
+.tdcell.s0 { background: rgba(43, 93, 122, .03); }
+.tdcell.s1 { background: rgba(43, 93, 122, .055); }
+.tdcell.s2 { background: rgba(43, 93, 122, .08); }
+.tdcell.s3 { background: rgba(43, 93, 122, .105); }
+.tdcell.s4 { background: rgba(43, 93, 122, .13); }
+.tdcell.s5 { background: rgba(43, 93, 122, .155); }
+.tdcell.s6 { background: rgba(43, 93, 122, .18); }
+.tdcell.s7 { background: rgba(43, 93, 122, .205); }
+.tdcell.s8 { background: rgba(43, 93, 122, .23); }
+.tdcell.s9 { background: rgba(43, 93, 122, .255); }
+
+/* ---------- 日月 ---------- */
+.sm {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+  padding: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 3px;
+}
+.sm-hd { font-family: var(--serif); font-size: 14px; margin-bottom: 6px; }
+.sm-hd .en { font-family: var(--mono); font-size: 9px; letter-spacing: .12em; color: var(--faint); margin-left: 6px; }
+.sm dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 0; font-size: 12.5px; }
+.sm dt { color: var(--mut); }
+.sm dd { margin: 0; font-family: var(--mono); text-align: right; }
+.sm-moon { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--line2); padding-top: 12px; }
+.mn-name { font-family: var(--serif); font-size: 15px; }
+.mn-age { font-family: var(--mono); font-size: 11.5px; color: var(--mut); }
+
+/* ---------- 気象・海象 ---------- */
+.wx-load { font-size: 12.5px; color: var(--dim); margin: 0; }
+.wx-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px;
+  background: var(--line2); border: 1px solid var(--line); border-radius: 3px; overflow: hidden;
+}
+.wx-grid > div { background: var(--panel); padding: 10px 12px; }
+.wx-grid .k { display: block; font-size: 10.5px; color: var(--dim); }
+.wx-grid .v { font-family: var(--mono); font-size: 16px; }
+.wx-grid .v small { font-size: 11px; color: var(--mut); }
+.wx-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.wx-head .cond { font-family: var(--serif); font-size: 18px; }
+.wx-err { font-size: 12.5px; color: var(--mut); margin: 0; }
+
+/* ---------- 表（週間 / 県別） ---------- */
+.tw { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table.week, table.prefsum { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 340px; }
+table.week th, table.week td, table.prefsum th, table.prefsum td {
+  padding: 8px 6px; border-bottom: 1px solid var(--line2); text-align: left; vertical-align: top;
+}
+table.week thead th, table.prefsum thead th {
+  font-size: 11px; color: var(--dim); font-weight: 500; border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+table.week tbody th, table.prefsum tbody th { font-weight: 500; white-space: nowrap; }
+table.week .hi, table.prefsum .hi { font-family: var(--mono); color: var(--blue); font-size: 12.5px; }
+table.week .lo, table.prefsum .lo { font-family: var(--mono); color: var(--warm); font-size: 12.5px; }
+table.week .mn, table.prefsum .rg { font-family: var(--mono); font-size: 12px; color: var(--mut); }
+table.week .hi small, table.week .lo small,
+table.prefsum .hi small, table.prefsum .lo small { color: var(--dim); font-size: 10.5px; }
+table.week tr.today { background: rgba(176, 106, 63, .07); }
+.dot {
+  display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  margin-right: 6px; vertical-align: middle;
+}
+.dot.off { background: var(--blue); }
+.dot.apx { background: transparent; border: 1.5px solid var(--faint); }
+
+/* ---------- 月カレンダー ---------- */
+.cal-row-hd { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; margin-bottom: 1px; }
+.cal-hd { text-align: center; font-size: 11px; padding: 4px 0; }
+.cal-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px;
+  background: var(--line2); border: 1px solid var(--line2);
+}
+.cal-cell { background: var(--panel); padding: 5px 4px; min-height: 74px; }
+.cal-cell.empty { background: rgba(60, 50, 35, .03); }
+.cal-cell.today { background: rgba(176, 106, 63, .09); }
+.cal-cell > a { display: flex; align-items: baseline; gap: 5px; color: inherit; }
+.cal-d { font-family: var(--mono); font-size: 14px; font-weight: 500; }
+.cal-w { display: none; font-size: 11px; }
+.cal-s { font-size: 10px; color: var(--dim); }
+.cal-ex { list-style: none; margin: 3px 0 0; padding: 0; font-family: var(--mono); font-size: 10px; line-height: 1.5; }
+.cal-ex li.h { color: var(--blue); }
+.cal-ex li.l { color: var(--warm); }
+.cal-ex em { font-style: normal; color: var(--dim); margin-left: 3px; }
+
+/* 640px 未満ではカレンダーを1日1行のリストに畳む。
+   7列のままだと1セル 50px を切り、潮位が読めなくなるため。 */
+@media (max-width: 640px) {
+  .cal-row-hd { display: none; }
+  .cal-grid { grid-template-columns: 1fr; }
+  .cal-cell.empty { display: none; }
+  .cal-cell { min-height: 0; display: flex; gap: 12px; align-items: baseline; padding: 8px 10px; }
+  .cal-cell > a { flex: 0 0 5.5em; }
+  .cal-w { display: inline; }
+  .cal-ex { margin: 0; display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 11.5px; }
+}
+
+/* ---------- 地点リスト ---------- */
+ul.stlist { list-style: none; margin: 0; padding: 0; }
+ul.stlist li { border-bottom: 1px solid var(--line2); }
+ul.stlist a { display: flex; align-items: baseline; gap: 7px; padding: 9px 2px; color: var(--ink); }
+ul.stlist a:hover { text-decoration: none; background: #efe9dc; }
+ul.stlist .nm { font-size: 13.5px; }
+ul.stlist .kn { font-size: 10.5px; color: var(--faint); }
+ul.stlist .nt { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--dim); }
+ul.stlist.cols { columns: 2; column-gap: 20px; }
+ul.stlist.cols li { break-inside: avoid; }
+
+ul.daylinks { list-style: none; display: flex; flex-wrap: wrap; gap: 5px; margin: 0; padding: 0; }
+ul.daylinks a {
+  display: block; min-width: 32px; text-align: center; padding: 5px 4px;
+  font-family: var(--mono); font-size: 12.5px;
+  border: 1px solid var(--line); border-radius: 3px; background: var(--panel);
+}
+ul.daylinks a:hover { text-decoration: none; background: #efe9dc; }
+ul.daylinks li.on a { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+/* 個別ページを作っていない日。リンクにせず、押せないことが分かる見た目にする。 */
+ul.daylinks li.off span {
+  display: block; min-width: 32px; text-align: center; padding: 5px 4px;
+  font-family: var(--mono); font-size: 12.5px;
+  border: 1px dashed var(--line2); border-radius: 3px; color: var(--faint);
+}
+.note-inline { display: block; margin-top: 6px; font-size: 11.5px; color: var(--dim); }
+.cal-cell > .cal-hdr { display: flex; align-items: baseline; gap: 5px; color: var(--faint); }
+.cal-cell > .cal-hdr .cal-d { font-weight: 400; }
+
+ul.regions { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+ul.regions a {
+  display: block; padding: 12px 14px; border: 1px solid var(--line);
+  border-radius: 3px; background: var(--panel); color: var(--ink);
+}
+ul.regions a:hover { text-decoration: none; background: #efe9dc; }
+.rn { font-family: var(--serif); font-size: 16px; }
+.rc { font-family: var(--mono); font-size: 11px; color: var(--warm); margin-left: 8px; }
+.rp { display: block; font-size: 11.5px; color: var(--dim); margin-top: 2px; }
+
+ul.feat { margin: 0; padding-left: 1.2em; font-size: 13.5px; line-height: 1.85; }
+ul.feat li { margin-bottom: 6px; }
+
+/* ---------- 地図 ---------- */
+.map { height: 300px; border: 1px solid var(--line); border-radius: 3px; background: #cfe0e6; }
+.map.tall { height: 420px; }
+.leaflet-container { font-family: var(--sans); }
+
+/* ---------- 広告 ---------- */
+.ad { margin: 20px 0; text-align: center; }
+.ad:empty { display: none; }
+.ad-side { display: none; }
+
+/* ---------- 文章ページ ---------- */
+.prose h1 { font-family: var(--serif); font-size: clamp(22px, 6vw, 30px); margin: 16px 0 20px; }
+.prose h2 { font-family: var(--serif); font-size: 17px; margin: 28px 0 8px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.prose p { font-size: 14px; line-height: 1.9; margin: 0 0 12px; }
+
+/* =====================================================================
+   700px 以上
+   ===================================================================== */
+@media (min-width: 700px) {
+  :root { --pad: 28px; }
+  body { font-size: 15.5px; }
+  .brand-en { display: inline; }
+  .sm { grid-template-columns: 1fr 1fr auto; }
+  .sm-moon { grid-column: auto; border-top: 0; padding-top: 0; padding-left: 16px; border-left: 1px solid var(--line2); flex-direction: column; text-align: center; gap: 4px; }
+  .stats { grid-template-columns: repeat(4, 1fr); }
+  .wx-grid { grid-template-columns: repeat(3, 1fr); }
+  .tdcell { font-size: 12.5px; padding: 6px 0; }
+  ul.stlist.cols { columns: 3; }
+  .tabs { max-width: 420px; }
+}
+
+/* =====================================================================
+   1080px 以上 — サイド広告を出す
+   ===================================================================== */
+@media (min-width: 1080px) {
+  main { max-width: 1040px; display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 40px; align-items: start; }
+  main > .crumb, main > article { grid-column: 1; }
+  .ad-side {
+    display: block; grid-column: 2; grid-row: 2 / span 99;
+    position: sticky; top: 70px; min-height: 600px;
+  }
+}
