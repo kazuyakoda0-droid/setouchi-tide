@@ -1,0 +1,70 @@
+name: Build and deploy
+
+# 気象庁の潮位表は35日先までしか出ないうえ、当日ページと「これからの7日間」は
+# 日付が変わるたびに古くなる。毎日ビルドし直す必要がある。
+on:
+  schedule:
+    - cron: '10 19 * * *'      # UTC 19:10 = JST 04:10。日付が変わってから回す。
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 走行中のデプロイは中断しない（公開中のサイトを壊さないため）
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 気象庁の年次潮位表は1年ぶん不変なので、毎回241ファイルを取り直すのは
+      # 相手のサーバにも失礼だし遅い。年をまたぐまでキャッシュを使い回す。
+      - name: Restore JMA cache
+        uses: actions/cache@v4
+        with:
+          path: .cache/jma
+          key: jma-${{ github.run_id }}
+          restore-keys: |
+            jma-
+
+      - name: Build
+        run: node build.mjs
+
+      - name: Report size
+        run: |
+          echo "pages: $(find dist -name index.html | wc -l)"
+          echo "size:  $(du -sh dist | cut -f1)"
+
+      # enablement: true で Pages の公開元を「GitHub Actions」に切り替える。
+      # これが無いと、master 直下を配信する旧設定のまま残る。旧設定のリポジトリに
+      # このブランチをマージすると master 直下に index.html が無くなるため、
+      # 公開中のサイトが 404 になる。
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
