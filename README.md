@@ -13,17 +13,20 @@ node build.mjs --sample   # 広島県だけ生成（数秒。動作確認用）
 生成物は `dist/` に出る。リポジトリにはコミットしない。
 GitHub Actions が毎日ビルドし、Pages の artifact として直接デプロイする。
 
-ローカルで見るときは、`BASE` をルートにしてから配信する:
+ローカルで見るときは、そのままビルドして `dist` をルート配信する。
+`BASE` は既定で空なので環境変数は要らない。
 
 ```bash
-SITE_BASE= node build.mjs --sample && npx serve dist
+node build.mjs --sample
 ```
+
+配信は `.claude/launch.json` の `tide-dist`（python http.server, port 8801）。
 
 ## 構成
 
 | ファイル | 役割 |
 |---|---|
-| `config.mjs` | ドメイン・生成範囲・広告ID・解析ID。**移行時に触るのはここだけ** |
+| `config.mjs` | ドメイン・生成範囲・広告ID・解析ID・問い合わせURL。**ドメイン移行で触るのはここだけ** |
 | `build.mjs` | 全ページの生成、sitemap、robots.txt |
 | `lib/stations.mjs` | 観測点548件の定義（自動生成データ。手で編集しない） |
 | `lib/jma.mjs` | 気象庁 年次潮位表テキストの取得・パース・キャッシュ |
@@ -64,13 +67,24 @@ SITE_BASE= node build.mjs --sample && npx serve dist
   ビルド時に取得して HTML に焼き込むので、閲覧者のブラウザは気象庁を叩かない。
   今日〜7日先まで。過去日と8日以上先は気象欄が空になる。
 
-## 独自ドメインへの移行
+## ドメイン
 
-1. `config.mjs` の `ORIGIN` をドメインに、`BASE` を `''` にする
-2. `CNAME` にドメインを書く（`dist/CNAME` が自動生成される）
-3. DNS を GitHub Pages に向ける
-4. 旧 URL からのリダイレクトは GitHub Pages では張れないため、
-   Search Console のアドレス変更ツールを使う
+`japantide.com` を apex で運用している。`config.mjs` の `CNAME` が入っているので
+`dist/CNAME` が生成され、GitHub Actions のデプロイでも Pages のカスタムドメイン
+設定が失われない。
+
+Cloudflare の DNS は、A 4本（`185.199.108-111.153`）、AAAA 4本
+（`2606:50c0:8000-8003::153`）、`www` の CNAME を `kazuyakoda0-droid.github.io`。
+すべてプロキシ無効（グレー雲）にする。プロキシを有効にすると GitHub Pages の
+Let's Encrypt 証明書の発行が通らない。
+
+別のドメインに移すときは `config.mjs` の `ORIGIN` と `CNAME` を書き換えるだけでよい。
+
+旧 URL（`kazuyakoda0-droid.github.io/setouchi-tide/`）からの誘導は、
+カスタムドメイン設定後に GitHub Pages が返すリダイレクトに委ねている。
+実際の挙動は切り替え後に `curl -I` で確認すること（未確認）。
+Search Console のアドレス変更ツールは「サブディレクトリ → 別ドメイン」の移転を
+正式にサポートしないため使わず、新ドメインでサイトマップを再送信する。
 
 ## 広告
 
@@ -80,3 +94,10 @@ CSS で `.ad:empty { display: none }` としてあるので、有効化するま
 
 審査に通ったら `ADSENSE_CLIENT` と `ADSENSE_SLOTS` の4枠を埋める。
 枠は ヘッダー下 / グラフ直下 / 記事末 / サイド(1080px以上) の4か所。
+
+`ads.txt` も `ADSENSE_CLIENT` が入ったときだけ `dist/ads.txt` に生成される
+（`ca-pub-...` の `ca-` を落とした `pub-...` を書き出す）。
+
+プライバシーポリシー（`/privacy/`）は `ADSENSE_CLIENT` の値によらず常に出力する。
+審査に出す時点で存在している必要があるため。問い合わせ導線は `CONTACT_URL` に
+Google フォームの URL を入れると `/about/` と `/privacy/` の両方に出る。
