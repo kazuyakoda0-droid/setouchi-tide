@@ -379,15 +379,17 @@ ul.daylinks li.off span {
 .cal-cell > .cal-hdr { display: flex; align-items: baseline; gap: 5px; color: var(--faint); }
 .cal-cell > .cal-hdr .cal-d { font-weight: 400; }
 
-ul.regions { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+/* 地方名と地点数だけの1行。県名を並べていたころは2行だったので
+   padding を詰め、地点数は行末に寄せて名前を読みやすくしている。 */
+ul.regions { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
 ul.regions a {
-  display: block; padding: 12px 14px; border: 1px solid var(--line);
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 11px 14px; border: 1px solid var(--line);
   border-radius: 3px; background: var(--panel); color: var(--ink);
 }
 ul.regions a:hover { text-decoration: none; background: #efe9dc; }
 .rn { font-family: var(--serif); font-size: 16px; }
-.rc { font-family: var(--mono); font-size: 11px; color: var(--warm); margin-left: 8px; }
-.rp { display: block; font-size: 11.5px; color: var(--dim); margin-top: 2px; }
+.rc { font-family: var(--mono); font-size: 11px; color: var(--warm); margin-left: auto; }
 
 ul.feat { margin: 0; padding-left: 1.2em; font-size: 13.5px; line-height: 1.85; }
 ul.feat li { margin-bottom: 6px; }
