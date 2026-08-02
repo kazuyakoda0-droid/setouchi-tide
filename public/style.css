@@ -402,8 +402,9 @@ ul.feat li { margin-bottom: 6px; }
    出るのが満潮・干潮の数字になるようにしてある。PC でだけ order で
    地図を左へ回す。 */
 .split { display: grid; gap: 16px; margin: 14px 0; }
-.split-info > .now:first-child { margin-top: 0; }
+.split-info > .now:first-child, .split-info > .blk:first-child { margin-top: 0; }
 .split-map .map { height: 260px; }
+.split-map .map.tall { height: 320px; }
 .split-map .note { margin-top: 6px; }
 
 /* ---------- 表の書き出しボタン（JS が表の直前に差し込む） ---------- */
@@ -456,7 +457,14 @@ ul.feat li { margin-bottom: 6px; }
      右側の表と丈が合わず、片方だけ余白が余った見た目になる。 */
   .split { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 20px; align-items: stretch; }
   .split-map { order: -1; display: flex; flex-direction: column; }
-  .split-map .map { flex: 1 1 auto; height: auto; min-height: 280px; }
+  .split-map .map, .split-map .map.tall { flex: 1 1 auto; height: auto; min-height: 280px; }
+
+  /* 右カラムが長い一覧のページ（都道府県ページ）は、地図を貼り付けて
+     追従させる。伸ばすと一覧の丈に合わせて地図が間延びしてしまう
+     ―― 広島33地点で1300px超になり、地図だけが縦長の帯になる。 */
+  .split.pin { align-items: start; }
+  .split.pin .split-map { position: sticky; top: 70px; }
+  .split.pin .split-map .map { flex: 0 0 auto; height: 440px; min-height: 0; }
 }
 
 /* =====================================================================
