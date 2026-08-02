@@ -82,7 +82,9 @@ Let's Encrypt 証明書の発行が通らない。
 
 旧 URL（`kazuyakoda0-droid.github.io/setouchi-tide/`）からの誘導は、
 カスタムドメイン設定後に GitHub Pages が返すリダイレクトに委ねている。
-実際の挙動は切り替え後に `curl -I` で確認すること（未確認）。
+2026-08-02 の切り替え後に実測済み: `301 Moved Permanently` で
+`https://japantide.com/` へリダイレクトされる（配下ページへの誘導ではなく
+トップページへの誘導）。
 Search Console のアドレス変更ツールは「サブディレクトリ → 別ドメイン」の移転を
 正式にサポートしないため使わず、新ドメインでサイトマップを再送信する。
 
