@@ -5,9 +5,12 @@
    ここでやるのは「ビルド時に決められないこと」だけに絞る。
 
      1. 現在時刻の潮位マーカー（当日ページのみ）
-     2. 気象・海象の取得（Open-Meteo。刻々変わるので静的化しない）
-     3. 地図（トップ・地方・都道府県ページのみ）
-     4. 表のコピー / CSV 書き出し
+     2. 地図（トップ・地方・都道府県ページのみ）
+     3. 表のコピー / CSV 書き出し
+
+   気象・海象はここには無い。気象庁の天気予報をビルド時に取得して
+   HTML に焼き込んでいる（lib/forecast.mjs）。閲覧者のブラウザから
+   気象庁を叩かないので、先方に負荷をかけず、検索エンジンにも読まれる。
 
    JS が動かなくてもページの中身は完全に読める。これが検索エンジンに
    内容を渡す唯一の方法であり、旧版が取りこぼしていた点でもある。
@@ -112,104 +115,7 @@
   }
 
   // -------------------------------------------------------------------
-  // 2. 気象・海象（Open-Meteo）
-  // -------------------------------------------------------------------
-  var WMO = {
-    0: '快晴', 1: '晴れ', 2: '晴れ時々曇り', 3: '曇り', 45: '霧', 48: '霧氷',
-    51: '霧雨', 53: '霧雨', 55: '強い霧雨', 56: '着氷性の霧雨', 57: '着氷性の霧雨',
-    61: '弱い雨', 63: '雨', 65: '強い雨', 66: '着氷性の雨', 67: '着氷性の強い雨',
-    71: '弱い雪', 73: '雪', 75: '強い雪', 77: '細氷',
-    80: 'にわか雨', 81: 'にわか雨', 82: '激しいにわか雨', 85: 'にわか雪', 86: '強いにわか雪',
-    95: '雷雨', 96: '雷雨(ひょう)', 99: '激しい雷雨(ひょう)',
-  };
-  var DIRS = ['北', '北北東', '北東', '東北東', '東', '東南東', '南東', '南南東',
-    '南', '南南西', '南西', '西南西', '西', '西北西', '北西', '北北西'];
-
-  function windName(deg) {
-    if (deg == null || isNaN(deg)) return null;
-    return DIRS[Math.round(((deg % 360) + 360) % 360 / 22.5) % 16];
-  }
-
-  // hourly 配列から正午に最も近い値を取る
-  function noonValue(times, values) {
-    if (!times || !values) return null;
-    var best = null, bestGap = 99;
-    for (var i = 0; i < times.length; i++) {
-      if (values[i] == null) continue;
-      var gap = Math.abs(parseInt(times[i].slice(11, 13), 10) - 12);
-      if (gap < bestGap) { bestGap = gap; best = values[i]; }
-    }
-    return best;
-  }
-
-  function cell(k, v, unit) {
-    if (v == null) return '';
-    return '<div><span class="k">' + k + '</span><span class="v">' + v
-      + (unit ? '<small>' + unit + '</small>' : '') + '</span></div>';
-  }
-
-  function weather() {
-    var el = document.querySelector('[data-wx]');
-    if (!el) return;
-    var lat = el.dataset.lat, lon = el.dataset.lon, date = el.dataset.date;
-
-    // 予報は +16日まで、アーカイブは過去92日まで。範囲外は取りに行かない。
-    var today = new Date(Date.now() + 9 * 3600000);
-    var t0 = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
-    var p = date.split('-').map(Number);
-    var d0 = Date.UTC(p[0], p[1] - 1, p[2]);
-    var diff = Math.round((d0 - t0) / 86400000);
-    if (diff > 15 || diff < -92) {
-      el.innerHTML = '<p class="wx-err">この日は気象予報の範囲外です（予報は16日先まで）。'
-        + '潮位は気象庁の推算値なので通年で表示されます。</p>';
-      return;
-    }
-
-    var common = 'latitude=' + lat + '&longitude=' + lon
-      // Open-Meteo の風速は既定が km/h。m/s で出したいので明示指定する。
-      + '&timezone=Asia%2FTokyo&wind_speed_unit=ms&start_date=' + date + '&end_date=' + date;
-    var fcUrl = 'https://api.open-meteo.com/v1/forecast?' + common
-      + '&daily=weather_code,temperature_2m_max,temperature_2m_min,'
-      + 'wind_speed_10m_max,wind_direction_10m_dominant&hourly=surface_pressure';
-    var mrUrl = 'https://marine-api.open-meteo.com/v1/marine?' + common
-      + '&daily=wave_height_max&hourly=sea_surface_temperature';
-
-    var json = function (u) { return fetch(u).then(function (r) { if (!r.ok) throw 0; return r.json(); }); };
-
-    // 海象は内湾など格子が海でない地点で失敗しうる。気象側は活かす。
-    Promise.all([json(fcUrl), json(mrUrl).catch(function () { return null; })])
-      .then(function (res) {
-        var fc = res[0], mr = res[1];
-        var d = (fc && fc.daily) || {};
-        var code = d.weather_code ? d.weather_code[0] : null;
-        var press = noonValue((fc.hourly || {}).time, (fc.hourly || {}).surface_pressure);
-        var sst = mr ? noonValue((mr.hourly || {}).time, (mr.hourly || {}).sea_surface_temperature) : null;
-        var wave = mr && mr.daily && mr.daily.wave_height_max ? mr.daily.wave_height_max[0] : null;
-        var wd = d.wind_direction_10m_dominant ? windName(d.wind_direction_10m_dominant[0]) : null;
-        var ws = d.wind_speed_10m_max ? d.wind_speed_10m_max[0] : null;
-
-        var body = '';
-        if (code != null) {
-          body += '<div class="wx-head"><span class="cond">' + (WMO[code] || '—') + '</span></div>';
-        }
-        body += '<div class="wx-grid">'
-          + cell('気温', (d.temperature_2m_max && d.temperature_2m_min)
-            ? Math.round(d.temperature_2m_max[0]) + ' / ' + Math.round(d.temperature_2m_min[0]) : null, '℃')
-          + cell('風', (wd && ws != null) ? wd + ' ' + ws.toFixed(1) : null, 'm/s')
-          + cell('気圧', press != null ? Math.round(press) : null, 'hPa')
-          + cell('波高', wave != null ? wave.toFixed(1) : null, 'm')
-          + cell('水温', sst != null ? sst.toFixed(1) : null, '℃')
-          + '</div>';
-        el.innerHTML = body;
-      })
-      .catch(function () {
-        el.innerHTML = '<p class="wx-err">気象データを取得できませんでした。'
-        + '潮位は気象庁の推算値なので、この欄が空でも上の潮汐は正しく表示されています。</p>';
-      });
-  }
-
-  // -------------------------------------------------------------------
-  // 3. 地図
+  // 2. 地図
   // -------------------------------------------------------------------
   var mapDone = false;
   function maps() {
@@ -257,7 +163,7 @@
   }
 
   // -------------------------------------------------------------------
-  // 4. 表のコピー / CSV 書き出し
+  // 3. 表のコピー / CSV 書き出し
   //
   // 潮見表は「表計算ソフトに持っていって自分で加工したい」という需要が
   // 大きい。ビルド時に .csv を1万ページぶん吐く手もあるが、配信物が
@@ -351,9 +257,11 @@
     return rows;
   }
 
+  // 10分毎グリッドの書き出しに付ける日付。グリッドがあるのは地点ページと
+  // 日別ページだけで、どちらも body の data-file が「地点名_YYYY-MM-DD」。
   function pageDate() {
-    var w = document.querySelector('[data-wx]');
-    return (w && w.dataset.date) || '';
+    var m = /(\d{4}-\d{2}-\d{2})/.exec(document.body.dataset.file || '');
+    return m ? m[1] : '';
   }
 
   function weekExtract(t) {
@@ -524,7 +432,6 @@
 
   function init() {
     run('currentTide', currentTide);
-    run('weather', weather);
     run('maps', maps);
     run('tables', tables);
   }

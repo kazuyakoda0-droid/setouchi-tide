@@ -29,7 +29,7 @@ export const SITE = {
   // 地点あたりのページ数 = 1(当日) + 1(週間) + MONTHS + DAYS_BACK+DAYS_FWD+1
   // 現在の設定では 1+1+3+15 = 20 ページ × 548 地点 = 10,960 ページ。
   // 気象庁の年次ファイルは1年分あるので、増やしたければ数字を上げるだけでよい
-  // (ただし +16日を超える日は Open-Meteo の予報がなく天気が空欄になる)。
+  // (ただし気象庁の天気予報は7日先までなので、それより外は天気が空欄になる)。
   DAYS_BACK: 7,
   DAYS_FWD: 7,
   MONTHS_BACK: 1,
@@ -54,8 +54,10 @@ export const SITE = {
   JMA_TXT: 'https://www.data.jma.go.jp/kaiyou/data/db/tide/suisan/txt',
   JMA_CREDIT: '気象庁 潮位表',
   JMA_CREDIT_URL: 'https://www.data.jma.go.jp/kaiyou/db/tide/suisan/',
-  OM_CREDIT: 'Open-Meteo',
-  OM_CREDIT_URL: 'https://open-meteo.com/',
+  // 気象・海象も気象庁に一本化した。Open-Meteo の無料 API は
+  // 非商用限定で、広告を掲載した時点で規約から外れるため。
+  JMA_FC_CREDIT: '気象庁 天気予報',
+  JMA_FC_CREDIT_URL: 'https://www.jma.go.jp/bosai/forecast/',
 };
 
 // BASE 起点のページ URL。ディレクトリなので必ず末尾スラッシュを付ける。
