@@ -55,7 +55,7 @@ export const SITE = {
   // このサイトについて / プライバシーポリシー の両方に導線が出る。
   // 空だと連絡経路の無いサイトになり AdSense の審査で不利なので、
   // 申し込み前に必ず埋めること。
-  CONTACT_URL: process.env.SITE_CONTACT_URL || '',
+  CONTACT_URL: process.env.SITE_CONTACT_URL || 'https://forms.gle/H7gvcVnedC7kXVpc6',
 
   // ---- 解析 ---------------------------------------------------------
   GA_ID: '',                       // 例: 'G-XXXXXXXXXX'
