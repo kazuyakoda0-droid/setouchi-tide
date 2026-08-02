@@ -49,7 +49,7 @@ SITE_BASE= node build.mjs --sample && npx serve dist
 
 生成数は `config.mjs` の `DAYS_BACK` / `DAYS_FWD` / `MONTHS_BACK` / `MONTHS_FWD` で決まる。
 気象庁の年次ファイルは1年分あるので、増やしたければ数字を上げるだけでよい
-（ただし +16日を超える日は Open-Meteo の予報がなく気象欄が空になる）。
+（ただし気象庁の天気予報は7日先までなので、それより外の日は気象欄が空になる）。
 
 ## データ
 
@@ -57,8 +57,12 @@ SITE_BASE= node build.mjs --sample && npx serve dist
   `https://www.data.jma.go.jp/kaiyou/data/db/tide/suisan/txt/{年}/{コード}.txt`
   1ファイル = 1観測点の1年分（365行 × 136桁の固定長）。
   241観測点ぶんをビルド時に取得し、`.cache/jma/` に保存する。
-- **気象・海象** … Open-Meteo（forecast API / marine API）。
-  刻々変わるので静的化せず、クライアントで取得する。
+- **天気・風・波・気温・降水確率** … 気象庁 天気予報
+  `https://www.jma.go.jp/bosai/forecast/data/forecast/{府県予報区}.json`
+  地点への割り当ては `forecast_area.json`（予報区→アメダス地点）と
+  `amedastable.json`（アメダス地点の座標）から、同一都道府県内の最寄りで決める。
+  ビルド時に取得して HTML に焼き込むので、閲覧者のブラウザは気象庁を叩かない。
+  今日〜7日先まで。過去日と8日以上先は気象欄が空になる。
 
 ## 独自ドメインへの移行
 

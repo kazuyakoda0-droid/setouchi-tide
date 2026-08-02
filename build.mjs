@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { SITE, url, absUrl } from './config.mjs';
 import { TIDE_STATIONS, REGIONS, PREFS, JMA_STN_NAME } from './lib/stations.mjs';
 import { loadYears } from './lib/jma.mjs';
+import { loadForecast } from './lib/forecast.mjs';
 import { tideDay, tideDayLight } from './lib/tide.mjs';
 import { celestialData } from './lib/astro.mjs';
 import {
@@ -146,6 +147,19 @@ for (const c of codes) {
   }
 }
 
+// ---- 天気予報 -------------------------------------------------------
+// 落ちてもサイトは出す。気象欄が空になるだけで、潮汐は独立している。
+let forecastFor = () => null;
+try {
+  const fx = await loadForecast(stations);
+  forecastFor = fx.forecastFor;
+  console.log(`気象庁 天気予報: ${fx.offices}予報区`
+    + (fx.failed.length ? ` (取得失敗 ${fx.failed.length}件: ${fx.failed.join(' / ')})` : '')
+    + (fx.unresolved.length ? ` (予報区未割当 ${fx.unresolved.length}地点: ${fx.unresolved.join(', ')})` : ''));
+} catch (e) {
+  console.warn(`天気予報の取得に失敗しました。気象欄は空になります: ${e.message}`);
+}
+
 fs.rmSync(DIST, { recursive: true, force: true });
 fs.mkdirSync(DIST, { recursive: true });
 copyDir(path.join(ROOT, 'public'), DIST);
@@ -174,6 +188,7 @@ for (const st of stations) {
     st, day: todayFull, cel: cel(today), ymd: todayKey, dayMs: today,
     weekRows,
     neighbors: neighborsOf(st, stations),
+    fc: forecastFor(st, todayKey),
   }), { changefreq: 'daily', priority: 0.9 });
 
   // ---- 週間 ----
@@ -206,6 +221,7 @@ for (const st of stations) {
       prev: dayPageKeys.has(pk) ? { href: paths.day(st, pk), label: label(pk) } : null,
       next: dayPageKeys.has(nk) ? { href: paths.day(st, nk), label: label(nk) } : null,
       monthDays,
+      fc: forecastFor(st, ymd),
     }), { changefreq: d === today ? 'daily' : 'monthly', priority: d === today ? 0.5 : 0.4 });
   }
 
