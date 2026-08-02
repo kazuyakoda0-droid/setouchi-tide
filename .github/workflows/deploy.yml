@@ -47,7 +47,13 @@ jobs:
           echo "pages: $(find dist -name index.html | wc -l)"
           echo "size:  $(du -sh dist | cut -f1)"
 
+      # enablement: true で Pages の公開元を「GitHub Actions」に切り替える。
+      # これが無いと、master 直下を配信する旧設定のまま残る。旧設定のリポジトリに
+      # このブランチをマージすると master 直下に index.html が無くなるため、
+      # 公開中のサイトが 404 になる。
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:
