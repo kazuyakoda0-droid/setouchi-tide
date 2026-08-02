@@ -41,7 +41,8 @@ export const SITE = {
   // AdSense の審査に通ったら ADSENSE_CLIENT に ca-pub-... を入れる。
   // 空のあいだは枠だけがレイアウトに存在し、広告スクリプトは出力されない
   // (審査前に空の広告タグを置くとポリシー違反になるため)。
-  ADSENSE_CLIENT: '',
+  // ads.txt も ADSENSE_CLIENT が入ったときだけ生成される。
+  ADSENSE_CLIENT: process.env.SITE_ADSENSE_CLIENT || '',
   ADSENSE_SLOTS: {
     header: '',    // ヘッダー下 レスポンシブ
     graph: '',     // 潮位グラフ直下 レクタングル
