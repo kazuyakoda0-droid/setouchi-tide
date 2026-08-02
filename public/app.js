@@ -130,10 +130,10 @@
     // Canvas のほうがパン/ズームは軽いが、Canvas レンダラは
     // requestAnimationFrame で描画するため、描画が走らない環境では
     // タイルだけ出て点が1つも描かれないという壊れ方をする。
-    // ここでは scrollWheelZoom を切っていてパン/ズームの頻度が低く、
-    // SVG の重さが問題になりにくいので、確実に描ける側を採る。
+    // ここではパン/ズームの頻度がさほど高くなく、SVG の重さが問題に
+    // なりにくいので、確実に描ける側を採る。
     var map = L.map(el, {
-      scrollWheelZoom: false, // ページスクロールを奪わない
+      scrollWheelZoom: true,
       attributionControl: true,
     });
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
@@ -158,8 +158,21 @@
       m.on('click', function () { location.href = p.h; });
     });
 
-    // スクロールズームはクリックで有効化（モバイルのページスクロール対策）
-    map.on('click', function () { map.scrollWheelZoom.enable(); });
+    // ホイールでそのまま拡大縮小できるようにしてある。ただし常時有効に
+    // すると、ページを流し読みしている途中で地図の上をカーソルが通った
+    // だけでスクロールが地図に吸われ、そこから先へ進めなくなる。
+    //
+    // 「ページがスクロール中のあいだだけホイールズームを切る」ことで
+    // 両立させる。地図の上で止まった状態からホイールを回した場合は、
+    // 地図がホイールを食う＝ページは動かない＝scroll イベントが出ないので
+    // ズームは有効なまま。逆に流し読み中はスクロールが続いている＝
+    // scroll イベントが出続けるので、ホイールはページ側に通り抜ける。
+    var reenable = null;
+    window.addEventListener('scroll', function () {
+      map.scrollWheelZoom.disable();
+      clearTimeout(reenable);
+      reenable = setTimeout(function () { map.scrollWheelZoom.enable(); }, 300);
+    }, { passive: true });
   }
 
   // -------------------------------------------------------------------
