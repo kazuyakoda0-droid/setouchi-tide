@@ -42,7 +42,7 @@ export const SITE = {
   // 空のあいだは枠だけがレイアウトに存在し、広告スクリプトは出力されない
   // (審査前に空の広告タグを置くとポリシー違反になるため)。
   // ads.txt も ADSENSE_CLIENT が入ったときだけ生成される。
-  ADSENSE_CLIENT: process.env.SITE_ADSENSE_CLIENT || '',
+  ADSENSE_CLIENT: process.env.SITE_ADSENSE_CLIENT || 'ca-pub-3910557986459785',
   ADSENSE_SLOTS: {
     header: '',    // ヘッダー下 レスポンシブ
     graph: '',     // 潮位グラフ直下 レクタングル
