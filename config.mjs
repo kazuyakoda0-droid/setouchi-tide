@@ -23,8 +23,8 @@ export const SITE = {
     : '',
   CNAME: process.env.SITE_CNAME || 'japantide.com',
 
-  NAME: '全国タイド',
-  NAME_EN: 'JAPAN TIDE ATLAS',
+  NAME: 'しおどき',
+  NAME_EN: 'SHIODOKI',
   TAGLINE: '気象庁の公式推算値による全国548地点の潮見表・タイドグラフ',
 
   // ---- 生成範囲 -----------------------------------------------------
