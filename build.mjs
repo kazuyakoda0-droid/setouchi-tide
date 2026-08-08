@@ -22,11 +22,12 @@ import {
   todayJSTMs, dayKeyOf, monthKeyOf, dayMsOf, addDays, addMonths,
   daysInMonth, pad2, DAY,
 } from './lib/util.mjs';
-import { paths, pref, region, regionOf, prefStations, regionPrefs, regionStationCount, stationSlug, validateStations } from './lib/routes.mjs';
+import { paths, abs, pref, region, regionOf, prefStations, regionPrefs, regionStationCount, stationSlug, validateStations } from './lib/routes.mjs';
 import {
   stationPage, dayPage, weekPage, monthPage, prefPage, regionPage, homePage, aboutPage,
   privacyPage,
 } from './lib/pages.mjs';
+import { GUIDES, guidePage, guideIndexPage } from './lib/guides.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const DIST = path.join(ROOT, 'dist');
@@ -339,6 +340,15 @@ const STATIC_PAGE_LASTMOD = '2026-08-02';
 write(url('about'), aboutPage(), { changefreq: 'monthly', priority: 0.3, lastmod: STATIC_PAGE_LASTMOD });
 write(url('privacy'), privacyPage(), { changefreq: 'monthly', priority: 0.3, lastmod: STATIC_PAGE_LASTMOD });
 
+// ---- ガイド記事 -------------------------------------------------------
+// 「大潮とは」のような情報型クエリの受け皿。地点ページ群と違って動的データ
+// を含まないので、lib/guides.mjs の本文を編集したときだけ日付を書き換える。
+const GUIDE_LASTMOD = '2026-08-09';
+write(paths.guideIndex(), guideIndexPage(), { changefreq: 'monthly', priority: 0.4, lastmod: GUIDE_LASTMOD });
+for (const g of GUIDES) {
+  write(paths.guide(g.slug), guidePage(g), { changefreq: 'monthly', priority: 0.4, lastmod: GUIDE_LASTMOD });
+}
+
 // ---- sitemap / robots / llms.txt -------------------------------------
 writeSitemaps();
 fs.writeFileSync(path.join(DIST, 'robots.txt'),
@@ -368,6 +378,7 @@ fs.writeFileSync(path.join(DIST, 'llms.txt'), `# ${SITE.NAME} (${SITE.NAME_EN})
 - ${SITE.ORIGIN}/{都道府県}/{地点}/week/ : 地点の週間潮見表
 - ${SITE.ORIGIN}/{都道府県}/{地点}/{YYYY-MM}/ : 地点の月間カレンダー
 - ${SITE.ORIGIN}/{都道府県}/{地点}/{YYYY-MM-DD}/ : 地点の特定の日の潮見表
+- ${abs.guideIndex()} : 大潮・小潮の仕組みなど潮汐の解説記事一覧
 - ${absUrl('about')} : データ出典・計算方法・免責
 - ${absUrl('privacy')} : プライバシーポリシー
 
