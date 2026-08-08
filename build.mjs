@@ -191,14 +191,18 @@ for (const st of stations) {
   const byDay = jma[st.jma];
   const cel = d => celestialData(st, d);
   const light = d => tideDayLight(st, byDay, d);
+  const full = d => tideDay(st, byDay, d);
 
   // ---- ハブ（当日） ----
   const todayFull = tideDay(st, byDay, today);
   if (!todayFull) throw new Error(`${st.name}: 当日(${todayKey})の潮位データがありません`);
 
+  // 週間ページ専用の詳細列(天気・潮がよく動く時間帯)のために、地点ハブの
+  // 「これからの7日間」に使う軽量版とは別にlevels付きのfull版を持たせる。
   const weekRows = weekList.map(d => ({
     dayMs: d, ymd: dayKeyOf(d), href: paths.day(st, dayKeyOf(d)),
-    cel: cel(d), day: light(d), today: d === today,
+    cel: cel(d), day: full(d), today: d === today,
+    fc: forecastFor(st, dayKeyOf(d)),
   }));
 
   write(paths.station(st), stationPage({

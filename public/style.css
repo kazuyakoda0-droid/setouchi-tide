@@ -318,6 +318,10 @@ table.week .mn, table.prefsum .rg { font-family: var(--mono); font-size: 12px; c
 table.week .hi small, table.week .lo small,
 table.prefsum .hi small, table.prefsum .lo small { color: var(--dim); font-size: 10.5px; }
 table.week tr.today { background: rgba(176, 106, 63, .07); }
+table.week .wx { font-size: 12.5px; white-space: nowrap; }
+table.week .wx .tmp { font-family: var(--mono); color: var(--mut); font-size: 11.5px; }
+table.week .fl { font-family: var(--mono); color: var(--blue); font-size: 12px; white-space: nowrap; }
+table.week .dim { color: var(--faint); }
 .dot {
   display: inline-block; width: 7px; height: 7px; border-radius: 50%;
   margin-right: 6px; vertical-align: middle;
