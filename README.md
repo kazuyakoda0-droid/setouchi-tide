@@ -37,6 +37,9 @@ node build.mjs --sample
 | `lib/components.mjs` | グラフ・グリッド・カレンダーなどの部品 |
 | `lib/pages.mjs` | 各ページのテンプレート |
 | `public/` | `style.css` / `app.js` / `favicon.svg`（そのまま dist にコピー） |
+| `public/fonts.css` `public/fonts/` | 自前ホストしたフォントのサブセット（`scripts/subset-fonts.mjs` で生成） |
+| `scripts/subset-fonts.mjs` | Google Fontsから使用文字だけを抜き出し `public/fonts/` に取得し直す。地点名が増えて未収録の漢字が出たときに手で再実行する |
+| `scripts/og-image.html` | og:image の下書き。ブラウザでスクリーンショットして `public/og-image.png` として保存する |
 
 ## URL
 
