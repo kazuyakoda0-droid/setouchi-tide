@@ -39,7 +39,13 @@ let written = 0;
 const allUrls = [];
 const seenUrls = new Set();
 
-function write(u, html, { sitemap = true, changefreq = 'daily', priority = 0.6 } = {}) {
+// lastmod は「今日ビルドした」ではなく「このURLの内容が実際に変わりうる日」を
+// 渡す。省略時は todayKey (ビルド日)。これは当日スナップショット系のページ
+// (トップ・地方・県・地点ハブ・週間) にだけ正しい既定値で、日別・月間・
+// about/privacy の呼び出し側では個別に計算した値を渡す。全URLに一律で
+// 今日の日付を書くと、Search Console が「毎日全ページ更新」という虚偽の
+// シグナルとして学習し、lastmod 自体を無視するようになるため。
+function write(u, html, { sitemap = true, changefreq = 'daily', priority = 0.6, lastmod } = {}) {
   // 同じ URL に2回書くと先に書いたページが黙って消える。生成数とファイル数が
   // ずれるだけなので気づきにくい。ここで落とす。
   if (seenUrls.has(u)) throw new Error(`URL が重複しています: ${u}`);
@@ -50,7 +56,7 @@ function write(u, html, { sitemap = true, changefreq = 'daily', priority = 0.6 }
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, 'index.html'), html, 'utf8');
   written++;
-  if (sitemap) allUrls.push({ loc: SITE.ORIGIN + encodePath(u), changefreq, priority });
+  if (sitemap) allUrls.push({ loc: SITE.ORIGIN + encodePath(u), changefreq, priority, lastmod: lastmod || todayKey });
 }
 
 // 日本語セグメントを含むパスを sitemap / canonical 用に percent-encode する
@@ -225,14 +231,27 @@ for (const st of stations) {
     // byDay の有無で判定すると生成範囲の外にリンクしてしまう。
     const pk = dayKeyOf(addDays(d, -1)), nk = dayKeyOf(addDays(d, 1));
     const label = k => `${Number(k.slice(5, 7))}/${Number(k.slice(8, 10))}`;
+    const fcDay = forecastFor(st, ymd);
+    // 予報がある日(今日〜7日先)は天気欄が毎日更新されるので今日の日付。
+    // それ以外は気象庁の推算値だけの静的なページなので、その日自体を
+    // lastmod/dateModified にする(未来日は today を超えられないので min で丸める)。
+    const dmDay = fcDay ? todayKey : dayKeyOf(Math.min(d, today));
     write(paths.day(st, ymd), dayPage({
       st, day: full, cel: cel(d), ymd, dayMs: d,
       isToday: d === today,
       prev: dayPageKeys.has(pk) ? { href: paths.day(st, pk), label: label(pk) } : null,
       next: dayPageKeys.has(nk) ? { href: paths.day(st, nk), label: label(nk) } : null,
       monthDays,
-      fc: forecastFor(st, ymd),
-    }), { changefreq: d === today ? 'daily' : 'monthly', priority: d === today ? 0.5 : 0.4 });
+      fc: fcDay,
+      dateModified: dmDay,
+    }), {
+      // 今日の日別ページは canonical が地点ハブを指す(dayPage内)ので、
+      // 別URLとして sitemap に出すと非canonical URLを申告することになる。
+      sitemap: d !== today,
+      changefreq: d === today ? 'daily' : 'monthly',
+      priority: d === today ? 0.5 : 0.4,
+      lastmod: dmDay,
+    });
   }
 
   // ---- 月間 ----
@@ -257,12 +276,18 @@ for (const st of stations) {
 
     const pm = addMonths(m, -1), nm = addMonths(m, 1);
     const inRange = x => monthList.some(v => v === x);
+    // 月間カレンダーは気象庁の推算値・天文暦だけで組み立てており、天気予報を
+    // 含まない(=毎日は変わらない)ので、月末日(未来月なら today)を lastmod にする。
+    const monthEndMs = addDays(m, dim - 1);
     write(paths.month(st, ym), monthPage({
       st, ym, cells,
       prev: inRange(pm) ? { href: paths.month(st, monthKeyOf(pm)), label: `${new Date(pm).getUTCMonth() + 1}月` } : null,
       next: inRange(nm) ? { href: paths.month(st, monthKeyOf(nm)), label: `${new Date(nm).getUTCMonth() + 1}月` } : null,
       stats: { maxRange, maxRangeDay, ohshio },
-    }), { changefreq: 'weekly', priority: 0.5 });
+    }), {
+      changefreq: 'weekly', priority: 0.5,
+      lastmod: dayKeyOf(Math.min(monthEndMs, today)),
+    });
   }
 
   if (++n % 25 === 0) process.stdout.write(`\r  地点 ${n}/${stations.length}  ページ ${written}`);
@@ -308,30 +333,65 @@ write(paths.home(), homePage({
   dateJa,
 }), { changefreq: 'daily', priority: 1.0 });
 
-write(url('about'), aboutPage(), { changefreq: 'monthly', priority: 0.3 });
-write(url('privacy'), privacyPage(), { changefreq: 'monthly', priority: 0.3 });
+// about/privacy は動的データを含まない固定ページ。本文を編集したときだけ
+// この日付を書き換える(このビルドで内容を変えていないので据え置き)。
+const STATIC_PAGE_LASTMOD = '2026-08-02';
+write(url('about'), aboutPage(), { changefreq: 'monthly', priority: 0.3, lastmod: STATIC_PAGE_LASTMOD });
+write(url('privacy'), privacyPage(), { changefreq: 'monthly', priority: 0.3, lastmod: STATIC_PAGE_LASTMOD });
 
-// ---- sitemap / robots ----------------------------------------------
+// ---- sitemap / robots / llms.txt -------------------------------------
 writeSitemaps();
 fs.writeFileSync(path.join(DIST, 'robots.txt'),
   `User-agent: *\nAllow: /\n\nSitemap: ${SITE.ORIGIN}${SITE.BASE}/sitemap.xml\n`);
+
+// llms.txt (https://llmstxt.org) は生成AIがサイトを要約・引用する際に読む
+// 手がかり。robots.txt で全クローラを許可している方針(生成AIに読まれて
+// 引用されることを歓迎する立場)と揃えて、データ出典・更新頻度・URL構造を
+// 明文化しておく。数値は実際の生成結果(stations.length等)から出すので、
+// 地点数や公式観測点数が変わってもここだけ古くなることはない。
+const official = stations.filter(s => !s.jmaAnchor).length;
+fs.writeFileSync(path.join(DIST, 'llms.txt'), `# ${SITE.NAME} (${SITE.NAME_EN})
+
+> ${SITE.TAGLINE}。満潮・干潮の時刻と潮位、10分毎の潮位、潮がよく動く時間帯、日の出入・月齢を無料で掲載しています。
+
+## データについて
+- 潮位: 気象庁 潮位表の公式推算値です。実測値ではありません。10分毎の値は毎時値を三次スプラインで補間しています。
+- 気象観測点: 全${stations.length}地点のうち、気象庁の公式観測点は${official}地点。残りは最寄り観測点の推算値を参照する近似地点です（各ページに明記）。
+- 天気・風・波・気温: 気象庁 天気予報。今日から7日先まで。
+- 更新頻度: 毎日1回、日本時間の未明に全ページを再生成しています。
+- 出典: 気象庁（${SITE.JMA_CREDIT_URL}）。引用・二次利用の際は出典の明記をお願いします。詳細は ${absUrl('about')} を参照してください。
+
+## 主なURL構造
+- ${SITE.ORIGIN}/ : 全国${stations.length}地点の一覧
+- ${SITE.ORIGIN}/{都道府県}/ : 都道府県ごとの潮見表一覧
+- ${SITE.ORIGIN}/{都道府県}/{地点}/ : 地点の当日の潮見表・タイドグラフ
+- ${SITE.ORIGIN}/{都道府県}/{地点}/week/ : 地点の週間潮見表
+- ${SITE.ORIGIN}/{都道府県}/{地点}/{YYYY-MM}/ : 地点の月間カレンダー
+- ${SITE.ORIGIN}/{都道府県}/{地点}/{YYYY-MM-DD}/ : 地点の特定の日の潮見表
+- ${absUrl('about')} : データ出典・計算方法・免責
+- ${absUrl('privacy')} : プライバシーポリシー
+
+## クロールについて
+robots.txt はすべてのクローラ（生成AIによる取得を含む）を許可しています。各ページの見出し直下に、その日・その地点の満潮・干潮時刻、潮回り、干満差を平文の段落として記載しているので、ページ本文を読めば要約に必要な数値が揃います。
+`);
 
 function writeSitemaps() {
   const PER = 20000;   // 仕様上限は50,000。余裕を持たせる
   const chunks = [];
   for (let i = 0; i < allUrls.length; i += PER) chunks.push(allUrls.slice(i, i + PER));
 
-  const lastmod = new Date().toISOString().slice(0, 10);
   chunks.forEach((chunk, i) => {
     const body = chunk.map(u =>
-      `<url><loc>${u.loc}</loc><lastmod>${lastmod}</lastmod>`
+      `<url><loc>${u.loc}</loc><lastmod>${u.lastmod}</lastmod>`
       + `<changefreq>${u.changefreq}</changefreq><priority>${u.priority.toFixed(1)}</priority></url>`).join('\n');
     fs.writeFileSync(path.join(DIST, `sitemap-${i + 1}.xml`),
       `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`);
   });
 
+  // sitemap-N.xml 自体は個々のURLのlastmodが混在するファイルなので、
+  // インデックス側の lastmod は「このファイルを書き出した日」で正しい。
   const idx = chunks.map((_, i) =>
-    `<sitemap><loc>${SITE.ORIGIN}${SITE.BASE}/sitemap-${i + 1}.xml</loc><lastmod>${lastmod}</lastmod></sitemap>`).join('\n');
+    `<sitemap><loc>${SITE.ORIGIN}${SITE.BASE}/sitemap-${i + 1}.xml</loc><lastmod>${todayKey}</lastmod></sitemap>`).join('\n');
   fs.writeFileSync(path.join(DIST, 'sitemap.xml'),
     `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${idx}\n</sitemapindex>\n`);
 }
