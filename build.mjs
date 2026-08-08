@@ -346,7 +346,7 @@ write(url('privacy'), privacyPage(), { changefreq: 'monthly', priority: 0.3, las
 const GUIDE_LASTMOD = '2026-08-09';
 write(paths.guideIndex(), guideIndexPage(), { changefreq: 'monthly', priority: 0.4, lastmod: GUIDE_LASTMOD });
 for (const g of GUIDES) {
-  write(paths.guide(g.slug), guidePage(g), { changefreq: 'monthly', priority: 0.4, lastmod: GUIDE_LASTMOD });
+  write(paths.guide(g.slug), guidePage(g, GUIDE_LASTMOD), { changefreq: 'monthly', priority: 0.4, lastmod: GUIDE_LASTMOD });
 }
 
 // ---- sitemap / robots / llms.txt -------------------------------------
