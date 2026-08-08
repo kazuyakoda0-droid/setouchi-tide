@@ -56,14 +56,13 @@ export const SITE = {
   },
 
   // ---- OGP画像 --------------------------------------------------------
-  // X/Facebook/Discord などでの共有カード用。og:image は SVG非対応で PNG/JPG
-  // が要るが、このリポジトリは依存パッケージなしの静的サイトジェネレータ
-  // なので、画像編集ライブラリは入れていない。`public/og-image.png` を
-  // 手元で用意して置くと自動的に有効になる(scripts/og-image.html が
-  // ブラウザで開いて1200x630でスクリーンショットするだけの下書き)。
-  // 置くまでは og:image / twitter:card を出力しない(存在しない画像を
-  // 指すと逆にプレビューが崩れるため)。
-  OG_IMAGE: process.env.SITE_OG_IMAGE || '',
+  // X/Facebook/Discord などでの共有カード用。`public/og-image.png`
+  // (1200x630)を焼き直したいときは scripts/og-image.html を下書きとして
+  // 使う。og:image は SVG非対応で PNG/JPG が要るが、このリポジトリは
+  // 依存パッケージなしの静的サイトジェネレータなので画像編集ライブラリは
+  // 入れていない。空にすると og:image / twitter:card を出力しない
+  // (存在しない画像を指すとプレビューが崩れるため)。
+  OG_IMAGE: process.env.SITE_OG_IMAGE || 'og-image.png',
 
   // ---- 運営者 ---------------------------------------------------------
   // AdSense審査や検索での信頼性評価は、運営者が明示されているサイトを
