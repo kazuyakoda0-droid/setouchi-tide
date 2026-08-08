@@ -1,0 +1,85 @@
+<!--
+  og:image (1200×630) の下書き。ビルドパイプラインには含めない
+  (このリポジトリは依存パッケージなしの静的サイトジェネレータなので、
+  画像を焼くライブラリを入れていない)。
+
+  使い方:
+    1. ブラウザでこのファイルを開く（右クリック→開く、または
+       `python -m http.server` などで配信してアクセスする。file:// で
+       直接開くとブラウザによっては外部フォントの読み込みがブロックされる
+       ことがある）。
+    2. ウィンドウ幅を1200pxちょうどにする（DevToolsのデバイスツールバーで
+       "Responsive" を選び 1200×630 を指定するのが確実）。
+    3. スクリーンショットを撮り、1200×630にトリミングして
+       `public/og-image.png` として保存する。
+    4. config.mjs の OG_IMAGE に 'og-image.png' を設定する
+       （空のあいだは og:image / twitter:card を出力しない）。
+-->
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; }
+  body {
+    width: 1200px; height: 630px; overflow: hidden;
+    background: #f4f1ea;
+    background-image:
+      radial-gradient(circle at 85% 15%, rgba(43,93,122,.10), transparent 45%),
+      radial-gradient(circle at 10% 90%, rgba(176,74,63,.08), transparent 50%);
+    font-family: 'Zen Kaku Gothic New', system-ui, sans-serif;
+    position: relative;
+  }
+  .waves { position: absolute; left: 0; right: 0; bottom: 0; height: 260px; overflow: hidden; }
+  .waves svg { position: absolute; bottom: 0; width: 100%; height: 100%; }
+  .frame { position: absolute; inset: 28px; border: 1.5px solid rgba(60,50,35,.22); }
+  .content {
+    position: relative; z-index: 2;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    height: 630px; text-align: center;
+  }
+  .mark { width: 132px; height: 132px; margin-bottom: 22px; }
+  .ja {
+    font-family: 'Zen Old Mincho', 'Yu Mincho', serif; font-weight: 700;
+    font-size: 76px; color: #2b2620; letter-spacing: .06em; line-height: 1;
+  }
+  .en {
+    font-family: 'DM Mono', ui-monospace, monospace; font-weight: 500;
+    font-size: 22px; color: #6b6357; letter-spacing: .38em; margin-top: 16px;
+  }
+  .tagline { margin-top: 30px; font-size: 22px; color: #4a4034; font-weight: 500; letter-spacing: .02em; }
+  .foot {
+    position: absolute; bottom: 44px; left: 0; right: 0;
+    text-align: center; font-family: 'DM Mono', ui-monospace, monospace;
+    font-size: 15px; color: #8a8073; letter-spacing: .12em;
+  }
+</style>
+</head>
+<body>
+  <div class="frame"></div>
+  <div class="waves">
+    <svg viewBox="0 0 1200 260" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 190 C 150 150, 300 150, 450 190 S 750 230, 900 190 S 1150 150, 1200 190 V 260 H 0 Z" fill="#2b5d7a" opacity="0.10"/>
+      <path d="M0 220 C 150 185, 300 185, 450 220 S 750 255, 900 220 S 1150 185, 1200 220 V 260 H 0 Z" fill="#b04a3f" opacity="0.10"/>
+    </svg>
+  </div>
+  <div class="content">
+    <svg class="mark" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <defs><radialGradient id="g" cx="35%" cy="30%" r="75%"><stop offset="0%" stop-color="#d5687a"/><stop offset="100%" stop-color="#b8404f"/></radialGradient>
+      <clipPath id="c"><circle cx="32" cy="32" r="32"/></clipPath></defs>
+      <circle cx="32" cy="32" r="32" fill="url(#g)"/>
+      <g clip-path="url(#c)">
+        <path d="M-4 40 Q16 30 32 40 T68 40" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity=".55"/>
+        <path d="M-4 27 Q16 17 32 27 T68 27" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
+      </g>
+    </svg>
+    <div class="ja">しおどき</div>
+    <div class="en">S H I O D O K I</div>
+    <div class="tagline">気象庁の公式推算値による全国548地点の潮見表・タイドグラフ</div>
+  </div>
+  <div class="foot">JAPANTIDE.COM</div>
+</body>
+</html>
