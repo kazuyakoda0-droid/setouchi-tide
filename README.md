@@ -6,7 +6,7 @@
 ## 使い方
 
 ```bash
-node build.mjs            # 全ページ生成（約11,000ページ）
+node build.mjs            # 全ページ生成（約11,500ページ）
 node build.mjs --sample   # 広島県だけ生成（数秒。動作確認用）
 ```
 
@@ -47,7 +47,7 @@ node build.mjs --sample
 /{pref}/{station}/                地点・当日 (548)
 /{pref}/{station}/week/           週間 (548)
 /{pref}/{station}/{YYYY-MM}/      月間 (548 × 3)
-/{pref}/{station}/{YYYY-MM-DD}/   日別 (548 × 15)
+/{pref}/{station}/{YYYY-MM-DD}/   日別 (548 × 16)
 ```
 
 生成数は `config.mjs` の `DAYS_BACK` / `DAYS_FWD` / `MONTHS_BACK` / `MONTHS_FWD` で決まる。
