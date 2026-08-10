@@ -94,14 +94,21 @@ async function runQuery(query, { fetchImpl, retryDelayMs, attempt = 0 } = {}) {
 
 // 全クエリを順番に(同時実行せず)実行し、結果を1つの配列にまとめる。
 // サーバに負荷をかけないよう、クエリ間・リトライ間に間隔を空ける。
-export async function fetchOsmCandidates({ fetchImpl = fetch, queries = overpassQueries(), pauseMs = 2000, retryDelayMs = 5000, onProgress } = {}) {
+// 1タグぶんのクエリがリトライしても失敗した場合、そのタグの候補は
+// 諦めて残りのタグは続行する(公開Overpassサーバーの一時的な不調で
+// パイプライン全体が止まるのを避けるため)。失敗したタグは onFailure で通知する。
+export async function fetchOsmCandidates({ fetchImpl = fetch, queries = overpassQueries(), pauseMs = 2000, retryDelayMs = 5000, onProgress, onFailure } = {}) {
   const all = [];
   for (let i = 0; i < queries.length; i++) {
     if (i > 0) await new Promise(r => setTimeout(r, pauseMs));
-    const json = await runQuery(queries[i].query, { fetchImpl, retryDelayMs });
-    const parsed = parseOverpassResponse(json);
-    all.push(...parsed);
-    if (onProgress) onProgress(queries[i].label, parsed.length, i + 1, queries.length);
+    try {
+      const json = await runQuery(queries[i].query, { fetchImpl, retryDelayMs });
+      const parsed = parseOverpassResponse(json);
+      all.push(...parsed);
+      if (onProgress) onProgress(queries[i].label, parsed.length, i + 1, queries.length);
+    } catch (e) {
+      if (onFailure) onFailure(queries[i].label, e, i + 1, queries.length);
+    }
   }
   return all;
 }

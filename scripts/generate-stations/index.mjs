@@ -28,6 +28,7 @@ async function main() {
   console.log('1/7 OSM候補を取得中...');
   const candidates = await fetchOsmCandidates({
     onProgress: (label, count, i, total) => console.log(`  [${i}/${total}] ${label}: ${count}件`),
+    onFailure: (label, err, i, total) => console.warn(`  [${i}/${total}] ${label}: 取得失敗のため諦める (${err.message})`),
   });
   console.log(`  取得: ${candidates.length}件`);
 

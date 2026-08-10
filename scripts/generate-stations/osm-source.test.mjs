@@ -82,25 +82,33 @@ test('fetchOsmCandidates: 複数クエリを順番にPOSTし、結果を結合�
   ]);
 });
 
-test('fetchOsmCandidates: HTTPエラーは3回リトライ後に例外を投げる', async () => {
+test('fetchOsmCandidates: 1タグが3回リトライ後も失敗したら onFailure を呼び、他のタグは続行する', async () => {
   let calls = 0;
-  const fakeFetch = async () => { calls++; return { ok: false, status: 503 }; };
-  await assert.rejects(
-    () => fetchOsmCandidates({ fetchImpl: fakeFetch, queries: [{ label: 'a', query: 'Q' }], pauseMs: 0, retryDelayMs: 0 }),
-    /503/
-  );
-  assert.equal(calls, 3);
+  const fakeFetch = async (url, options) => {
+    calls++;
+    if (options.body === 'FAIL') return { ok: false, status: 503 };
+    return {
+      ok: true,
+      json: async () => ({ elements: [{ type: 'node', lat: 1, lon: 1, tags: { name: 'OK', harbour: 'yes' } }] }),
+    };
+  };
+  const failures = [];
+  const result = await fetchOsmCandidates({
+    fetchImpl: fakeFetch,
+    queries: [{ label: 'bad', query: 'FAIL' }, { label: 'good', query: 'OK_QUERY' }],
+    pauseMs: 0, retryDelayMs: 0,
+    onFailure: (label, err, i, total) => failures.push({ label, i, total }),
+  });
+  assert.equal(calls, 4); // bad: 3回, good: 1回
+  assert.equal(result.length, 1);
+  assert.equal(result[0].name, 'OK');
+  assert.deepEqual(failures, [{ label: 'bad', i: 1, total: 2 }]);
 });
 
-test('fetchOsmCandidates: remarkがあるレスポンスは3回リトライ後に例外を投げる', async () => {
-  let calls = 0;
-  const fakeFetch = async () => {
-    calls++;
-    return { ok: true, json: async () => ({ elements: [], remark: 'runtime error: Query timed out' }) };
-  };
-  await assert.rejects(
-    () => fetchOsmCandidates({ fetchImpl: fakeFetch, queries: [{ label: 'a', query: 'Q' }], pauseMs: 0, retryDelayMs: 0 }),
-    /timed out/
-  );
-  assert.equal(calls, 3);
+test('fetchOsmCandidates: onFailureが無ければ静かに諦めて続行する', async () => {
+  const fakeFetch = async () => ({ ok: false, status: 503 });
+  const result = await fetchOsmCandidates({
+    fetchImpl: fakeFetch, queries: [{ label: 'a', query: 'Q' }], pauseMs: 0, retryDelayMs: 0,
+  });
+  assert.deepEqual(result, []);
 });
