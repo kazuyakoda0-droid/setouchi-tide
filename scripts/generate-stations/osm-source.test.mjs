@@ -53,6 +53,7 @@ test('fetchOsmCandidates: 注入したfetchでPOSTし、レスポンスをパー
   const result = await fetchOsmCandidates({ fetchImpl: fakeFetch });
   assert.equal(capturedUrl, 'https://overpass-api.de/api/interpreter');
   assert.equal(capturedOptions.method, 'POST');
+  assert.equal(capturedOptions.headers['User-Agent'], 'japan-tide-atlas static site builder');
   assert.equal(result.length, 1);
   assert.equal(result[0].name, 'テスト港');
 });

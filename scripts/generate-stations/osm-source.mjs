@@ -49,7 +49,11 @@ function firstTagKey(tags) {
 
 export async function fetchOsmCandidates({ fetchImpl = fetch } = {}) {
   const query = buildOverpassQuery();
-  const res = await fetchImpl(OVERPASS_URL, { method: 'POST', body: query });
+  const res = await fetchImpl(OVERPASS_URL, {
+    method: 'POST',
+    headers: { 'User-Agent': 'japan-tide-atlas static site builder', 'Content-Type': 'text/plain' },
+    body: query,
+  });
   if (!res.ok) throw new Error(`Overpass API の取得に失敗: HTTP ${res.status}`);
   const json = await res.json();
   return parseOverpassResponse(json);
