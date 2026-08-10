@@ -2,8 +2,9 @@
 //
 // 全タグを1クエリにまとめると（area["ISO3166-1"="JP"]の解決コスト＋wayのcenter計算コストで）
 // 公開Overpassサーバーでは180秒を超えてタイムアウトすることを実測で確認した。
-// そのため bbox（日本全体の外接矩形）を使い、node系タグは1クエリにまとめ、
-// center計算が重い way系タグはタグごとに個別クエリへ分割している。
+// node系タグをまとめた1クエリ(bbox使用)でも、公開サーバー経由のプロキシが
+// 504を返すことがあったため、最終的にタグ1つにつき1クエリまで分割している
+// (実測: bboxを使えばタグ1つあたり10〜30秒程度で完了する)。
 
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
 const BBOX = '24,122,46,146'; // 日本全体を覆う緯度経度の外接矩形（南,西,北,東）
@@ -24,25 +25,22 @@ const WAY_TAGS = [
   'way["man_made"="pier"]["name"]',
 ];
 
-export function buildNodeQuery() {
-  const body = NODE_TAGS.map(t => `${t};`).join('\n  ');
-  return `[out:json][timeout:120][bbox:${BBOX}];
-(
-  ${body}
-);
+export function buildNodeQuery(tag) {
+  return `[out:json][timeout:60][bbox:${BBOX}];
+${tag};
 out;`;
 }
 
 export function buildWayQuery(tag) {
-  return `[out:json][timeout:90][bbox:${BBOX}];
+  return `[out:json][timeout:60][bbox:${BBOX}];
 ${tag};
 out center;`;
 }
 
-// 実行する個々のOverpassクエリの一覧。node系1本＋way系タグごとに1本ずつ。
+// 実行する個々のOverpassクエリの一覧。タグ1つにつき1本。
 export function overpassQueries() {
   return [
-    { label: 'nodes', query: buildNodeQuery() },
+    ...NODE_TAGS.map(tag => ({ label: tag, query: buildNodeQuery(tag) })),
     ...WAY_TAGS.map(tag => ({ label: tag, query: buildWayQuery(tag) })),
   ];
 }
@@ -96,12 +94,14 @@ async function runQuery(query, { fetchImpl, retryDelayMs, attempt = 0 } = {}) {
 
 // 全クエリを順番に(同時実行せず)実行し、結果を1つの配列にまとめる。
 // サーバに負荷をかけないよう、クエリ間・リトライ間に間隔を空ける。
-export async function fetchOsmCandidates({ fetchImpl = fetch, queries = overpassQueries(), pauseMs = 3000, retryDelayMs = 5000 } = {}) {
+export async function fetchOsmCandidates({ fetchImpl = fetch, queries = overpassQueries(), pauseMs = 2000, retryDelayMs = 5000, onProgress } = {}) {
   const all = [];
   for (let i = 0; i < queries.length; i++) {
     if (i > 0) await new Promise(r => setTimeout(r, pauseMs));
     const json = await runQuery(queries[i].query, { fetchImpl, retryDelayMs });
-    all.push(...parseOverpassResponse(json));
+    const parsed = parseOverpassResponse(json);
+    all.push(...parsed);
+    if (onProgress) onProgress(queries[i].label, parsed.length, i + 1, queries.length);
   }
   return all;
 }

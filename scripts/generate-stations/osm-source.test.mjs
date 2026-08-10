@@ -2,14 +2,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildNodeQuery, buildWayQuery, overpassQueries, parseOverpassResponse, fetchOsmCandidates } from './osm-source.mjs';
 
-test('buildNodeQuery: node系タグをすべて含み、bboxを使う', () => {
-  const q = buildNodeQuery();
+test('buildNodeQuery: 指定したタグ1つだけのクエリを作る(bbox使用)', () => {
+  const q = buildNodeQuery('node["natural"="beach"]["name"]');
   assert.match(q, /natural"="beach"/);
-  assert.match(q, /leisure"="marina"/);
-  assert.match(q, /leisure"="fishing"/);
   assert.match(q, /\[bbox:24,122,46,146\]/);
   assert.match(q, /out;/);
-  assert.doesNotMatch(q, /way\[/);
 });
 
 test('buildWayQuery: 指定したタグ1つだけのcenterクエリを作る', () => {
@@ -19,11 +16,13 @@ test('buildWayQuery: 指定したタグ1つだけのcenterクエリを作る', (
   assert.match(q, /\[bbox:24,122,46,146\]/);
 });
 
-test('overpassQueries: node用1本 + way用タグの数だけ返す', () => {
+test('overpassQueries: node系タグ+way系タグの数だけクエリを返す', () => {
   const qs = overpassQueries();
-  assert.equal(qs[0].label, 'nodes');
-  assert.ok(qs.length > 1);
-  assert.ok(qs.slice(1).every(q => q.query.includes('way[')));
+  const nodeQs = qs.filter(q => q.query.includes('out;'));
+  const wayQs = qs.filter(q => q.query.includes('out center;'));
+  assert.ok(nodeQs.length >= 7, `expected >=7 node queries, got ${nodeQs.length}`);
+  assert.ok(wayQs.length >= 3, `expected >=3 way queries, got ${wayQs.length}`);
+  assert.equal(qs.length, nodeQs.length + wayQs.length);
 });
 
 test('parseOverpassResponse: nodeはlat/lonをそのまま使う', () => {
@@ -67,12 +66,20 @@ test('fetchOsmCandidates: 複数クエリを順番にPOSTし、結果を結合�
     };
   };
   const fakeQueries = [{ label: 'a', query: 'QUERY_A' }, { label: 'b', query: 'QUERY_B' }];
-  const result = await fetchOsmCandidates({ fetchImpl: fakeFetch, queries: fakeQueries, pauseMs: 0 });
+  const progress = [];
+  const result = await fetchOsmCandidates({
+    fetchImpl: fakeFetch, queries: fakeQueries, pauseMs: 0,
+    onProgress: (label, count, i, total) => progress.push({ label, count, i, total }),
+  });
   assert.equal(calls.length, 2);
   assert.equal(calls[0].options.method, 'POST');
   assert.equal(calls[0].options.headers['User-Agent'], 'japan-tide-atlas static site builder');
   assert.equal(result.length, 2);
   assert.deepEqual(result.map(r => r.name), ['テスト0', 'テスト1']);
+  assert.deepEqual(progress, [
+    { label: 'a', count: 1, i: 1, total: 2 },
+    { label: 'b', count: 1, i: 2, total: 2 },
+  ]);
 });
 
 test('fetchOsmCandidates: HTTPエラーは3回リトライ後に例外を投げる', async () => {

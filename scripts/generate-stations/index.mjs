@@ -26,7 +26,9 @@ const samplePref = sampleIdx !== -1 ? args[sampleIdx + 1] : null;
 
 async function main() {
   console.log('1/7 OSM候補を取得中...');
-  const candidates = await fetchOsmCandidates();
+  const candidates = await fetchOsmCandidates({
+    onProgress: (label, count, i, total) => console.log(`  [${i}/${total}] ${label}: ${count}件`),
+  });
   console.log(`  取得: ${candidates.length}件`);
 
   console.log('2/7 都道府県境界を取得中...');
