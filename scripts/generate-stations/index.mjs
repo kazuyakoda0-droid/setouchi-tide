@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { TIDE_STATIONS, PREFS } from '../../lib/stations.mjs';
 import { loadYears } from '../../lib/jma.mjs';
 import { fetchOsmCandidates } from './osm-source.mjs';
-import { loadPrefectureGeoJSON, prefectureOf, buildNameToId } from './prefectures.mjs';
+import { loadPrefectureGeoJSON, prefectureOf, nearestPrefectureOf, buildNameToId, buildBoundaryIndex } from './prefectures.mjs';
 import { mergeCandidates } from './dedupe.mjs';
 import { averageTidalRangeCm, tidalRangeVarianceExceeds, isRedundant } from './safety.mjs';
 import { assignAnchor } from './anchor.mjs';
@@ -35,16 +35,24 @@ async function main() {
   console.log('2/7 都道府県境界を取得中...');
   const geoJSON = await loadPrefectureGeoJSON();
   const nameToId = buildNameToId(PREFS);
+  const boundaryIndex = buildBoundaryIndex(geoJSON, nameToId);
 
   console.log('3/7 都道府県を判定中...');
+  // OSMの港湾・マリーナ・桟橋の点は簡略化された海岸線ポリゴンの外側
+  // (海上)に位置することが多いため、まず厳密なpoint-in-polygonを試し、
+  // 外れた場合は最寄りの境界線(5km以内)へフォールバックする。
   const withPref = [];
-  let noPref = 0;
+  let fallbackCount = 0, noPref = 0;
   for (const c of candidates) {
-    const pref = prefectureOf(c.lat, c.lon, geoJSON, nameToId);
+    let pref = prefectureOf(c.lat, c.lon, geoJSON, nameToId);
+    if (!pref) {
+      pref = nearestPrefectureOf(c.lat, c.lon, boundaryIndex, 5);
+      if (pref) fallbackCount++;
+    }
     if (!pref) { noPref++; continue; }
     withPref.push({ ...c, pref });
   }
-  console.log(`  判定成功: ${withPref.length}件 / 判定不能(除外): ${noPref}件`);
+  console.log(`  判定成功: ${withPref.length}件(うち近傍フォールバック${fallbackCount}件) / 判定不能(除外): ${noPref}件`);
 
   const scoped = samplePref ? withPref.filter(c => c.pref === samplePref) : withPref;
 
