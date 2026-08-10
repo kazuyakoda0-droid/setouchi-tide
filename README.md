@@ -1,12 +1,12 @@
 # しおどき / SHIODOKI
 
-気象庁の公式推算値による全国548地点の潮見表・タイドグラフ。
+気象庁の公式推算値による全国775地点の潮見表・タイドグラフ。
 静的サイトジェネレータ（依存パッケージなし・Node 20+ のみ）。
 
 ## 使い方
 
 ```bash
-node build.mjs            # 全ページ生成（約11,500ページ）
+node build.mjs            # 全ページ生成（約16,300ページ）
 node build.mjs --sample   # 広島県だけ生成（数秒。動作確認用）
 ```
 
@@ -28,7 +28,7 @@ node build.mjs --sample
 |---|---|
 | `config.mjs` | ドメイン・生成範囲・広告ID・解析ID・問い合わせURL。**ドメイン移行で触るのはここだけ** |
 | `build.mjs` | 全ページの生成、sitemap、robots.txt |
-| `lib/stations.mjs` | 観測点548件の定義（自動生成データ。手で編集しない） |
+| `lib/stations.mjs` | 観測点775件の定義（自動生成データ。手で編集しない） |
 | `lib/jma.mjs` | 気象庁 年次潮位表テキストの取得・パース・キャッシュ |
 | `lib/tide.mjs` | 10分刻みへの補間、近似地点補正、潮位変化速度 |
 | `lib/astro.mjs` | 太陽・月・月齢・潮名 |
@@ -40,6 +40,7 @@ node build.mjs --sample
 | `public/fonts.css` `public/fonts/` | 自前ホストしたフォントのサブセット（`scripts/subset-fonts.mjs` で生成） |
 | `scripts/subset-fonts.mjs` | Google Fontsから使用文字だけを抜き出し `public/fonts/` に取得し直す。地点名が増えて未収録の漢字が出たときに手で再実行する |
 | `scripts/og-image.html` | og:image の下書き。ブラウザでスクリーンショットして `public/og-image.png` として保存する |
+| `scripts/generate-stations/` | OSMデータ（Overpass API）から近似地点候補を取得し `lib/stations.mjs` に追記するパイプライン。`node scripts/generate-stations/index.mjs` で全国分、`--sample <pref>` で1県だけ、`--dry-run` で書き込まずに件数だけ確認できる。再実行すると新規に見つかった分がさらに追記される（既存地点は変更しない）。公開Overpassサーバーは負荷でタグ取得が失敗することがあるが、失敗したタグはスキップして続行する仕様なので、日を改めて再実行すると回収できることがある |
 
 ## URL
 
@@ -47,10 +48,10 @@ node build.mjs --sample
 /                                 トップ
 /{region}/                        地方 (9)
 /{pref}/                          都道府県 (39)
-/{pref}/{station}/                地点・当日 (548)
-/{pref}/{station}/week/           週間 (548)
-/{pref}/{station}/{YYYY-MM}/      月間 (548 × 3)
-/{pref}/{station}/{YYYY-MM-DD}/   日別 (548 × 16)
+/{pref}/{station}/                地点・当日 (775)
+/{pref}/{station}/week/           週間 (775)
+/{pref}/{station}/{YYYY-MM}/      月間 (775 × 3)
+/{pref}/{station}/{YYYY-MM-DD}/   日別 (775 × 16)
 ```
 
 生成数は `config.mjs` の `DAYS_BACK` / `DAYS_FWD` / `MONTHS_BACK` / `MONTHS_FWD` で決まる。
