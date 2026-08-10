@@ -47,3 +47,16 @@ const JMA_STN_NAME = {};
 test('insertIntoStationsFile: アンカー文字列が無いと例外', () => {
   assert.throws(() => insertIntoStationsFile('broken file', [ENTRY], [{ id: 'tokyo', name: '東京都' }], '2026-08-11'));
 });
+
+test('insertIntoStationsFile: CRLFのファイルでもアンカーを見つけ、CRLFで挿入する', () => {
+  const PREFS = [{ id: 'tokyo', name: '東京都' }];
+  const fileText = `const TIDE_STATIONS = [\r\n`
+    + `  { id:'jma_tk', name:'東京', kana:'', lat:35.0, lon:139.0, pref:'tokyo', jma:'TK', jmaAnchor:false, damp:1.00, dz:0, dphase:0.00, model:null },\r\n`
+    + `];\r\n\r\n`
+    + `// 気象庁観測点コード → 表示名\r\n`
+    + `const JMA_STN_NAME = {};\r\n`;
+  const result = insertIntoStationsFile(fileText, [ENTRY], PREFS, '2026-08-11');
+  assert.match(result, /新規地点（自動生成 2026-08-11 追加）[^\r\n]*\r\n/);
+  assert.match(result, /n0001[^\r\n]*\},\r\n/);
+  assert.ok(result.indexOf('n0001') < result.indexOf('];'));
+});

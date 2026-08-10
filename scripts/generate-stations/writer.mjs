@@ -1,6 +1,9 @@
 // 生成した新規地点を lib/stations.mjs に追記する。
+//
+// Windows(git core.autocrlf)でチェックアウトすると改行がCRLFになるため、
+// アンカー検索は \r? を許容し、挿入する行の改行も既存ファイルに合わせる。
 
-const ARRAY_CLOSE_ANCHOR = '];\n\n// 気象庁観測点コード → 表示名';
+const ARRAY_CLOSE_ANCHOR = /\];\r?\n\r?\n\/\/ 気象庁観測点コード → 表示名/;
 
 export function formatStationLine(entry) {
   const lat = Number(entry.lat.toFixed(4));
@@ -21,10 +24,12 @@ export function groupByPrefecture(entries, PREFS) {
 
 // existingFileText の TIDE_STATIONS 配列末尾（`];` の直前）に新規地点ブロックを挿入する。
 export function insertIntoStationsFile(existingFileText, entries, PREFS, dateStr) {
-  const anchorIndex = existingFileText.indexOf(ARRAY_CLOSE_ANCHOR);
-  if (anchorIndex === -1) {
+  const match = ARRAY_CLOSE_ANCHOR.exec(existingFileText);
+  if (!match) {
     throw new Error('TIDE_STATIONS 配列の終端が見つかりません。stations.mjs のフォーマットが変わっていないか確認してください。');
   }
+  const anchorIndex = match.index;
+  const eol = existingFileText.includes('\r\n') ? '\r\n' : '\n';
 
   const grouped = groupByPrefecture(entries, PREFS);
   const lines = [`  // ---------- 新規地点（自動生成 ${dateStr} 追加） ----------`];
@@ -35,6 +40,6 @@ export function insertIntoStationsFile(existingFileText, entries, PREFS, dateStr
     for (const e of list) lines.push(formatStationLine(e));
   }
 
-  const insertion = lines.join('\n') + '\n';
+  const insertion = lines.join(eol) + eol;
   return existingFileText.slice(0, anchorIndex) + insertion + existingFileText.slice(anchorIndex);
 }
