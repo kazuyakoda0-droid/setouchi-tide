@@ -34,3 +34,15 @@ export function tidalRangeVarianceExceeds(candidate, officialStations, { radiusK
 export function isRedundant(candidate, stations, radiusKm = 3) {
   return stations.some(s => haversineKm(candidate, s) < radiusKm);
 }
+
+// officialStations: [{ jma, lat, lon }, ...]
+// 最寄りの公式観測点までの距離が maxKm を超える候補は除外する。
+// OSMの amenity=ferry_terminal / leisure=fishing タグは、川や渓谷の遊覧船・
+// 渡し船など海に接しない地点も拾ってしまう。tidalRangeVarianceExceeds は
+// 周囲25km以内に公式観測点が2件以上ないと判定できないため、そうした
+// 内陸の誤検出をすり抜けてしまう。この関数はその最後の砦として、
+// 「近くに参照できる実測地点が無いなら値を作らない」という既存の
+// 方針（根拠のない係数を与えない）をそのまま距離の面に適用する。
+export function isTooFarFromAnchor(candidate, officialStations, maxKm = 25) {
+  return officialStations.every(s => haversineKm(candidate, s) > maxKm);
+}

@@ -11,7 +11,7 @@ import { loadYears } from '../../lib/jma.mjs';
 import { fetchOsmCandidates } from './osm-source.mjs';
 import { loadPrefectureGeoJSON, prefectureOf, nearestPrefectureOf, buildNameToId, buildBoundaryIndex } from './prefectures.mjs';
 import { mergeCandidates } from './dedupe.mjs';
-import { averageTidalRangeCm, tidalRangeVarianceExceeds, isRedundant } from './safety.mjs';
+import { averageTidalRangeCm, tidalRangeVarianceExceeds, isRedundant, isTooFarFromAnchor } from './safety.mjs';
 import { assignAnchor } from './anchor.mjs';
 import { assignIds } from './ids.mjs';
 import { insertIntoStationsFile } from './writer.mjs';
@@ -69,15 +69,16 @@ async function main() {
     avgRangeCm: averageTidalRangeCm(yearData[s.jma] || {}),
   }));
 
-  console.log('6/7 安全基準(潮汐境界)を適用中...');
+  console.log('6/7 安全基準(潮汐境界・遠すぎる観測点)を適用中...');
   const safe = [];
-  let boundaryExcluded = 0;
+  let boundaryExcluded = 0, tooFarExcluded = 0;
   for (const c of deduped) {
     if (tidalRangeVarianceExceeds(c, officialWithRange)) { boundaryExcluded++; continue; }
+    if (isTooFarFromAnchor(c, officialStations)) { tooFarExcluded++; continue; }
     if (isRedundant(c, TIDE_STATIONS)) continue; // 二重チェック(dedupeで既に除去済みのはずだが念のため)
     safe.push(c);
   }
-  console.log(`  残存: ${safe.length}件 / 除外(潮汐境界): ${boundaryExcluded}件`);
+  console.log(`  残存: ${safe.length}件 / 除外(潮汐境界): ${boundaryExcluded}件 / 除外(観測点から遠すぎる): ${tooFarExcluded}件`);
 
   console.log('7/7 最寄り観測点を割り当ててIDを発番中...');
   const existingIds = TIDE_STATIONS.map(s => s.id);

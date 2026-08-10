@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { averageTidalRangeCm, tidalRangeVarianceExceeds, isRedundant } from './safety.mjs';
+import { averageTidalRangeCm, tidalRangeVarianceExceeds, isRedundant, isTooFarFromAnchor } from './safety.mjs';
 
 test('averageTidalRangeCm: 2日分のhourlyから平均干満差を計算する', () => {
   const yearData = {
@@ -55,4 +55,19 @@ test('isRedundant: 3km未満に既存地点があればtrue', () => {
 test('isRedundant: 3km以上離れていればfalse', () => {
   const candidate = { lat: 35.0, lon: 135.0 };
   assert.equal(isRedundant(candidate, [{ lat: 35.1, lon: 135.1 }]), false);
+});
+
+test('isTooFarFromAnchor: 全観測点がmaxKmより遠ければtrue(除外対象)', () => {
+  const candidate = { lat: 35.0, lon: 135.0 };
+  const officialStations = [{ jma: 'AA', lat: 36.0, lon: 136.0 }]; // 約140km
+  assert.equal(isTooFarFromAnchor(candidate, officialStations, 25), true);
+});
+
+test('isTooFarFromAnchor: maxKm以内に1件でもあればfalse', () => {
+  const candidate = { lat: 35.0, lon: 135.0 };
+  const officialStations = [
+    { jma: 'AA', lat: 36.0, lon: 136.0 },   // 遠い
+    { jma: 'BB', lat: 35.05, lon: 135.05 }, // 近い
+  ];
+  assert.equal(isTooFarFromAnchor(candidate, officialStations, 25), false);
 });
