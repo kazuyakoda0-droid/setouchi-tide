@@ -6,7 +6,8 @@
 
      1. 現在時刻の潮位マーカー（当日ページのみ）
      2. 地図（トップ・地方・都道府県ページのみ）
-     3. 表のコピー / CSV 書き出し
+     3. 潮干狩り/磯遊びしきい値ハイライト（10分毎グリッド・月間カレンダー）
+     4. 表のコピー / CSV 書き出し
 
    気象・海象はここには無い。気象庁の天気予報をビルド時に取得して
    HTML に焼き込んでいる（lib/forecast.mjs）。閲覧者のブラウザから
@@ -219,7 +220,71 @@
   }
 
   // -------------------------------------------------------------------
-  // 3. 表のコピー / CSV 書き出し
+  // 3. 潮干狩り/磯遊びしきい値ハイライト
+  //
+  // しきい値(cm)は地点・日によって適切な値が違い、ビルド時には決められない。
+  // 10分毎グリッドのセルは既に潮位の数値をテキストで持っているので、
+  // 追加のdata属性を焼き込まずにテキストをそのまま読んで判定する。
+  // 月間カレンダーは干潮の一覧(.cal-ex li.l em)を同様に読む。
+  // -------------------------------------------------------------------
+  var TH_KEY = 'tide-threshold-cm';
+  var TH_DEFAULT = 30;
+
+  function applyThreshold(threshold) {
+    var cells = document.querySelectorAll('.tdgrid .tdcell');
+    for (var i = 0; i < cells.length; i++) {
+      var c = cells[i];
+      if (c.className.indexOf('hd') !== -1 || c.className.indexOf('hh') !== -1) continue;
+      var v = parseInt(c.textContent, 10);
+      c.classList.toggle('th-hit', !isNaN(v) && v <= threshold);
+    }
+
+    var days = document.querySelectorAll('.cal-cell');
+    for (var d = 0; d < days.length; d++) {
+      var lows = days[d].querySelectorAll('.cal-ex li.l em');
+      var hit = false;
+      for (var e = 0; e < lows.length; e++) {
+        var lv = parseInt(lows[e].textContent, 10);
+        if (!isNaN(lv) && lv <= threshold) { hit = true; break; }
+      }
+      days[d].classList.toggle('th-hit', hit);
+    }
+  }
+
+  function readSavedThreshold() {
+    try {
+      var v = parseInt(localStorage.getItem(TH_KEY), 10);
+      return isNaN(v) ? TH_DEFAULT : v;
+    } catch (e) { return TH_DEFAULT; }
+  }
+
+  function saveThreshold(v) {
+    try { localStorage.setItem(TH_KEY, String(v)); } catch (e) { /* private browsing 等では諦める */ }
+  }
+
+  function thresholdMode() {
+    var inputs = document.querySelectorAll('[data-th-input]');
+    if (!inputs.length) return;
+
+    var initial = readSavedThreshold();
+    for (var i = 0; i < inputs.length; i++) inputs[i].value = initial;
+    applyThreshold(initial);
+
+    Array.prototype.forEach.call(inputs, function (input) {
+      input.addEventListener('input', function () {
+        var v = parseInt(input.value, 10);
+        if (isNaN(v)) return;
+        Array.prototype.forEach.call(inputs, function (other) {
+          if (other !== input) other.value = v;
+        });
+        saveThreshold(v);
+        applyThreshold(v);
+      });
+    });
+  }
+
+  // -------------------------------------------------------------------
+  // 4. 表のコピー / CSV 書き出し
   //
   // 潮見表は「表計算ソフトに持っていって自分で加工したい」という需要が
   // 大きい。ビルド時に .csv を1万ページぶん吐く手もあるが、配信物が
@@ -489,6 +554,7 @@
   function init() {
     run('currentTide', currentTide);
     run('maps', maps);
+    run('thresholdMode', thresholdMode);
     run('tables', tables);
   }
 
