@@ -656,10 +656,14 @@ ul.guide-list .note { display: block; margin-top: 4px; font-size: 12.5px; color:
    grid-template-columns の 300px 列は消えない。無条件に2カラムにすると
    本文が 644px に痩せたうえ右に 340px の空白が残り、画面が崩れて見える。
    広告を入れるまでは1カラムのまま中央に置く。
+   本文列は 860px 未満(=広告無し版の880pxに近い)にならないよう、
+   1040pxではなく1200pxを上限にしている(860+ad300+gap40)。1040pxのままだと
+   本文が644pxまで痩せ、1440px級のPC画面で潮汐情報・地図が窮屈に見えていた。
+   1280px幅のノートPCでも左右の余白が窮屈にならない値として選んでいる。
    ===================================================================== */
 @media (min-width: 1080px) {
   body.ads main {
-    max-width: 1040px; display: grid;
+    max-width: 1200px; display: grid;
     grid-template-columns: minmax(0, 1fr) 300px; gap: 40px; align-items: start;
   }
   body.ads main > .crumb, body.ads main > article { grid-column: 1; }
