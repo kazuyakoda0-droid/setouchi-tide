@@ -342,6 +342,14 @@ for (const st of stations) {
 }
 process.stdout.write(`\r  地点 ${n}/${stations.length}  ページ ${written}\n`);
 
+// ---- 検索インデックス(JSON) ------------------------------------------
+// ヘッダーの検索窓が使う軽量インデックス。表示名・かな・都道府県名・URLだけ。
+// 771件でも数十KB程度なので、初回検索時にまとめて取得してブラウザ側で
+// 絞り込む(サーバのようなものを持たない静的サイトなのでこれが唯一の方法)。
+writeJSON('stations-index.json', stations.map(st => ({
+  n: st.name, k: st.kana || '', p: pref(st.pref).name, h: paths.station(st),
+})));
+
 // ---- 都道府県 -------------------------------------------------------
 const td = new Date(today);
 const dateJa = `${td.getUTCFullYear()}年${td.getUTCMonth() + 1}月${td.getUTCDate()}日`;

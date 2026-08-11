@@ -8,6 +8,7 @@
    ===================================================================== */
 
 :root {
+  color-scheme: light dark;
   --bg: #f4f1ea;
   --panel: #fbfaf5;
   --ink: #2b2620;
@@ -26,6 +27,60 @@
   --sans: 'Zen Kaku Gothic New', system-ui, sans-serif;
   --mono: 'DM Mono', ui-monospace, monospace;
   --pad: 16px;
+
+  /* 潮名バッジの配色。値そのものは util.mjs の SHIO_STYLE から参照される。 */
+  --shio-oh-bg: rgba(176, 106, 63, .12);   --shio-oh-bd: rgba(176, 106, 63, .35);   --shio-oh-c: #8f5430;
+  --shio-naka-bg: rgba(43, 93, 122, .10);  --shio-naka-bd: rgba(43, 93, 122, .28);  --shio-naka-c: #2b5d7a;
+  --shio-ko-bg: rgba(107, 99, 87, .10);    --shio-ko-bd: rgba(107, 99, 87, .25);    --shio-ko-c: #6b6357;
+  --shio-naga-bg: rgba(107, 99, 87, .08);  --shio-naga-bd: rgba(107, 99, 87, .22);  --shio-naga-c: #8a8073;
+  --shio-waka-bg: rgba(90, 120, 80, .10);  --shio-waka-bd: rgba(90, 120, 80, .26);  --shio-waka-c: #4d6b45;
+
+  /* 潮位グラフの夜間帯・目盛り線。ACC/WARM(線・満干潮マーカー)は
+     明暗どちらの背景でも読める中間トーンなので固定色のまま。 */
+  --graph-night: rgba(43, 38, 32, .055);
+  --graph-grid: rgba(60, 50, 35, .10);
+  --graph-tick: rgba(60, 50, 35, .18);
+}
+
+/* =====================================================================
+   ダークモード
+   端末側の配色設定(prefers-color-scheme)にだけ追従する。旧版は
+   このメディアクエリを1つも持っておらず、夜釣り・朝マズメ(3〜5時)に
+   見る潮見表として常に明るい生成り色が目に刺さっていた。
+   トークン(CSS変数)だけを再定義し、個々のセレクタは触らない。
+   ===================================================================== */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1712;
+    --panel: #262019;
+    --ink: #ede4d6;
+    --ink2: #d3c6b3;
+    --mut: #a5967f;
+    --dim: #8a7c67;
+    --faint: #665a49;
+    --line: rgba(232, 216, 189, .16);
+    --line2: rgba(232, 216, 189, .08);
+    --warm: #d98a56;
+    --warm-d: #e8a56f;
+    --blue: #6fa8c9;
+    --red: #d9776a;
+    --th: #6bbf8f;
+
+    --shio-oh-bg: rgba(217, 138, 86, .16);   --shio-oh-bd: rgba(217, 138, 86, .4);   --shio-oh-c: #e8a56f;
+    --shio-naka-bg: rgba(111, 168, 201, .16); --shio-naka-bd: rgba(111, 168, 201, .38); --shio-naka-c: #8fc3e3;
+    --shio-ko-bg: rgba(165, 150, 127, .14);  --shio-ko-bd: rgba(165, 150, 127, .32);  --shio-ko-c: #c9bda8;
+    --shio-naga-bg: rgba(138, 124, 103, .14); --shio-naga-bd: rgba(138, 124, 103, .3); --shio-naga-c: #a89b86;
+    --shio-waka-bg: rgba(122, 173, 106, .16); --shio-waka-bd: rgba(122, 173, 106, .36); --shio-waka-c: #93cf83;
+
+    --graph-night: rgba(0, 0, 0, .3);
+    --graph-grid: rgba(232, 216, 189, .12);
+    --graph-tick: rgba(232, 216, 189, .2);
+  }
+
+  /* 生成りの紙の上を前提にした配色なので、影と地図タイルだけは
+     ダークで浮いて見える。影は弱め、地図は app.js 側で暗い CARTO
+     タイル(dark_all)に切り替える。 */
+  .search-panel { box-shadow: 0 16px 48px rgba(0, 0, 0, .55); }
 }
 
 * { box-sizing: border-box; }
@@ -69,7 +124,54 @@ header.site {
   font-family: var(--mono); font-size: 9.5px; letter-spacing: .14em;
   text-transform: uppercase; color: var(--dim); display: none;
 }
+.site-nav { display: flex; align-items: center; gap: 6px; }
 .site-nav a { font-size: 13px; color: var(--mut); }
+
+/* ---------- 地点検索 ---------- */
+.search-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 10px; font: inherit; font-size: 13px; color: var(--mut);
+  background: none; border: 1px solid var(--line); border-radius: 20px;
+  cursor: pointer;
+}
+.search-btn:hover { background: #efe9dc; color: var(--ink); }
+.search-ic { width: 14px; height: 14px; flex: 0 0 auto; }
+.search-btn-t { display: none; }
+@media (min-width: 460px) { .search-btn-t { display: inline; } }
+
+.search-ovl {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(43, 38, 32, .45);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 9vh 16px 16px;
+}
+.search-ovl[hidden] { display: none; }
+.search-panel {
+  width: 100%; max-width: 560px; max-height: 76vh;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 16px 48px rgba(20, 16, 10, .28);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.search-bar { display: flex; align-items: center; gap: 8px; padding: 12px; border-bottom: 1px solid var(--line); }
+.search-bar input {
+  flex: 1; min-width: 0; font: inherit; font-size: 16px; padding: 9px 11px; color: inherit;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
+}
+.search-bar input:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
+.search-close {
+  width: 34px; height: 34px; flex: 0 0 auto; font-size: 14px; line-height: 1;
+  color: var(--mut); background: none; border: 1px solid var(--line); border-radius: 6px; cursor: pointer;
+}
+.search-close:hover { background: #efe9dc; color: var(--ink); }
+.search-body { overflow-y: auto; padding: 4px 0 12px; }
+.search-sub { margin: 10px 14px 2px; font-size: 11px; letter-spacing: .04em; color: var(--dim); }
+.search-results { list-style: none; margin: 0; padding: 0; }
+.search-results li + li { border-top: 1px solid var(--line2); }
+.search-results a { display: flex; align-items: baseline; gap: 10px; padding: 11px 14px; color: var(--ink); }
+.search-results a:hover { text-decoration: none; background: #efe9dc; }
+.search-results .nm { font-size: 14px; }
+.search-results .pf { margin-left: auto; font-size: 11px; color: var(--dim); white-space: nowrap; }
+.search-empty { margin: 18px 14px; font-size: 13px; color: var(--mut); }
 
 footer.site {
   margin-top: 48px; padding: 24px var(--pad) 40px;
@@ -194,6 +296,9 @@ main { padding: 0 var(--pad); max-width: 780px; margin: 0 auto; }
 .graph .mkv.dim { fill: var(--dim); }
 .graph .nowline { stroke: var(--warm); stroke-width: 2; stroke-dasharray: 5 4; }
 .graph .nowdot { fill: var(--warm); stroke: var(--panel); stroke-width: 2; }
+.graph .night { fill: var(--graph-night); }
+.graph .grid-ln { stroke: var(--graph-grid); }
+.graph .grid-tick { stroke: var(--graph-tick); }
 
 /* ---------- 満干潮表 ---------- */
 table.ext { width: 100%; border-collapse: collapse; margin: 0 0 16px; }

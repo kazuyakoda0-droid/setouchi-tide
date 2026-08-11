@@ -7,7 +7,8 @@
      1. 現在時刻の潮位マーカー（当日ページのみ）
      2. 地図（トップ・地方・都道府県ページのみ）
      3. 潮干狩り/磯遊びしきい値ハイライト（10分毎グリッド・月間カレンダー）
-     4. 表のコピー / CSV 書き出し
+     4. 地点検索・最近見た地点（全ページ共通のヘッダー）
+     5. 表のコピー / CSV 書き出し
 
    気象・海象はここには無い。気象庁の天気予報をビルド時に取得して
    HTML に焼き込んでいる（lib/forecast.mjs）。閲覧者のブラウザから
@@ -160,7 +161,11 @@
       scrollWheelZoom: true,
       attributionControl: true,
     });
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
+    // 明るい voyager タイルはダークモードの画面で浮いて見えるので、
+    // OS設定がダークのときは CARTO の dark_all タイルに切り替える。
+    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var tileStyle = dark ? 'dark_all' : 'voyager';
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/' + tileStyle + '/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap · CARTO', maxZoom: 18,
     }).addTo(map);
 
@@ -284,7 +289,111 @@
   }
 
   // -------------------------------------------------------------------
-  // 4. 表のコピー / CSV 書き出し
+  // 4. 地点検索・最近見た地点
+  //
+  // 全771地点ぶんのインデックス(stations-index.json)はヘッダーの検索
+  // ボタンを押すまで取得しない。地点ページを開くたびに data-recent を
+  // localStorage に積んでおき、次に検索を開いたときの候補として出す。
+  // -------------------------------------------------------------------
+  var RECENT_KEY = 'tide-recent-stations';
+  var RECENT_MAX = 8;
+
+  function escHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function readRecent() {
+    try { return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); } catch (e) { return []; }
+  }
+
+  // 地点に紐づくページ(地点ハブ・日別・週間・月間)は body に data-recent
+  // ({n,h,p}のJSON)を持つ。同じ地点は先頭に上げて重複させない。
+  function recordRecent() {
+    var raw = document.body.dataset.recent;
+    if (!raw) return;
+    var item;
+    try { item = JSON.parse(raw); } catch (e) { return; }
+    if (!item || !item.h) return;
+    var list = readRecent().filter(function (x) { return x.h !== item.h; });
+    list.unshift(item);
+    if (list.length > RECENT_MAX) list.length = RECENT_MAX;
+    try { localStorage.setItem(RECENT_KEY, JSON.stringify(list)); } catch (e) { /* private browsing 等では諦める */ }
+  }
+
+  function stationLi(s) {
+    return '<li><a href="' + escHtml(s.h) + '"><span class="nm">' + escHtml(s.n)
+      + '</span><span class="pf">' + escHtml(s.p) + '</span></a></li>';
+  }
+
+  var searchIndex = null, searchLoading = null;
+  function loadSearchIndex(src) {
+    if (searchIndex) return Promise.resolve(searchIndex);
+    if (searchLoading) return searchLoading;
+    searchLoading = fetch(src).then(function (r) { return r.json(); })
+      .then(function (data) { searchIndex = data; return data; })
+      .catch(function () { return []; });
+    return searchLoading;
+  }
+
+  function searchModal() {
+    var openBtn = document.querySelector('[data-search-open]');
+    var ovl = document.querySelector('[data-search-ovl]');
+    if (!openBtn || !ovl) return;
+    var input = ovl.querySelector('[data-search-input]');
+    var closeBtn = ovl.querySelector('[data-search-close]');
+    var recentEl = ovl.querySelector('[data-search-recent]');
+    var resultsEl = ovl.querySelector('[data-search-results]');
+    var emptyEl = ovl.querySelector('[data-search-empty]');
+    var src = openBtn.dataset.searchSrc;
+
+    function renderRecent() {
+      var list = readRecent();
+      recentEl.innerHTML = list.length
+        ? '<p class="search-sub">最近見た地点</p><ul class="search-results">' + list.map(stationLi).join('') + '</ul>'
+        : '';
+    }
+
+    function renderResults(list, q) {
+      var ql = (q || '').trim();
+      if (!ql) { resultsEl.innerHTML = ''; emptyEl.hidden = true; recentEl.style.display = ''; return; }
+      recentEl.style.display = 'none';
+      var hit = list.filter(function (s) {
+        return s.n.indexOf(ql) !== -1 || (s.k && s.k.indexOf(ql) !== -1) || s.p.indexOf(ql) !== -1;
+      }).slice(0, 30);
+      resultsEl.innerHTML = hit.map(stationLi).join('');
+      emptyEl.hidden = hit.length !== 0;
+    }
+
+    function open() {
+      ovl.hidden = false;
+      document.documentElement.style.overflow = 'hidden';
+      renderRecent();
+      renderResults([], '');
+      if (src) loadSearchIndex(src);
+      setTimeout(function () { input.focus(); }, 0);
+    }
+
+    function close() {
+      ovl.hidden = true;
+      document.documentElement.style.overflow = '';
+    }
+
+    openBtn.addEventListener('click', open);
+    closeBtn.addEventListener('click', close);
+    ovl.addEventListener('click', function (e) { if (e.target === ovl) close(); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !ovl.hidden) close();
+    });
+    input.addEventListener('input', function () {
+      var q = input.value;
+      if (!q.trim()) { renderResults([], ''); return; }
+      loadSearchIndex(src).then(function (list) { renderResults(list, q); });
+    });
+  }
+
+  // -------------------------------------------------------------------
+  // 5. 表のコピー / CSV 書き出し
   //
   // 潮見表は「表計算ソフトに持っていって自分で加工したい」という需要が
   // 大きい。ビルド時に .csv を1万ページぶん吐く手もあるが、配信物が
@@ -555,6 +664,8 @@
     run('currentTide', currentTide);
     run('maps', maps);
     run('thresholdMode', thresholdMode);
+    run('recordRecent', recordRecent);
+    run('searchModal', searchModal);
     run('tables', tables);
   }
 
