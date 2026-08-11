@@ -28,6 +28,7 @@ import {
   privacyPage,
 } from './lib/pages.mjs';
 import { GUIDES, guidePage, guideIndexPage } from './lib/guides.mjs';
+import { stationApiJSON } from './lib/api.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const DIST = path.join(ROOT, 'dist');
@@ -58,6 +59,15 @@ function write(u, html, { sitemap = true, changefreq = 'daily', priority = 0.6, 
   fs.writeFileSync(path.join(dir, 'index.html'), html, 'utf8');
   written++;
   if (sitemap) allUrls.push({ loc: SITE.ORIGIN + encodePath(u), changefreq, priority, lastmod: lastmod || todayKey });
+}
+
+// API(JSON)は個別ページではないので sitemap に載せない。write() とは別に
+// 「ディレクトリの中の index.html」ではなく「{slug}.json という単独ファイル」
+// として書く。
+function writeJSON(relPath, obj) {
+  const full = path.join(DIST, relPath);
+  fs.mkdirSync(path.dirname(full), { recursive: true });
+  fs.writeFileSync(full, JSON.stringify(obj), 'utf8');
 }
 
 // 日本語セグメントを含むパスを sitemap / canonical 用に percent-encode する
@@ -265,6 +275,11 @@ for (const st of stations) {
       lastmod: dmDay,
     });
   }
+
+  // ---- 簡易API(JSON) ----
+  // HTMLの日別ページと同じ生成範囲(DAYS_BACK〜DAYS_FWD)を1ファイルにまとめる。
+  const apiDays = dayList.map(d => ({ ymd: dayKeyOf(d), cel: cel(d), day: full(d), isToday: d === today }));
+  writeJSON(`api/${st.pref}/${stationSlug(st)}.json`, stationApiJSON(st, apiDays));
 
   // ---- 月間 ----
   for (const m of monthList) {

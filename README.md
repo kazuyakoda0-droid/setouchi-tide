@@ -52,6 +52,7 @@ node build.mjs --sample
 /{pref}/{station}/week/           週間 (775)
 /{pref}/{station}/{YYYY-MM}/      月間 (775 × 3)
 /{pref}/{station}/{YYYY-MM-DD}/   日別 (775 × 16)
+/api/{pref}/{station}.json       簡易API・静的JSON (775)
 ```
 
 生成数は `config.mjs` の `DAYS_BACK` / `DAYS_FWD` / `MONTHS_BACK` / `MONTHS_FWD` で決まる。
