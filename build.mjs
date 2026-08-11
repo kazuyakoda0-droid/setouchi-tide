@@ -135,8 +135,15 @@ const stations = SAMPLE
   ? TIDE_STATIONS.filter(s => s.pref === 'hiroshima')
   : TIDE_STATIONS;
 
-// 観測点名（近似地点の出典表示に使う）
-for (const s of TIDE_STATIONS) s.jmaName = JMA_STN_NAME[s.jma] || s.jma;
+// 観測点名・最寄り観測点までの距離（近似地点の出典表示に使う）
+const officialByCode = new Map(TIDE_STATIONS.filter(s => !s.jmaAnchor).map(s => [s.jma, s]));
+for (const s of TIDE_STATIONS) {
+  s.jmaName = JMA_STN_NAME[s.jma] || s.jma;
+  if (s.jmaAnchor) {
+    const official = officialByCode.get(s.jma);
+    if (official) s.jmaKm = km(s, official);
+  }
+}
 
 const codes = [...new Set(stations.map(s => s.jma))];
 console.log(`気象庁 潮位表を取得します: ${codes.length}観測点 × ${years.length}年 (${years.join(', ')})`);
