@@ -533,3 +533,25 @@ ul.guide-list .note { display: block; margin-top: 4px; font-size: 12.5px; color:
     position: sticky; top: 70px; min-height: 600px;
   }
 }
+
+/* =====================================================================
+   印刷
+   船上・堤防など電波の弱い場所へ紙で持ち出す需要のため。
+   広告・地図・タブ切替・日送りページャ・表のコピー/CSVボタンは紙面では
+   意味がないので消し、画面用の生成り色パレットは紙の上では読みにくい
+   ため白地に黒文字へ強制する。2カラムレイアウトも1カラムに戻す。
+   ===================================================================== */
+@media print {
+  header.site, footer.site, .ad, .tabs, .pager, .tbar, .map, .split-map {
+    display: none !important;
+  }
+  body, body.ads main {
+    display: block; max-width: none; background: #fff; color: #000;
+  }
+  main { padding: 0; }
+  a { color: #000; text-decoration: none; }
+  .split, .split.wide-map { display: block; }
+  .split > * + * { margin-top: 16px; }
+  table, .tdgrid { page-break-inside: avoid; }
+  h1, h2, h3 { page-break-after: avoid; }
+}
