@@ -46,3 +46,15 @@ export function isRedundant(candidate, stations, radiusKm = 3) {
 export function isTooFarFromAnchor(candidate, officialStations, maxKm = 25) {
   return officialStations.every(s => haversineKm(candidate, s) > maxKm);
 }
+
+// OSMの leisure=fishing タグは「海釣り桟橋」のような潮汐地点と、
+// 「管理釣り場」と呼ばれる人工の淡水釣り堀（ヘラブナ・ニジマス等）を
+// 区別せず拾ってしまう。後者は海から離れていても近隣に公式観測点が
+// 複数あれば isTooFarFromAnchor をすり抜けるため(例: 神戸市街地に近い
+// 六甲山中の釣り堀)、名称から判定できるものは別途除外する。
+// 「海釣り」「釣り桟橋」「漁港」等の実在の海関連語には一致しない。
+const FRESHWATER_POND_PATTERN = /釣堀|釣り堀|釣池|ます池|鱒池|へら鮒|管理釣り?場/;
+
+export function isFreshwaterFishingPond(candidate) {
+  return FRESHWATER_POND_PATTERN.test(candidate.name);
+}

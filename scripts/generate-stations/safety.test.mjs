@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { averageTidalRangeCm, tidalRangeVarianceExceeds, isRedundant, isTooFarFromAnchor } from './safety.mjs';
+import { averageTidalRangeCm, tidalRangeVarianceExceeds, isRedundant, isTooFarFromAnchor, isFreshwaterFishingPond } from './safety.mjs';
 
 test('averageTidalRangeCm: 2日分のhourlyから平均干満差を計算する', () => {
   const yearData = {
@@ -70,4 +70,19 @@ test('isTooFarFromAnchor: maxKm以内に1件でもあればfalse', () => {
     { jma: 'BB', lat: 35.05, lon: 135.05 }, // 近い
   ];
   assert.equal(isTooFarFromAnchor(candidate, officialStations, 25), false);
+});
+
+test('isFreshwaterFishingPond: 「釣堀」「釣り堀」「釣池」「ます池」「へら鮒」を含む名称はtrue', () => {
+  assert.equal(isFreshwaterFishingPond({ name: '等々力釣池' }), true);
+  assert.equal(isFreshwaterFishingPond({ name: '釣り堀' }), true);
+  assert.equal(isFreshwaterFishingPond({ name: '旭市長熊釣堀センター' }), true);
+  assert.equal(isFreshwaterFishingPond({ name: '有馬ます池' }), true);
+  assert.equal(isFreshwaterFishingPond({ name: '寒川へら鮒釣り場' }), true);
+});
+
+test('isFreshwaterFishingPond: 海釣り施設や漁港・桟橋の名称はfalse', () => {
+  assert.equal(isFreshwaterFishingPond({ name: '若洲海浜公園 海釣施設' }), false);
+  assert.equal(isFreshwaterFishingPond({ name: '大黒海づり施設' }), false);
+  assert.equal(isFreshwaterFishingPond({ name: '豊浜港釣り桟橋' }), false);
+  assert.equal(isFreshwaterFishingPond({ name: '釣師浜漁港' }), false);
 });

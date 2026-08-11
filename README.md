@@ -1,6 +1,6 @@
 # しおどき / SHIODOKI
 
-気象庁の公式推算値による全国775地点の潮見表・タイドグラフ。
+気象庁の公式推算値による全国771地点の潮見表・タイドグラフ。
 静的サイトジェネレータ（依存パッケージなし・Node 20+ のみ）。
 
 ## 使い方
@@ -28,7 +28,7 @@ node build.mjs --sample
 |---|---|
 | `config.mjs` | ドメイン・生成範囲・広告ID・解析ID・問い合わせURL。**ドメイン移行で触るのはここだけ** |
 | `build.mjs` | 全ページの生成、sitemap、robots.txt |
-| `lib/stations.mjs` | 観測点775件の定義（自動生成データ。手で編集しない） |
+| `lib/stations.mjs` | 観測点771件の定義（自動生成データ。手で編集しない） |
 | `lib/jma.mjs` | 気象庁 年次潮位表テキストの取得・パース・キャッシュ |
 | `lib/tide.mjs` | 10分刻みへの補間、近似地点補正、潮位変化速度 |
 | `lib/astro.mjs` | 太陽・月・月齢・潮名 |
@@ -48,11 +48,11 @@ node build.mjs --sample
 /                                 トップ
 /{region}/                        地方 (9)
 /{pref}/                          都道府県 (39)
-/{pref}/{station}/                地点・当日 (775)
-/{pref}/{station}/week/           週間 (775)
-/{pref}/{station}/{YYYY-MM}/      月間 (775 × 3)
-/{pref}/{station}/{YYYY-MM-DD}/   日別 (775 × 16)
-/api/{pref}/{station}.json       簡易API・静的JSON (775)
+/{pref}/{station}/                地点・当日 (771)
+/{pref}/{station}/week/           週間 (771)
+/{pref}/{station}/{YYYY-MM}/      月間 (771 × 3)
+/{pref}/{station}/{YYYY-MM-DD}/   日別 (771 × 16)
+/api/{pref}/{station}.json       簡易API・静的JSON (771)
 ```
 
 生成数は `config.mjs` の `DAYS_BACK` / `DAYS_FWD` / `MONTHS_BACK` / `MONTHS_FWD` で決まる。
