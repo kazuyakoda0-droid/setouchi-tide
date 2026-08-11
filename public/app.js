@@ -31,6 +31,25 @@
     return j.getUTCHours() + j.getUTCMinutes() / 60 + j.getUTCSeconds() / 3600;
   }
 
+  // 「次の満潮/干潮まであと…」を計算してテキストを返す。
+  // ext: data-ext をパースした配列（例: ['H8.98', 'L15.02', ...]）
+  // h: 現在時刻（0時からの小数時、秒を含む）
+  function nextExtremeText(ext, h) {
+    for (var e = 0; e < ext.length; e++) {
+      var t = parseFloat(ext[e].slice(1));
+      if (t > h) {
+        var totalSec = Math.round((t - h) * 3600);
+        var hh = Math.floor(totalSec / 3600);
+        var mm = Math.floor((totalSec % 3600) / 60);
+        var ss = totalSec % 60;
+        var rest = (hh > 0 ? hh + '時間' : '') + mm + '分' + ss + '秒';
+        return (ext[e][0] === 'H' ? '次の満潮' : '次の干潮') + ' ' + fmtHM(t)
+          + '（あと' + rest + '）';
+      }
+    }
+    return ext.length ? '次の満潮・干潮は翌日です' : '';
+  }
+
   // -------------------------------------------------------------------
   // 1. 現在の潮位
   // -------------------------------------------------------------------
@@ -52,28 +71,32 @@
 
     // 次の満潮・干潮。10分毎の系列から極値を探すと公式値と数分ずれ、
     // すぐ下の表と食い違うので、気象庁の値(data-ext)をそのまま使う。
-    var nxt = '';
     var ext = (el.getAttribute('data-ext') || '').split(',').filter(Boolean);
-    for (var e = 0; e < ext.length; e++) {
-      var t = parseFloat(ext[e].slice(1));
-      if (t > h) {
-        var mins = Math.round((t - h) * 60);
-        nxt = (ext[e][0] === 'H' ? '次の満潮' : '次の干潮') + ' ' + fmtHM(t)
-          + '（あと' + (mins >= 60 ? Math.floor(mins / 60) + '時間' + (mins % 60) + '分' : mins + '分') + '）';
-        break;
-      }
-    }
-    if (!nxt && ext.length) nxt = '次の満潮・干潮は翌日です';
 
     el.innerHTML =
       '<span class="lbl">Now</span>'
       + '<span class="val">' + cur + '<small>cm</small></span>'
       + '<span class="dir">' + dir + '</span>'
       + '<span class="rate">' + (rate >= 0 ? '+' : '') + rate.toFixed(0) + ' cm/h</span>'
-      + (nxt ? '<span class="nxt">' + nxt + '</span>' : '');
+      + '<span class="nxt"></span>';
 
     markGraph(levels, h);
     markGrid(idx);
+
+    // 「あと…」の秒の部分だけ1秒ごとに更新する。満干潮をまたいだら
+    // data-ext の次のエントリへ自動的に切り替わり、当日分を使い切ったら
+    // 「翌日です」の静的表示に切り替えて止まる。
+    var nxtEl = el.querySelector('.nxt');
+    if (nxtEl && ext.length) {
+      var timer;
+      var tick = function () {
+        var text = nextExtremeText(ext, nowHourJST());
+        nxtEl.textContent = text;
+        if (!/あと/.test(text)) clearInterval(timer);
+      };
+      tick();
+      timer = setInterval(tick, 1000);
+    }
   }
 
   function markGraph(levels, h) {
