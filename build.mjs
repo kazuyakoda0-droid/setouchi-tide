@@ -28,6 +28,7 @@ import {
   privacyPage,
 } from './lib/pages.mjs';
 import { GUIDES, guidePage, guideIndexPage } from './lib/guides.mjs';
+import { ACTIVITIES, activityPage, activityIndexPage } from './lib/activities.mjs';
 import { stationApiJSON } from './lib/api.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -350,14 +351,16 @@ for (const r of regionsWithStations) {
 }
 
 // ---- トップ・about --------------------------------------------------
+const homeRegions = regionsWithStations.map(r => ({
+  r, count: regionStationCount(r.id), prefs: regionPrefs(r.id),
+}));
 write(paths.home(), homePage({
-  regions: regionsWithStations.map(r => ({
-    r, count: regionStationCount(r.id), prefs: regionPrefs(r.id),
-  })),
+  regions: homeRegions,
   total: stations.length,
   official: stations.filter(s => !s.jmaAnchor).length,
   allStations: stations,
   dateJa,
+  activities: ACTIVITIES,
 }), { changefreq: 'daily', priority: 1.0 });
 
 // about/privacy は動的データを含まない固定ページ。本文を編集したときだけ
@@ -373,6 +376,14 @@ const GUIDE_LASTMOD = '2026-08-09';
 write(paths.guideIndex(), guideIndexPage(), { changefreq: 'monthly', priority: 0.4, lastmod: GUIDE_LASTMOD });
 for (const g of GUIDES) {
   write(paths.guide(g.slug), guidePage(g, GUIDE_LASTMOD), { changefreq: 'monthly', priority: 0.4, lastmod: GUIDE_LASTMOD });
+}
+
+// ---- 用途別の入口ページ -------------------------------------------------
+// 「釣り」「潮干狩り」「サーフィン」のような用途から来るクエリの受け皿。
+// 地点データは無く、地方一覧への案内だけなので地点数の変動にだけ追従する。
+write(paths.activityIndex(), activityIndexPage(), { changefreq: 'monthly', priority: 0.4, lastmod: GUIDE_LASTMOD });
+for (const a of ACTIVITIES) {
+  write(paths.activity(a.slug), activityPage(a, homeRegions), { changefreq: 'weekly', priority: 0.5, lastmod: GUIDE_LASTMOD });
 }
 
 // ---- sitemap / robots / llms.txt -------------------------------------
