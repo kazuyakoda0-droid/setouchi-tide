@@ -16,6 +16,7 @@ import { SITE, url, absUrl } from './config.mjs';
 import { TIDE_STATIONS, REGIONS, PREFS, JMA_STN_NAME } from './lib/stations.mjs';
 import { loadYears } from './lib/jma.mjs';
 import { loadForecast } from './lib/forecast.mjs';
+import { loadDeviations } from './lib/deviation.mjs';
 import { tideDay, tideDayLight } from './lib/tide.mjs';
 import { celestialData } from './lib/astro.mjs';
 import {
@@ -184,6 +185,25 @@ try {
     + (fx.unresolved.length ? ` (予報区未割当 ${fx.unresolved.length}地点: ${fx.unresolved.join(', ')})` : ''));
 } catch (e) {
   console.warn(`天気予報の取得に失敗しました。気象欄は空になります: ${e.message}`);
+}
+
+// ---- 潮位偏差(気象庁 潮位観測情報) -----------------------------------
+// 落ちてもサイトは出す。偏差の注記が出ないだけで、本体の潮位は独立している。
+// suisanとは別体系の観測点コード・別の基準面なので、対応する観測点だけに付く。
+try {
+  const nowJST = new Date(Date.now() + 9 * 3600000);
+  const nowHour = nowJST.getUTCHours() + nowJST.getUTCMinutes() / 60 + nowJST.getUTCSeconds() / 3600;
+  const officialForDeviation = stations.filter(s => !s.jmaAnchor);
+  const dv = await loadDeviations(officialForDeviation, todayKey, nowHour, {
+    onProgress: (d, t) => {
+      if (d % 25 === 0 || d === t) process.stdout.write(`\r  ${d}/${t}`);
+    },
+  });
+  for (const st of officialForDeviation) st.deviation = dv.deviations.get(st.jma) || null;
+  console.log(`\n潮位偏差(気象庁 潮位観測情報): ${dv.matched}観測点が対応、${dv.deviations.size}件で偏差を算出`
+    + (dv.failed.length ? ` (取得失敗 ${dv.failed.length}件)` : ''));
+} catch (e) {
+  console.warn(`潮位偏差の取得に失敗しました。偏差の注記は出ません: ${e.message}`);
 }
 
 fs.rmSync(DIST, { recursive: true, force: true });
