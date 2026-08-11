@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { SITE, url, absUrl } from './config.mjs';
+import { SITE, url, asset, absUrl } from './config.mjs';
 import { TIDE_STATIONS, REGIONS, PREFS, JMA_STN_NAME } from './lib/stations.mjs';
 import { loadYears } from './lib/jma.mjs';
 import { loadForecast } from './lib/forecast.mjs';
@@ -414,10 +414,27 @@ for (const a of ACTIVITIES) {
   write(paths.activity(a.slug), activityPage(a, homeRegions), { changefreq: 'weekly', priority: 0.5, lastmod: GUIDE_LASTMOD });
 }
 
-// ---- sitemap / robots / llms.txt -------------------------------------
+// ---- sitemap / robots / manifest / llms.txt ---------------------------
 writeSitemaps();
 fs.writeFileSync(path.join(DIST, 'robots.txt'),
   `User-agent: *\nAllow: /\n\nSitemap: ${SITE.ORIGIN}${SITE.BASE}/sitemap.xml\n`);
+
+// ホーム画面に追加したとき用。アイコン本体は scripts/gen-icons.mjs で
+// 一度だけ焼いて public/ にコミットしてある(og-image.pngと同じ運用)。
+writeJSON('manifest.webmanifest', {
+  name: `${SITE.NAME} | ${SITE.NAME_EN}`,
+  short_name: SITE.NAME,
+  description: SITE.TAGLINE,
+  start_url: url(),
+  scope: url(),
+  display: 'standalone',
+  background_color: '#f4f1ea',
+  theme_color: '#f4f1ea',
+  icons: [
+    { src: asset('icon-192.png'), sizes: '192x192', type: 'image/png' },
+    { src: asset('icon-512.png'), sizes: '512x512', type: 'image/png' },
+  ],
+});
 
 // llms.txt (https://llmstxt.org) は生成AIがサイトを要約・引用する際に読む
 // 手がかり。robots.txt で全クローラを許可している方針(生成AIに読まれて
