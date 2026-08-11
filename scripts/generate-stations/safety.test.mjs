@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { averageTidalRangeCm, tidalRangeVarianceExceeds, isRedundant, isTooFarFromAnchor, isFreshwaterFishingPond } from './safety.mjs';
+import { averageTidalRangeCm, tidalRangeVarianceExceeds, isRedundant, isTooFarFromAnchor, isKnownNonTidalPlace } from './safety.mjs';
 
 test('averageTidalRangeCm: 2日分のhourlyから平均干満差を計算する', () => {
   const yearData = {
@@ -72,17 +72,35 @@ test('isTooFarFromAnchor: maxKm以内に1件でもあればfalse', () => {
   assert.equal(isTooFarFromAnchor(candidate, officialStations, 25), false);
 });
 
-test('isFreshwaterFishingPond: 「釣堀」「釣り堀」「釣池」「ます池」「へら鮒」を含む名称はtrue', () => {
-  assert.equal(isFreshwaterFishingPond({ name: '等々力釣池' }), true);
-  assert.equal(isFreshwaterFishingPond({ name: '釣り堀' }), true);
-  assert.equal(isFreshwaterFishingPond({ name: '旭市長熊釣堀センター' }), true);
-  assert.equal(isFreshwaterFishingPond({ name: '有馬ます池' }), true);
-  assert.equal(isFreshwaterFishingPond({ name: '寒川へら鮒釣り場' }), true);
+test('isKnownNonTidalPlace: 「釣堀」「釣り堀」「釣池」「ます池」「へら鮒」を含む名称はtrue', () => {
+  assert.equal(isKnownNonTidalPlace({ name: '等々力釣池' }), true);
+  assert.equal(isKnownNonTidalPlace({ name: '釣り堀' }), true);
+  assert.equal(isKnownNonTidalPlace({ name: '旭市長熊釣堀センター' }), true);
+  assert.equal(isKnownNonTidalPlace({ name: '有馬ます池' }), true);
+  assert.equal(isKnownNonTidalPlace({ name: '寒川へら鮒釣り場' }), true);
 });
 
-test('isFreshwaterFishingPond: 海釣り施設や漁港・桟橋の名称はfalse', () => {
-  assert.equal(isFreshwaterFishingPond({ name: '若洲海浜公園 海釣施設' }), false);
-  assert.equal(isFreshwaterFishingPond({ name: '大黒海づり施設' }), false);
-  assert.equal(isFreshwaterFishingPond({ name: '豊浜港釣り桟橋' }), false);
-  assert.equal(isFreshwaterFishingPond({ name: '釣師浜漁港' }), false);
+test('isKnownNonTidalPlace: 2026-08-12に発見した内陸施設の名称パターンもtrue', () => {
+  // 実際に本番データに混入していた10件のうち、名称から判定できたもの
+  assert.equal(isKnownNonTidalPlace({ name: '千秋公園大手門の堀遊歩道' }), true); // 城跡の堀(秋田市街)
+  assert.equal(isKnownNonTidalPlace({ name: 'わんぱく広場遊歩道' }), true); // 倶知安町(山間部)
+  assert.equal(isKnownNonTidalPlace({ name: '林道 箕浦堀切線' }), true); // 観音寺市の林道(山中)
+  assert.equal(isKnownNonTidalPlace({ name: 'AKAIGAWA TOMO PLAYPARK' }), true); // 赤井川村(スキー場の村)
+  assert.equal(isKnownNonTidalPlace({ name: '東京ドイツ村ボート乗り場' }), true); // 園内の人工池
+  assert.equal(isKnownNonTidalPlace({ name: '保谷フィッシングセンター' }), true); // 西東京市(内陸)
+  assert.equal(isKnownNonTidalPlace({ name: 'つりぼり金ちゃん' }), true); // 江戸川区の淡水釣り堀(ひらがな表記)
+});
+
+test('isKnownNonTidalPlace: 海沿いのフィッシングパークはfalse(フィッシングセンターのみ除外対象)', () => {
+  // 賢島フィッシングパーク 海遊苑(三重県志摩市、標高1m)は志摩湾に面した
+  // 実在の海釣り施設。フィッシングという語だけで一律除外すると
+  // こうした正規の地点まで消してしまうため、パターンは限定的にしてある。
+  assert.equal(isKnownNonTidalPlace({ name: '賢島フィッシングパーク 海遊苑' }), false);
+});
+
+test('isKnownNonTidalPlace: 海釣り施設や漁港・桟橋の名称はfalse', () => {
+  assert.equal(isKnownNonTidalPlace({ name: '若洲海浜公園 海釣施設' }), false);
+  assert.equal(isKnownNonTidalPlace({ name: '大黒海づり施設' }), false);
+  assert.equal(isKnownNonTidalPlace({ name: '豊浜港釣り桟橋' }), false);
+  assert.equal(isKnownNonTidalPlace({ name: '釣師浜漁港' }), false);
 });

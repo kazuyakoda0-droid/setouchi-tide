@@ -47,14 +47,20 @@ export function isTooFarFromAnchor(candidate, officialStations, maxKm = 25) {
   return officialStations.every(s => haversineKm(candidate, s) > maxKm);
 }
 
-// OSMの leisure=fishing タグは「海釣り桟橋」のような潮汐地点と、
-// 「管理釣り場」と呼ばれる人工の淡水釣り堀（ヘラブナ・ニジマス等）を
-// 区別せず拾ってしまう。後者は海から離れていても近隣に公式観測点が
-// 複数あれば isTooFarFromAnchor をすり抜けるため(例: 神戸市街地に近い
-// 六甲山中の釣り堀)、名称から判定できるものは別途除外する。
+// OSMの leisure=fishing 等のタグは、海に接する地点だけでなく公園内の池・
+// 山中の遊歩道・林道・淡水釣り堀のような潮汐と無関係な地点も拾ってしまう。
+// これらは海から離れていても近隣に公式観測点が複数あれば
+// isTooFarFromAnchor をすり抜ける(例: 都心の公園内の池、スキー場近くの
+// 遊具施設)。2026-08-12、実際に「千秋公園大手門の堀遊歩道」(秋田市街の
+// 城跡の堀)や「AKAIGAWA TOMO PLAYPARK」(北海道の山あいのスキー場村)、
+// ひらがな表記の「つりぼり金ちゃん」等11件が本番データに混入していたのを
+// ユーザー報告で発見・除去した。
+// この関数はそのとき見つかった名称パターンを名称から機械的に判定できる
+// 範囲で除外する「防御の一枚」であり、これだけで内陸地点を完全には
+// 防げない(照楽園・半田丸のように地名からは判別できない例もあった)。
 // 「海釣り」「釣り桟橋」「漁港」等の実在の海関連語には一致しない。
-const FRESHWATER_POND_PATTERN = /釣堀|釣り堀|釣池|ます池|鱒池|へら鮒|管理釣り?場/;
+const NON_TIDAL_PLACE_PATTERN = /釣堀|釣り堀|つりぼり|釣池|ます池|鱒池|へら鮒|管理釣り?場|フィッシングセンター|プレイパーク|PLAYPARK|堀|遊歩道|林道|ドイツ村/i;
 
-export function isFreshwaterFishingPond(candidate) {
-  return FRESHWATER_POND_PATTERN.test(candidate.name);
+export function isKnownNonTidalPlace(candidate) {
+  return NON_TIDAL_PLACE_PATTERN.test(candidate.name);
 }
