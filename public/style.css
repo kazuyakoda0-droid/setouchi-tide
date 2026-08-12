@@ -550,7 +550,11 @@ ul.feat { margin: 0; padding-left: 1.2em; font-size: 13.5px; line-height: 1.85; 
 ul.feat li { margin-bottom: 6px; }
 
 /* ---------- 地図 ---------- */
-.map { height: 300px; border: 1px solid var(--line); border-radius: 3px; background: #cfe0e6; }
+/* Leaflet 内部の各ペイン(.leaflet-pane等)は z-index:400〜1000で、
+   .map 自身がスタッキングコンテキストを持たないとヘッダー(z-index:100)と
+   同じ階層で比較され、スクロール時に地図がヘッダーの上を通過してしまう。
+   isolation:isolate で内部の z-index をこの中に閉じ込める。 */
+.map { height: 300px; border: 1px solid var(--line); border-radius: 3px; background: #cfe0e6; position: relative; isolation: isolate; }
 .map.tall { height: 420px; }
 .leaflet-container { font-family: var(--sans); }
 
