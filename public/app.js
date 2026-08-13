@@ -140,6 +140,35 @@
   }
 
   // -------------------------------------------------------------------
+  // 1.5 タイドグラフの日送りスワイプ
+  //
+  // グラフそのものを画像にせず日別ページを持たせているため、左右スワイプは
+  // 次/前日の静的ページへ移動する。各日を URL で共有でき、JavaScript が
+  // 無効でも表示できる構成を保ったまま、先のグラフを連続して見られる。
+  // -------------------------------------------------------------------
+  function graphSwipe() {
+    var graphs = document.querySelectorAll('[data-graph-swipe]');
+    Array.prototype.forEach.call(graphs, function (graph) {
+      var startX = 0, startY = 0, tracking = false;
+      graph.addEventListener('touchstart', function (e) {
+        if (e.touches.length !== 1) return;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        tracking = true;
+      }, { passive: true });
+      graph.addEventListener('touchend', function (e) {
+        if (!tracking || !e.changedTouches.length) return;
+        tracking = false;
+        var dx = e.changedTouches[0].clientX - startX;
+        var dy = e.changedTouches[0].clientY - startY;
+        if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.3) return;
+        var href = dx < 0 ? graph.dataset.next : graph.dataset.prev;
+        if (href) location.assign(href);
+      }, { passive: true });
+    });
+  }
+
+  // -------------------------------------------------------------------
   // 2. 地図
   // -------------------------------------------------------------------
   var mapDone = false;
@@ -662,6 +691,7 @@
 
   function init() {
     run('currentTide', currentTide);
+    run('graphSwipe', graphSwipe);
     run('maps', maps);
     run('thresholdMode', thresholdMode);
     run('recordRecent', recordRecent);

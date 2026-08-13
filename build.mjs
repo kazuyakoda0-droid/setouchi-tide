@@ -331,6 +331,12 @@ for (const st of stations) {
       st, ym, cells,
       prev: inRange(pm) ? { href: paths.month(st, monthKeyOf(pm)), label: `${new Date(pm).getUTCMonth() + 1}月` } : null,
       next: inRange(nm) ? { href: paths.month(st, monthKeyOf(nm)), label: `${new Date(nm).getUTCMonth() + 1}月` } : null,
+      months: monthList.map(x => ({
+        href: paths.month(st, monthKeyOf(x)),
+        year: new Date(x).getUTCFullYear(),
+        month: new Date(x).getUTCMonth() + 1,
+        active: x === m,
+      })),
       stats: { maxRange, maxRangeDay, ohshio },
     }), {
       changefreq: 'weekly', priority: 0.5,
