@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>波の透かしサンプル｜しおどき</title>
+  <link rel="stylesheet" href="../public/fonts.css">
+  <link rel="stylesheet" href="../public/style.css">
+  <style>
+    .wave-sample { position: relative; max-width: 760px; margin: 0 auto; padding: 34px 16px 120px; }
+    .wave-sample h1 { margin: 0 0 8px; color: var(--ink); font-size: clamp(28px, 7vw, 44px); font-weight: 800; letter-spacing: -.04em; }
+    .wave-sample .lede { margin: 0 0 38px; color: var(--ink2); line-height: 1.9; }
+    .wave-sample .sample-card { margin: 22px 0; padding: 22px; background: rgba(255,255,255,.91); border: 1px solid #e6ddce; border-radius: 20px; box-shadow: 0 12px 28px rgba(43,81,72,.05); }
+    .wave-sample .eyebrow { display: inline-block; margin-bottom: 8px; color: var(--warm-d); font-size: 12px; font-weight: 800; letter-spacing: .11em; }
+    .wave-sample h2 { margin: 0 0 10px; color: var(--ink); font-size: 22px; font-weight: 800; }
+    .wave-sample p { color: var(--ink2); line-height: 1.9; }
+    .wave-sample .mini-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 18px; }
+    .wave-sample .mini-stats div { padding: 14px 8px; background: #f4fbf8; border-radius: 14px; text-align: center; color: var(--blue); font-weight: 800; }
+    .wave-sample .mini-stats small { display: block; margin-bottom: 4px; color: var(--mut); font-size: 11px; font-weight: 500; }
+    .wave-sample .scroll-cue { position: sticky; bottom: 14px; display: inline-block; padding: 8px 12px; background: #175a6f; border-radius: 999px; color: #fff; font-size: 12px; box-shadow: 0 7px 18px rgba(23,90,111,.22); }
+  </style>
+</head>
+<body class="wave-watermark">
+  <header class="site"><a class="brand" href="./index.html"><span class="brand-ja">しおどき</span><span class="brand-en">SHIODOKI</span></a></header>
+  <main class="wave-sample">
+    <p class="eyebrow">SCROLL BACKGROUND SAMPLE</p>
+    <h1>波の透かし</h1>
+    <p class="lede">スクロールしても、情報を邪魔しない淡い波形が背景に留まる案です。本番サイトにはまだ適用していません。</p>
+
+    <section class="sample-card">
+      <span class="eyebrow">TODAY</span>
+      <h2>広島・江田島</h2>
+      <p>白いカード面の読みやすさを保ちつつ、余白にだけ海らしさを残します。</p>
+      <div class="mini-stats"><div><small>満潮</small>14:24</div><div><small>潮位</small>186 cm</div><div><small>天気</small>くもり雷雨</div></div>
+    </section>
+
+    <section class="sample-card"><span class="eyebrow">READABILITY</span><h2>表・グラフの邪魔をしない濃さ</h2><p>透かしは本文の背面で固定し、不透明度を約5%に抑えます。スクロールの基準になるカードを複数置いて、長い潮見表でもコントラストが崩れないか確認できます。</p></section>
+    <section class="sample-card"><span class="eyebrow">MOTION FREE</span><h2>動かさず、気が散らない</h2><p>アニメーションは使いません。静かな弧を二つだけ配置し、読み取りや現在潮位の認識を優先します。</p></section>
+    <section class="sample-card"><span class="eyebrow">NEXT</span><h2>採用する場合</h2><p>通常ページに同じクラスを付けるだけで反映できます。必要ならスマートフォンだけさらに薄くする調整も可能です。</p></section>
+    <span class="scroll-cue">↑↓ スクロールして見え方を確認</span>
+  </main>
+</body>
+</html>

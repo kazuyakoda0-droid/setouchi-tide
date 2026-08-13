@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="しおどき リデザイン比較モックアップ">
+  <title>しおどき｜リデザイン候補 3案</title>
+  <link rel="stylesheet" href="../public/fonts.css">
+  <link rel="stylesheet" href="./mockups.css">
+</head>
+<body>
+  <aside class="concept-switcher" aria-label="デザイン案の切り替え">
+    <div class="switcher-title">
+      <span class="switcher-kicker">DESIGN STUDY</span>
+      <strong>しおどき リデザイン候補</strong>
+    </div>
+    <div class="concept-tabs" role="tablist" aria-label="デザイン候補">
+      <button class="concept-tab is-active" type="button" role="tab" aria-selected="true" data-target="a">
+        <span class="tab-letter">A</span>
+        <span><b>Sea Glass</b><small>やさしく、迷わない</small></span>
+      </button>
+      <button class="concept-tab" type="button" role="tab" aria-selected="false" data-target="b">
+        <span class="tab-letter">B</span>
+        <span><b>Weekend</b><small>予定を立てたくなる</small></span>
+      </button>
+      <button class="concept-tab" type="button" role="tab" aria-selected="false" data-target="c">
+        <span class="tab-letter">C</span>
+        <span><b>Night Deck</b><small>海辺で素早く読む</small></span>
+      </button>
+    </div>
+    <p class="mock-note">数値はレイアウト確認用のモックデータです</p>
+  </aside>
+
+  <main>
+    <section class="concept concept-a is-active" data-concept="a" aria-label="案A Sea Glass">
+      <header class="a-header">
+        <a class="a-brand" href="#a" aria-label="しおどき トップ">
+          <span class="brand-orb" aria-hidden="true"><i></i><i></i></span>
+          <span><b>しおどき</b><small>SHIODOKI</small></span>
+        </a>
+        <button class="soft-button" type="button">⌖ 広島港</button>
+      </header>
+
+      <div class="a-shell">
+        <div class="a-date-row">
+          <div><span>8月13日 木曜日</span><b>広島港の潮</b></div>
+          <span class="tide-pill">● 大潮</span>
+        </div>
+
+        <section class="a-hero-card">
+          <div class="a-now">
+            <span class="eyebrow">いまの潮</span>
+            <div class="a-height"><b>238</b><span>cm</span></div>
+            <div class="a-flow"><span class="flow-icon">↗</span><div><b>上げ潮</b><small>あと 1時間18分で満潮</small></div></div>
+          </div>
+          <div class="a-chart" aria-label="潮位グラフのモックアップ">
+            <div class="sun-label">☀ 5:28</div>
+            <svg viewBox="0 0 720 250" role="img" aria-label="一日の潮位曲線">
+              <defs>
+                <linearGradient id="seaFillA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#60c9d4" stop-opacity=".34"/><stop offset="1" stop-color="#60c9d4" stop-opacity=".02"/></linearGradient>
+              </defs>
+              <path class="a-grid" d="M0 50H720M0 125H720M0 200H720"/>
+              <path class="a-area" d="M0 167C90 45 155 40 230 128S360 230 440 142 565 37 640 92 700 174 720 188V250H0Z"/>
+              <path class="a-line" d="M0 167C90 45 155 40 230 128S360 230 440 142 565 37 640 92 700 174 720 188"/>
+              <line class="a-now-line" x1="501" y1="24" x2="501" y2="220"/>
+              <circle class="a-now-dot" cx="501" cy="84" r="7"/>
+              <circle class="a-extreme" cx="132" cy="65" r="5"/><circle class="a-extreme" cx="344" cy="200" r="5"/><circle class="a-extreme" cx="596" cy="65" r="5"/>
+            </svg>
+            <div class="chart-times"><span>0時</span><span>6時</span><span>12時</span><span>18時</span><span>24時</span></div>
+            <div class="extreme-label high-one"><b>6:24</b><small>245cm</small></div>
+            <div class="extreme-label low-one"><b>12:48</b><small>42cm</small></div>
+            <div class="extreme-label high-two"><b>18:00</b><small>268cm</small></div>
+          </div>
+        </section>
+
+        <section class="a-glance" aria-label="今日の情報">
+          <article><span class="glance-icon sun">☀</span><small>天気</small><b>晴れ 31°</b><em>降水 10%</em></article>
+          <article><span class="glance-icon wind">↗</span><small>風</small><b>南 3.2m/s</b><em>おだやか</em></article>
+          <article><span class="glance-icon moon">◐</span><small>月齢</small><b>0.4</b><em>新月</em></article>
+          <article><span class="glance-icon range">↕</span><small>干満差</small><b>226cm</b><em>大きめ</em></article>
+        </section>
+
+        <section class="a-next">
+          <div><span class="eyebrow">このあとの見どころ</span><h2>夕方は潮が大きく動きます</h2><p>15:10〜18:00 は上げ潮。海辺へ出るなら、足元の変化に気をつけて。</p></div>
+          <button type="button">7日間を見る <span>→</span></button>
+        </section>
+      </div>
+    </section>
+
+    <section class="concept concept-b" data-concept="b" aria-label="案B Weekend">
+      <header class="b-header">
+        <a class="b-brand" href="#b"><span>しおどき</span><small>海辺の予定を、いい時間に。</small></a>
+        <nav aria-label="メインナビゲーション"><a href="#b">潮をみる</a><a href="#b">海辺ガイド</a><button type="button">場所をえらぶ</button></nav>
+      </header>
+
+      <div class="b-shell">
+        <section class="b-intro">
+          <span class="b-kicker">THURSDAY · AUGUST 13</span>
+          <h1>今日は、<span>夕方の海</span>が<br>気持ちよさそう。</h1>
+          <p>広島港は18:00ごろ満潮。風はおだやかで、夕方にかけて潮が大きく動きます。</p>
+          <div class="b-place"><span class="pin-dot">●</span><div><small>いま見ている場所</small><b>広島県・広島港</b></div><button type="button">変更</button></div>
+        </section>
+
+        <section class="b-tide-card">
+          <div class="b-card-head"><div><small>今日の潮</small><b>大潮</b></div><span>8/13 木</span></div>
+          <div class="b-wave" aria-label="潮位グラフのモックアップ">
+            <svg viewBox="0 0 720 250" role="img" aria-label="一日の潮位曲線">
+              <path class="b-area" d="M0 170C90 42 160 45 235 130S355 225 438 141 558 38 638 91 700 172 720 188V250H0Z"/>
+              <path class="b-line" d="M0 170C90 42 160 45 235 130S355 225 438 141 558 38 638 91 700 172 720 188"/>
+              <line class="b-now-line" x1="500" y1="36" x2="500" y2="224"/><circle class="b-now-dot" cx="500" cy="86" r="8"/>
+            </svg>
+            <span class="b-now-label">いま 238cm</span>
+            <div class="b-scale"><span>0時</span><span>6時</span><span>12時</span><span>18時</span><span>24時</span></div>
+          </div>
+          <div class="b-events"><div><span class="event-mark high">↑</span><small>満潮</small><b>6:24</b><em>245cm</em></div><div><span class="event-mark low">↓</span><small>干潮</small><b>12:48</b><em>42cm</em></div><div><span class="event-mark high">↑</span><small>満潮</small><b>18:00</b><em>268cm</em></div></div>
+        </section>
+
+        <section class="b-plans">
+          <div class="b-section-title"><div><small>WEEKEND IDEAS</small><h2>海辺で何する？</h2></div><p>潮と天気から、過ごしやすい時間をまとめました。</p></div>
+          <div class="b-plan-grid">
+            <article class="plan-card peach"><span class="plan-emoji">🎣</span><small>釣り</small><h3>夕まずめを狙う</h3><p>16:30〜18:30</p><b>潮がよく動く</b></article>
+            <article class="plan-card blue"><span class="plan-emoji">🦀</span><small>磯あそび</small><h3>今日は短めに</h3><p>11:40〜13:40</p><b>干潮 42cm</b></article>
+            <article class="plan-card yellow"><span class="plan-emoji">🌇</span><small>夕涼み</small><h3>風のおだやかな夕方</h3><p>17:00〜19:00</p><b>日没 18:58</b></article>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="concept concept-c" data-concept="c" aria-label="案C Night Deck">
+      <header class="c-header">
+        <a class="c-brand" href="#c"><span class="c-logo">S</span><div><b>SHIODOKI</b><small>全国タイド</small></div></a>
+        <div class="c-actions"><button type="button">☆ 保存</button><button class="c-search" type="button">⌕ 地点検索</button></div>
+      </header>
+
+      <div class="c-shell">
+        <div class="c-location"><div><span class="live-dot"></span><small>HIROSHIMA · LIVE</small><h1>広島港</h1><p>34.353°N / 132.469°E</p></div><div class="c-day"><small>AUG</small><b>13</b><span>THU</span></div></div>
+
+        <section class="c-dashboard">
+          <article class="c-primary">
+            <div class="c-primary-head"><div><span class="c-tag">NOW</span><h2>上げ潮</h2></div><span class="c-big-height"><b>238</b>cm</span></div>
+            <div class="c-chart" aria-label="潮位グラフのモックアップ">
+              <svg viewBox="0 0 800 290" role="img" aria-label="一日の潮位曲線">
+                <defs><linearGradient id="seaFillC" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6ce9d3" stop-opacity=".28"/><stop offset="1" stop-color="#6ce9d3" stop-opacity="0"/></linearGradient></defs>
+                <path class="c-grid" d="M0 54H800M0 135H800M0 216H800"/>
+                <path class="c-area" d="M0 182C98 50 180 48 260 138S396 238 480 145 625 47 700 100 770 179 800 197V290H0Z"/>
+                <path class="c-line" d="M0 182C98 50 180 48 260 138S396 238 480 145 625 47 700 100 770 179 800 197"/>
+                <line class="c-now-line" x1="557" y1="28" x2="557" y2="244"/><circle class="c-now-dot" cx="557" cy="84" r="8"/>
+              </svg>
+              <span class="c-hint">満潮まで 01:18</span>
+              <div class="c-scale"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
+            </div>
+            <div class="c-extremes"><div><small>HIGH 01</small><b>06:24</b><span>245cm</span></div><div class="is-low"><small>LOW</small><b>12:48</b><span>42cm</span></div><div><small>HIGH 02</small><b>18:00</b><span>268cm</span></div></div>
+          </article>
+
+          <aside class="c-side">
+            <article class="c-condition"><div><small>CONDITION</small><span class="c-status">GOOD</span></div><b>夕方に<br>よく動く</b><p>15:10 — 18:00</p></article>
+            <article class="c-weather"><div><small>WEATHER</small><span>☀</span></div><b>31°</b><p>南 3.2m/s</p></article>
+            <article class="c-metrics"><div><small>RANGE</small><b>226<span>cm</span></b></div><div><small>MOON</small><b>0.4</b></div></article>
+          </aside>
+        </section>
+
+        <section class="c-timeline">
+          <div class="c-section-head"><div><small>NEXT 12 HOURS</small><h2>これからの潮</h2></div><button type="button">7日間 →</button></div>
+          <div class="timeline-grid">
+            <div class="timeline-now"><span>NOW</span></div>
+            <div class="timeline-track"><i style="left:0%"></i><i style="left:25%"></i><i style="left:50%"></i><i style="left:75%"></i><i style="left:100%"></i><b style="left:18%">満潮 18:00</b><em style="left:18%"></em></div>
+            <div class="timeline-labels"><span>17:00</span><span>20:00</span><span>23:00</span><span>02:00</span><span>05:00</span></div>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script src="./mockups.js"></script>
+</body>
+</html>

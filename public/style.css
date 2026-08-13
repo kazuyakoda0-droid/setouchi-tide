@@ -9,31 +9,31 @@
 
 :root {
   color-scheme: light dark;
-  --bg: #f4f1ea;
-  --panel: #fbfaf5;
-  --ink: #2b2620;
-  --ink2: #4a4034;
-  --mut: #6b6357;
-  --dim: #8a8073;
-  --faint: #a99e8c;
-  --line: rgba(60, 50, 35, .16);
-  --line2: rgba(60, 50, 35, .08);
-  --warm: #b06a3f;
-  --warm-d: #8f5430;
-  --blue: #2b5d7a;
-  --red: #b04a3f;
-  --th: #3c7a55;
-  --serif: 'Zen Old Mincho', 'Yu Mincho', serif;
+  --bg: #fffaf0;
+  --panel: #ffffff;
+  --ink: #17374b;
+  --ink2: #315666;
+  --mut: #687c83;
+  --dim: #8d9a95;
+  --faint: #b2b9ad;
+  --line: rgba(23, 90, 111, .15);
+  --line2: rgba(23, 90, 111, .08);
+  --warm: #ef7658;
+  --warm-d: #c95e46;
+  --blue: #175a6f;
+  --red: #d85f5a;
+  --th: #4e967d;
+  --serif: 'Zen Kaku Gothic New', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', sans-serif;
   --sans: 'Zen Kaku Gothic New', system-ui, sans-serif;
   --mono: 'DM Mono', ui-monospace, monospace;
   --pad: 16px;
 
   /* 潮名バッジの配色。値そのものは util.mjs の SHIO_STYLE から参照される。 */
-  --shio-oh-bg: rgba(176, 106, 63, .12);   --shio-oh-bd: rgba(176, 106, 63, .35);   --shio-oh-c: #8f5430;
-  --shio-naka-bg: rgba(43, 93, 122, .10);  --shio-naka-bd: rgba(43, 93, 122, .28);  --shio-naka-c: #2b5d7a;
-  --shio-ko-bg: rgba(107, 99, 87, .10);    --shio-ko-bd: rgba(107, 99, 87, .25);    --shio-ko-c: #6b6357;
-  --shio-naga-bg: rgba(107, 99, 87, .08);  --shio-naga-bd: rgba(107, 99, 87, .22);  --shio-naga-c: #8a8073;
-  --shio-waka-bg: rgba(90, 120, 80, .10);  --shio-waka-bd: rgba(90, 120, 80, .26);  --shio-waka-c: #4d6b45;
+  --shio-oh-bg: #ffe6dc; --shio-oh-bd: #f4b7a6; --shio-oh-c: #b9503b;
+  --shio-naka-bg: #ddf2f4; --shio-naka-bd: #9fdae0; --shio-naka-c: #176579;
+  --shio-ko-bg: #f0eee7; --shio-ko-bd: #d8d2c6; --shio-ko-c: #69746f;
+  --shio-naga-bg: #f7f2e7; --shio-naga-bd: #e6dcc9; --shio-naga-c: #89775c;
+  --shio-waka-bg: #e8f3df; --shio-waka-bd: #bcdbac; --shio-waka-c: #4a7d45;
 
   /* 潮位グラフの夜間帯・目盛り線。ACC/WARM(線・満干潮マーカー)は
      明暗どちらの背景でも読める中間トーンなので固定色のまま。 */
@@ -321,6 +321,7 @@ main { padding: 0 var(--pad); max-width: 780px; margin: 0 auto; }
 .graph .mkv.dim { fill: var(--dim); }
 .graph .nowline { stroke: var(--warm); stroke-width: 2; stroke-dasharray: 5 4; }
 .graph .nowdot { fill: var(--warm); stroke: var(--panel); stroke-width: 2; }
+.graph .nowlabel { fill: var(--warm-d); font-family: var(--sans); font-size: 14px; font-weight: 700; paint-order: stroke; stroke: var(--panel); stroke-width: 5px; stroke-linejoin: round; }
 .graph .night { fill: var(--graph-night); }
 .graph .grid-ln { stroke: var(--graph-grid); }
 .graph .grid-tick { stroke: var(--graph-tick); }
@@ -489,7 +490,7 @@ table.week .dim { color: var(--faint); }
   margin-right: 6px; vertical-align: middle;
 }
 .dot.off { background: var(--blue); }
-.dot.apx { background: transparent; border: 1.5px solid var(--faint); }
+.dot.apx { background: var(--warm); border: 0; border-radius: 0; clip-path: polygon(50% 4%, 96% 92%, 4% 92%); }
 
 /* ---------- 月カレンダー ---------- */
 .cal-row-hd { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; margin-bottom: 1px; }
@@ -636,6 +637,37 @@ ul.guide-list { list-style: none; margin: 0 0 16px; padding: 0; display: flex; f
 ul.guide-list li { padding: 12px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
 ul.guide-list a { font-family: var(--serif); font-size: 15px; color: var(--ink); }
 ul.guide-list .note { display: block; margin-top: 4px; font-size: 12.5px; color: var(--mut); line-height: 1.6; }
+
+/* =====================================================================
+   リデザイン B / Weekend
+   明朝を使わず、海辺のレジャーに合う丸み・白地・コーラルを基調にする。
+   情報量は従来どおり保ち、見出しとカードの階層だけをやわらかく整える。
+   ===================================================================== */
+body { background: var(--bg); font-family: var(--sans); }
+header.site { min-height: 70px; padding-top: 12px; padding-bottom: 12px; background: rgba(255, 250, 240, .92); border-bottom-color: #ebdec8; }
+.brand-ja, .st-hd h1, .home-hd h1, .blk-hd h2, h3.sub, .shio, .daybar .date, .pg.cur, .now .dir, .wx-head .cond, .mn-name, ul.guide-list a { font-family: var(--sans); }
+.brand-ja { font-weight: 800; letter-spacing: .03em; }.brand-mark { filter: saturate(.83); }
+.search-btn { color: #315e68; background: #fff; border-color: #d9e5df; border-radius: 999px; }.search-btn:hover, .search-results a:hover { background: #edf7f5; }
+main { max-width: 900px; }
+.st-hd, .home-hd { margin-top: 24px; }.st-hd h1 { font-weight: 800; letter-spacing: -.025em; }.home-hd h1 { font-weight: 800; letter-spacing: -.035em; }
+.lead { color: #587078; }.badge, .shio { border-radius: 999px; }
+.badge.off { color: #176579; border-color: #9fdae0; background: #ddf2f4; }.badge.apx { color: #b9503b; border-color: #f4b7a6; background: #ffe6dc; }
+.tabs { gap: 9px; }.tab { border-radius: 999px; border-color: #e6ddce; color: #667b7a; }.tab:hover { background: #fff0b8; }.tab.on { background: var(--blue); border-color: var(--blue); color: #fff; }
+.month-chip, .pager .pg { border-radius: 12px; }.month-chip.on { background: var(--blue); border-color: var(--blue); }
+.now, .stats, .sm, .th-ctl, ul.flow li, ul.stlist li, ul.guide-list li { border-color: #e6ddce; border-radius: 16px; box-shadow: 0 9px 25px rgba(43, 81, 72, .05); }
+.now { border-left: 5px solid var(--warm); }.now .lbl { color: var(--warm); }.now .val { color: var(--ink); }
+.stats { gap: 8px; background: transparent; border: 0; overflow: visible; }.stats > div { border: 1px solid #e6ddce; border-radius: 15px; box-shadow: 0 8px 20px rgba(43, 81, 72, .04); }
+.graph { padding: 15px 13px 8px; background: #fff; border: 1px solid #e6ddce; border-radius: 20px; box-shadow: 0 12px 28px rgba(43, 81, 72, .05); }.graph .nowlabel { font-size: 15px; }
+.blk { margin: 36px 0; }.blk-hd { padding-bottom: 10px; border-bottom-color: #e6ddce; }.blk-hd h2 { font-weight: 800; }.blk-hd .en { color: #d9785d; font-weight: 700; }
+.wx-head { padding: 14px 16px; background: #fff5dc; border-radius: 16px; }.wx-icon { color: #d77859; }.wx-head .cond { font-weight: 700; }.wx-grid { gap: 8px; background: transparent; border: 0; overflow: visible; }.wx-grid > div { border: 1px solid #e6ddce; border-radius: 14px; box-shadow: 0 8px 20px rgba(43, 81, 72, .04); }.wx-metric-icon { color: #167289; }
+.src-note, .dev-note { background: #fff4e5; border-left-color: #efb85b; border-radius: 0 12px 12px 0; }
+.tide-map-marker { background: transparent; border: 0; }.tide-map-marker .marker-triangle { display: block; width: 15px; height: 15px; background: var(--warm); border: 2px solid #fff; clip-path: polygon(50% 3%, 97% 94%, 3% 94%); filter: drop-shadow(0 1px 2px rgba(0,0,0,.25)); }
+
+/* 波のスカシ案。通常ページには未適用で、wave-watermark.html だけで確認する。 */
+body.wave-watermark { position: relative; overflow-x: hidden; }
+body.wave-watermark::before, body.wave-watermark::after { position: fixed; z-index: -1; width: 72vw; height: 32vw; min-width: 620px; min-height: 260px; border: 34px solid rgba(23, 90, 111, .055); border-left-color: transparent; border-right-color: transparent; border-radius: 50%; content: ''; pointer-events: none; }
+body.wave-watermark::before { top: 18vh; right: -30vw; transform: rotate(-11deg); }
+body.wave-watermark::after { top: 67vh; left: -33vw; border-color: rgba(239,118,88,.055); border-left-color: transparent; border-right-color: transparent; transform: rotate(12deg); }
 
 /* =====================================================================
    700px 以上

@@ -122,8 +122,19 @@
     dot.setAttribute('cx', x); dot.setAttribute('cy', y); dot.setAttribute('r', 6);
     dot.setAttribute('class', 'nowdot');
 
+    // 数値はグラフの中で読めるようにする。右端に近いときだけ左に寄せ、
+    // ラベルが SVG の外へはみ出ないようにする。
+    var label = document.createElementNS(NS, 'text');
+    var onRight = x < x1 - 106;
+    label.setAttribute('x', x + (onRight ? 12 : -12));
+    label.setAttribute('y', Math.max(y0 + 20, y - 12));
+    label.setAttribute('text-anchor', onRight ? 'start' : 'end');
+    label.setAttribute('class', 'nowlabel');
+    label.textContent = 'いま ' + levels[idx] + 'cm';
+
     svg.appendChild(line);
     svg.appendChild(dot);
+    svg.appendChild(label);
   }
 
   function markGrid(idx) {
@@ -210,15 +221,19 @@
 
     pts.forEach(function (p) {
       // p.c = このページの地点。近隣と同じ見た目だとどれが自分か分からない。
-      var m = L.circleMarker([p.la, p.lo], p.c ? {
+      var m;
+      if (!p.c && !p.o) {
+        // 近似地点は丸ではなく三角にする。見た目だけで公式観測点と区別できる。
+        m = L.marker([p.la, p.lo], {
+          icon: L.divIcon({ className: 'tide-map-marker', html: '<span class="marker-triangle" aria-hidden="true"></span>', iconSize: [14, 14], iconAnchor: [7, 7] }),
+        }).addTo(map);
+      } else m = L.circleMarker([p.la, p.lo], p.c ? {
         radius: 8, color: '#b06a3f', weight: 3,
         fillColor: '#b06a3f', fillOpacity: .9,
       } : {
         radius: 5,
-        color: p.o ? '#2b5d7a' : '#a99e8c',
-        weight: p.o ? 2 : 1.5,
-        fillColor: p.o ? '#2b5d7a' : '#fbfaf5',
-        fillOpacity: p.o ? .85 : 1,
+        color: '#175a6f', weight: 2,
+        fillColor: '#175a6f', fillOpacity: .85,
       }).addTo(map);
       // 自分の点は常時ラベルを出す。近隣はホバー時だけ出し、押すと移動する。
       m.bindTooltip(p.n, { direction: 'top', className: 'tdtip', permanent: !!p.c });
