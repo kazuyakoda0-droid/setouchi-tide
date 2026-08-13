@@ -222,8 +222,8 @@
     pts.forEach(function (p) {
       // p.c = このページの地点。近隣と同じ見た目だとどれが自分か分からない。
       var m;
-      if (!p.c && !p.o) {
-        // 近似地点は丸ではなく三角にする。見た目だけで公式観測点と区別できる。
+      if (!p.c && p.m === 'low') {
+        // 精度保証の対象外となる参考地点だけを三角にする。
         m = L.marker([p.la, p.lo], {
           icon: L.divIcon({ className: 'tide-map-marker', html: '<span class="marker-triangle" aria-hidden="true"></span>', iconSize: [14, 14], iconAnchor: [7, 7] }),
         }).addTo(map);
@@ -233,7 +233,8 @@
       } : {
         radius: 5,
         color: '#175a6f', weight: 2,
-        fillColor: '#175a6f', fillOpacity: .85,
+        fillColor: p.m === 'apx' ? '#fffaf0' : '#175a6f',
+        fillOpacity: p.m === 'apx' ? 1 : .85,
       }).addTo(map);
       // 自分の点は常時ラベルを出す。近隣はホバー時だけ出し、押すと移動する。
       m.bindTooltip(p.n, { direction: 'top', className: 'tdtip', permanent: !!p.c });

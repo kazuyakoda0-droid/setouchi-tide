@@ -8,11 +8,13 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TIDE_STATIONS, PREFS } from '../../lib/stations.mjs';
 import { loadYears } from '../../lib/jma.mjs';
-import { fetchOsmCandidates } from './osm-source.mjs';
+import { fetchOsmCandidates, overpassQueries } from './osm-source.mjs';
 import { loadPrefectureGeoJSON, prefectureOf, nearestPrefectureOf, buildNameToId, buildBoundaryIndex } from './prefectures.mjs';
 import { mergeCandidates } from './dedupe.mjs';
 import { averageTidalRangeCm, tidalRangeVarianceExceeds, isRedundant, isTooFarFromAnchor, isKnownNonTidalPlace } from './safety.mjs';
 import { assignAnchor } from './anchor.mjs';
+import { nearestOfficialStation } from './anchor.mjs';
+import { haversineKm } from './geo.mjs';
 import { assignIds } from './ids.mjs';
 import { insertIntoStationsFile } from './writer.mjs';
 
@@ -21,12 +23,19 @@ const STATIONS_PATH = path.join(__dirname, '..', '..', 'lib', 'stations.mjs');
 
 const args = process.argv.slice(2);
 const dryRun = args.includes('--dry-run');
+const includeLow = args.includes('--include-low');
+const tagIdx = args.indexOf('--tag');
+const tagFilter = tagIdx !== -1 ? args[tagIdx + 1] : null;
 const sampleIdx = args.indexOf('--sample');
 const samplePref = sampleIdx !== -1 ? args[sampleIdx + 1] : null;
 
 async function main() {
   console.log('1/7 OSM候補を取得中...');
+  const normalizedTag = tagFilter ? tagFilter.replace('=', '"="') : '';
+  const queries = tagFilter ? overpassQueries().filter(q => q.label.includes(normalizedTag)) : undefined;
+  if (tagFilter && queries.length === 0) throw new Error(`該当するOSMタグがありません: ${tagFilter}`);
   const candidates = await fetchOsmCandidates({
+    queries,
     onProgress: (label, count, i, total) => console.log(`  [${i}/${total}] ${label}: ${count}件`),
     onFailure: (label, err, i, total) => console.warn(`  [${i}/${total}] ${label}: 取得失敗のため諦める (${err.message})`),
   });
@@ -71,22 +80,29 @@ async function main() {
 
   console.log('6/7 安全基準(潮汐境界・遠すぎる観測点)を適用中...');
   const safe = [];
-  let boundaryExcluded = 0, tooFarExcluded = 0, nonTidalExcluded = 0;
+  let boundaryExcluded = 0, tooFarExcluded = 0, nonTidalExcluded = 0, lowKept = 0;
   for (const c of deduped) {
     if (isKnownNonTidalPlace(c)) { nonTidalExcluded++; continue; }
     if (tidalRangeVarianceExceeds(c, officialWithRange)) { boundaryExcluded++; continue; }
-    if (isTooFarFromAnchor(c, officialStations)) { tooFarExcluded++; continue; }
+    if (isTooFarFromAnchor(c, officialStations)) {
+      const nearest = nearestOfficialStation(c, officialStations);
+      // 25kmを超える候補は通常は採用しない。明示指定時だけ60km以内を△参考地点として残す。
+      if (!includeLow || !nearest || haversineKm(c, nearest) > 60) { tooFarExcluded++; continue; }
+      safe.push({ ...c, approxQuality: 'low' });
+      lowKept++;
+      continue;
+    }
     if (isRedundant(c, TIDE_STATIONS)) continue; // 二重チェック(dedupeで既に除去済みのはずだが念のため)
     safe.push(c);
   }
-  console.log(`  残存: ${safe.length}件 / 除外(潮汐境界): ${boundaryExcluded}件 / 除外(観測点から遠すぎる): ${tooFarExcluded}件 / 除外(内陸の既知パターン): ${nonTidalExcluded}件`);
+  console.log(`  残存: ${safe.length}件（△参考地点: ${lowKept}件） / 除外(潮汐境界): ${boundaryExcluded}件 / 除外(観測点から遠すぎる): ${tooFarExcluded}件 / 除外(内陸の既知パターン): ${nonTidalExcluded}件`);
 
   console.log('7/7 最寄り観測点を割り当ててIDを発番中...');
   const existingIds = TIDE_STATIONS.map(s => s.id);
   const newIds = assignIds(existingIds, safe.length);
   const entries = safe.map((c, i) => {
     const anchor = assignAnchor(c, officialStations);
-    return { id: newIds[i], name: c.name, lat: c.lat, lon: c.lon, pref: c.pref, ...anchor };
+    return { id: newIds[i], name: c.name, lat: c.lat, lon: c.lon, pref: c.pref, approxQuality: c.approxQuality, ...anchor };
   });
 
   console.log(`\n完了見込み: 新規 ${entries.length}件（既存 ${TIDE_STATIONS.length}件 → 合計 ${TIDE_STATIONS.length + entries.length}件）`);

@@ -67,12 +67,20 @@ function firstTagKey(tags) {
   return 'unknown';
 }
 
-async function runQuery(query, { fetchImpl, retryDelayMs, attempt = 0 } = {}) {
-  const res = await fetchImpl(OVERPASS_URL, {
-    method: 'POST',
-    headers: { 'User-Agent': 'japan-tide-atlas static site builder', 'Content-Type': 'text/plain' },
-    body: query,
-  });
+async function runQuery(query, { fetchImpl, retryDelayMs, timeoutMs = 15000, attempt = 0 } = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  let res;
+  try {
+    res = await fetchImpl(OVERPASS_URL, {
+      method: 'POST',
+      headers: { 'User-Agent': 'japan-tide-atlas static site builder', 'Content-Type': 'text/plain' },
+      body: query,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
   if (!res.ok) {
     if (attempt < 2) {
       await new Promise(r => setTimeout(r, retryDelayMs * (attempt + 1)));
@@ -97,12 +105,12 @@ async function runQuery(query, { fetchImpl, retryDelayMs, attempt = 0 } = {}) {
 // 1タグぶんのクエリがリトライしても失敗した場合、そのタグの候補は
 // 諦めて残りのタグは続行する(公開Overpassサーバーの一時的な不調で
 // パイプライン全体が止まるのを避けるため)。失敗したタグは onFailure で通知する。
-export async function fetchOsmCandidates({ fetchImpl = fetch, queries = overpassQueries(), pauseMs = 2000, retryDelayMs = 5000, onProgress, onFailure } = {}) {
+export async function fetchOsmCandidates({ fetchImpl = fetch, queries = overpassQueries(), pauseMs = 2000, retryDelayMs = 5000, timeoutMs = 15000, onProgress, onFailure } = {}) {
   const all = [];
   for (let i = 0; i < queries.length; i++) {
     if (i > 0) await new Promise(r => setTimeout(r, pauseMs));
     try {
-      const json = await runQuery(queries[i].query, { fetchImpl, retryDelayMs });
+      const json = await runQuery(queries[i].query, { fetchImpl, retryDelayMs, timeoutMs });
       const parsed = parseOverpassResponse(json);
       all.push(...parsed);
       if (onProgress) onProgress(queries[i].label, parsed.length, i + 1, queries.length);

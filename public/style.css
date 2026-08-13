@@ -490,7 +490,8 @@ table.week .dim { color: var(--faint); }
   margin-right: 6px; vertical-align: middle;
 }
 .dot.off { background: var(--blue); }
-.dot.apx { background: var(--warm); border: 0; border-radius: 0; clip-path: polygon(50% 4%, 96% 92%, 4% 92%); }
+.dot.apx { background: var(--panel); border-color: var(--blue); }
+.dot.low { background: var(--warm); border: 0; border-radius: 0; clip-path: polygon(50% 4%, 96% 92%, 4% 92%); }
 
 /* ---------- 月カレンダー ---------- */
 .cal-row-hd { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; margin-bottom: 1px; }
@@ -651,7 +652,7 @@ header.site { min-height: 70px; padding-top: 12px; padding-bottom: 12px; backgro
 main { max-width: 900px; }
 .st-hd, .home-hd { margin-top: 24px; }.st-hd h1 { font-weight: 800; letter-spacing: -.025em; }.home-hd h1 { font-weight: 800; letter-spacing: -.035em; }
 .lead { color: #587078; }.badge, .shio { border-radius: 999px; }
-.badge.off { color: #176579; border-color: #9fdae0; background: #ddf2f4; }.badge.apx { color: #b9503b; border-color: #f4b7a6; background: #ffe6dc; }
+.badge.off { color: #176579; border-color: #9fdae0; background: #ddf2f4; }.badge.apx { color: #176579; border-color: #9fdae0; background: #fff; }.badge.low { color: #b9503b; border-color: #f4b7a6; background: #ffe6dc; }
 .tabs { gap: 9px; }.tab { border-radius: 999px; border-color: #e6ddce; color: #667b7a; }.tab:hover { background: #fff0b8; }.tab.on { background: var(--blue); border-color: var(--blue); color: #fff; }
 .month-chip, .pager .pg { border-radius: 12px; }.month-chip.on { background: var(--blue); border-color: var(--blue); }
 .now, .stats, .sm, .th-ctl, ul.flow li, ul.stlist li, ul.guide-list li { border-color: #e6ddce; border-radius: 16px; box-shadow: 0 9px 25px rgba(43, 81, 72, .05); }

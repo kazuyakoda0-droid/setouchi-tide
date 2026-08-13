@@ -31,6 +31,7 @@ import {
 import { GUIDES, guidePage, guideIndexPage } from './lib/guides.mjs';
 import { ACTIVITIES, activityPage, activityIndexPage } from './lib/activities.mjs';
 import { stationApiJSON } from './lib/api.mjs';
+import { stationQuality } from './lib/station-quality.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const DIST = path.join(ROOT, 'dist');
@@ -448,13 +449,15 @@ writeJSON('manifest.webmanifest', {
 // 明文化しておく。数値は実際の生成結果(stations.length等)から出すので、
 // 地点数や公式観測点数が変わってもここだけ古くなることはない。
 const official = stations.filter(s => !s.jmaAnchor).length;
+const low = stations.filter(s => stationQuality(s) === 'low').length;
+const accurateApprox = stations.length - official - low;
 fs.writeFileSync(path.join(DIST, 'llms.txt'), `# ${SITE.NAME} (${SITE.NAME_EN})
 
 > ${SITE.TAGLINE}。満潮・干潮の時刻と潮位、10分毎の潮位、潮がよく動く時間帯、日の出入・月齢を無料で掲載しています。
 
 ## データについて
 - 潮位: 気象庁 潮位表の公式推算値です。実測値ではありません。10分毎の値は毎時値を三次スプラインで補間しています。
-- 気象観測点: 全${stations.length}地点のうち、気象庁の公式観測点は${official}地点。残りは最寄り観測点の推算値を参照する近似地点です（各ページに明記）。
+- 地点マーク: ●は気象庁の公式基準点${official}地点、○は25km以内の公式値を参照する精度確認済み近似地点${accurateApprox}地点、△は参照点が遠い参考地点${low}地点です。△は現地の潮見表・海況と併用してください。
 - 天気・風・波・気温: 気象庁 天気予報。今日から7日先まで。
 - 更新頻度: 毎日1回、日本時間の未明に全ページを再生成しています。
 - 出典: 気象庁（${SITE.JMA_CREDIT_URL}）。引用・二次利用の際は出典の明記をお願いします。詳細は ${absUrl('about')} を参照してください。

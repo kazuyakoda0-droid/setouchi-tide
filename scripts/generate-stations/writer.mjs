@@ -9,7 +9,8 @@ export function formatStationLine(entry) {
   const lat = Number(entry.lat.toFixed(4));
   const lon = Number(entry.lon.toFixed(4));
   const model = entry.model === null ? 'null' : `'${entry.model}'`;
-  return `  { id:'${entry.id}', name:'${entry.name}', kana:'', lat:${lat}, lon:${lon}, pref:'${entry.pref}', jma:'${entry.jma}', jmaAnchor:${entry.jmaAnchor}, damp:${entry.damp.toFixed(2)}, dz:${entry.dz}, dphase:${entry.dphase.toFixed(2)}, model:${model} },`;
+  const quality = entry.approxQuality ? `, approxQuality:'${entry.approxQuality}'` : '';
+  return `  { id:'${entry.id}', name:'${entry.name}', kana:'', lat:${lat}, lon:${lon}, pref:'${entry.pref}', jma:'${entry.jma}', jmaAnchor:${entry.jmaAnchor}, damp:${entry.damp.toFixed(2)}, dz:${entry.dz}, dphase:${entry.dphase.toFixed(2)}, model:${model}${quality} },`;
 }
 
 // PREFS の順序どおりに { prefId: entry[] } へグルーピングする。
