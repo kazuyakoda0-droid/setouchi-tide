@@ -99,7 +99,7 @@ test('fetchOsmCandidates: 1タグが3回リトライ後も失敗したら onFail
     pauseMs: 0, retryDelayMs: 0,
     onFailure: (label, err, i, total) => failures.push({ label, i, total }),
   });
-  assert.equal(calls, 4); // bad: 3回, good: 1回
+  assert.equal(calls, 10); // bad: 3 retries × 3 endpoints, good: 1
   assert.equal(result.length, 1);
   assert.equal(result[0].name, 'OK');
   assert.deepEqual(failures, [{ label: 'bad', i: 1, total: 2 }]);

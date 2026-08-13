@@ -6,7 +6,13 @@
 // 504を返すことがあったため、最終的にタグ1つにつき1クエリまで分割している
 // (実測: bboxを使えばタグ1つあたり10〜30秒程度で完了する)。
 
-const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
+// Public instances can have short outages. Try equivalent sources before
+// considering a query unavailable, so coverage decisions do not use partial data.
+const OVERPASS_URLS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+];
 const BBOX = '24,122,46,146'; // 日本全体を覆う緯度経度の外接矩形（南,西,北,東）
 
 const NODE_TAGS = [
@@ -67,12 +73,12 @@ function firstTagKey(tags) {
   return 'unknown';
 }
 
-async function runQuery(query, { fetchImpl, retryDelayMs, timeoutMs = 15000, attempt = 0 } = {}) {
+async function runQueryAt(url, query, { fetchImpl, retryDelayMs, timeoutMs = 15000, attempt = 0 } = {}) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   let res;
   try {
-    res = await fetchImpl(OVERPASS_URL, {
+    res = await fetchImpl(url, {
       method: 'POST',
       headers: { 'User-Agent': 'japan-tide-atlas static site builder', 'Content-Type': 'text/plain' },
       body: query,
@@ -84,7 +90,7 @@ async function runQuery(query, { fetchImpl, retryDelayMs, timeoutMs = 15000, att
   if (!res.ok) {
     if (attempt < 2) {
       await new Promise(r => setTimeout(r, retryDelayMs * (attempt + 1)));
-      return runQuery(query, { fetchImpl, retryDelayMs, attempt: attempt + 1 });
+      return runQueryAt(url, query, { fetchImpl, retryDelayMs, timeoutMs, attempt: attempt + 1 });
     }
     throw new Error(`Overpass API の取得に失敗: HTTP ${res.status}`);
   }
@@ -93,11 +99,23 @@ async function runQuery(query, { fetchImpl, retryDelayMs, timeoutMs = 15000, att
     // "runtime error: Query timed out..." 等。要素0件のまま返すよりリトライする。
     if (attempt < 2) {
       await new Promise(r => setTimeout(r, retryDelayMs * (attempt + 1)));
-      return runQuery(query, { fetchImpl, retryDelayMs, attempt: attempt + 1 });
+      return runQueryAt(url, query, { fetchImpl, retryDelayMs, timeoutMs, attempt: attempt + 1 });
     }
     throw new Error(`Overpass API がエラーを返した: ${json.remark}`);
   }
   return json;
+}
+
+async function runQuery(query, options = {}) {
+  let lastError;
+  for (const url of (options.urls || OVERPASS_URLS)) {
+    try {
+      return await runQueryAt(url, query, options);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError || new Error('No Overpass endpoint responded');
 }
 
 // 全クエリを順番に(同時実行せず)実行し、結果を1つの配列にまとめる。
@@ -105,12 +123,12 @@ async function runQuery(query, { fetchImpl, retryDelayMs, timeoutMs = 15000, att
 // 1タグぶんのクエリがリトライしても失敗した場合、そのタグの候補は
 // 諦めて残りのタグは続行する(公開Overpassサーバーの一時的な不調で
 // パイプライン全体が止まるのを避けるため)。失敗したタグは onFailure で通知する。
-export async function fetchOsmCandidates({ fetchImpl = fetch, queries = overpassQueries(), pauseMs = 2000, retryDelayMs = 5000, timeoutMs = 15000, onProgress, onFailure } = {}) {
+export async function fetchOsmCandidates({ fetchImpl = fetch, queries = overpassQueries(), pauseMs = 2000, retryDelayMs = 5000, timeoutMs = 15000, urls, onProgress, onFailure } = {}) {
   const all = [];
   for (let i = 0; i < queries.length; i++) {
     if (i > 0) await new Promise(r => setTimeout(r, pauseMs));
     try {
-      const json = await runQuery(queries[i].query, { fetchImpl, retryDelayMs, timeoutMs });
+      const json = await runQuery(queries[i].query, { fetchImpl, retryDelayMs, timeoutMs, urls });
       const parsed = parseOverpassResponse(json);
       all.push(...parsed);
       if (onProgress) onProgress(queries[i].label, parsed.length, i + 1, queries.length);

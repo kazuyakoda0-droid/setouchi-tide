@@ -491,7 +491,8 @@ table.week .dim { color: var(--faint); }
 }
 .dot.off { background: var(--blue); }
 .dot.apx { background: var(--panel); border-color: var(--blue); }
-.dot.low { background: var(--warm); border: 0; border-radius: 0; clip-path: polygon(50% 4%, 96% 92%, 4% 92%); }
+.dot.low { position: relative; background: var(--blue); border: 0; border-radius: 0; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.dot.low::after { content: ''; position: absolute; inset: 2px; background: var(--panel); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
 
 /* ---------- 月カレンダー ---------- */
 .cal-row-hd { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; margin-bottom: 1px; }
@@ -652,7 +653,7 @@ header.site { min-height: 70px; padding-top: 12px; padding-bottom: 12px; backgro
 main { max-width: 900px; }
 .st-hd, .home-hd { margin-top: 24px; }.st-hd h1 { font-weight: 800; letter-spacing: -.025em; }.home-hd h1 { font-weight: 800; letter-spacing: -.035em; }
 .lead { color: #587078; }.badge, .shio { border-radius: 999px; }
-.badge.off { color: #176579; border-color: #9fdae0; background: #ddf2f4; }.badge.apx { color: #176579; border-color: #9fdae0; background: #fff; }.badge.low { color: #b9503b; border-color: #f4b7a6; background: #ffe6dc; }
+.badge.off { color: #176579; border-color: #9fdae0; background: #ddf2f4; }.badge.apx { color: #176579; border-color: #9fdae0; background: #fff; }.badge.low { color: #176579; border-color: #9fdae0; background: #fff; }
 .tabs { gap: 9px; }.tab { border-radius: 999px; border-color: #e6ddce; color: #667b7a; }.tab:hover { background: #fff0b8; }.tab.on { background: var(--blue); border-color: var(--blue); color: #fff; }
 .month-chip, .pager .pg { border-radius: 12px; }.month-chip.on { background: var(--blue); border-color: var(--blue); }
 .now, .stats, .sm, .th-ctl, ul.flow li, ul.stlist li, ul.guide-list li { border-color: #e6ddce; border-radius: 16px; box-shadow: 0 9px 25px rgba(43, 81, 72, .05); }
@@ -662,7 +663,7 @@ main { max-width: 900px; }
 .blk { margin: 36px 0; }.blk-hd { padding-bottom: 10px; border-bottom-color: #e6ddce; }.blk-hd h2 { font-weight: 800; }.blk-hd .en { color: #d9785d; font-weight: 700; }
 .wx-head { padding: 14px 16px; background: #fff5dc; border-radius: 16px; }.wx-icon { color: #d77859; }.wx-head .cond { font-weight: 700; }.wx-grid { gap: 8px; background: transparent; border: 0; overflow: visible; }.wx-grid > div { border: 1px solid #e6ddce; border-radius: 14px; box-shadow: 0 8px 20px rgba(43, 81, 72, .04); }.wx-metric-icon { color: #167289; }
 .src-note, .dev-note { background: #fff4e5; border-left-color: #efb85b; border-radius: 0 12px 12px 0; }
-.tide-map-marker { background: transparent; border: 0; }.tide-map-marker .marker-triangle { display: block; width: 15px; height: 15px; background: var(--warm); border: 2px solid #fff; clip-path: polygon(50% 3%, 97% 94%, 3% 94%); filter: drop-shadow(0 1px 2px rgba(0,0,0,.25)); }
+.tide-map-marker { background: transparent; border: 0; }.tide-map-marker .marker-triangle { display: block; position: relative; width: 16px; height: 15px; background: var(--blue); clip-path: polygon(50% 0, 100% 100%, 0 100%); filter: drop-shadow(0 1px 2px rgba(0,0,0,.25)); }.tide-map-marker .marker-triangle::after { content: ''; position: absolute; inset: 3px; background: var(--panel); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
 
 /* 波のスカシ案。通常ページには未適用で、wave-watermark.html だけで確認する。 */
 body.wave-watermark { position: relative; overflow-x: hidden; }

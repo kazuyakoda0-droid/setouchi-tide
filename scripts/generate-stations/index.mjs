@@ -17,6 +17,7 @@ import { nearestOfficialStation } from './anchor.mjs';
 import { haversineKm } from './geo.mjs';
 import { assignIds } from './ids.mjs';
 import { insertIntoStationsFile } from './writer.mjs';
+import { coastalCandidates } from './coastline.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const STATIONS_PATH = path.join(__dirname, '..', '..', 'lib', 'stations.mjs');
@@ -24,17 +25,49 @@ const STATIONS_PATH = path.join(__dirname, '..', '..', 'lib', 'stations.mjs');
 const args = process.argv.slice(2);
 const dryRun = args.includes('--dry-run');
 const includeLow = args.includes('--include-low');
+const coastlineOnly = args.includes('--coastline-only');
+const spacingIdx = args.indexOf('--target-spacing');
+const targetSpacingKm = spacingIdx !== -1 ? Number(args[spacingIdx + 1]) : 20;
+const maxNewIdx = args.indexOf('--max-new');
+const maxNew = maxNewIdx !== -1 ? Number(args[maxNewIdx + 1]) : 600;
 const tagIdx = args.indexOf('--tag');
 const tagFilter = tagIdx !== -1 ? args[tagIdx + 1] : null;
 const sampleIdx = args.indexOf('--sample');
 const samplePref = sampleIdx !== -1 ? args[sampleIdx + 1] : null;
 
+function distanceToNearest(candidate, points) {
+  return points.reduce((best, point) => Math.min(best, haversineKm(candidate, point)), Infinity);
+}
+
+// Prefer candidates in geographic gaps. A 20km target retains a 10km minimum
+// separation, so repeated candidates do not crowd already well-covered shores.
+function selectCoverageCandidates(candidates, existing, { targetSpacingKm, maxNew }) {
+  const minSpacingKm = targetSpacingKm / 2;
+  const remaining = candidates.slice();
+  const selected = [];
+  while (remaining.length && selected.length < maxNew) {
+    let bestIndex = -1;
+    let bestDistance = -Infinity;
+    const coveragePoints = selected.length ? [...existing, ...selected] : existing;
+    for (let i = 0; i < remaining.length; i++) {
+      const distance = distanceToNearest(remaining[i], coveragePoints);
+      if (distance > bestDistance) { bestDistance = distance; bestIndex = i; }
+    }
+    if (bestDistance < minSpacingKm) break;
+    selected.push(remaining[bestIndex]);
+    remaining.splice(bestIndex, 1);
+  }
+  return { selected, minSpacingKm };
+}
+
 async function main() {
+  if (!Number.isFinite(targetSpacingKm) || targetSpacingKm <= 0) throw new Error('--target-spacing must be a positive number');
+  if (!Number.isFinite(maxNew) || maxNew <= 0) throw new Error('--max-new must be a positive number');
   console.log('1/7 OSM候補を取得中...');
   const normalizedTag = tagFilter ? tagFilter.replace('=', '"="') : '';
   const queries = tagFilter ? overpassQueries().filter(q => q.label.includes(normalizedTag)) : undefined;
   if (tagFilter && queries.length === 0) throw new Error(`該当するOSMタグがありません: ${tagFilter}`);
-  const candidates = await fetchOsmCandidates({
+  let candidates = coastlineOnly ? [] : await fetchOsmCandidates({
     queries,
     onProgress: (label, count, i, total) => console.log(`  [${i}/${total}] ${label}: ${count}件`),
     onFailure: (label, err, i, total) => console.warn(`  [${i}/${total}] ${label}: 取得失敗のため諦める (${err.message})`),
@@ -46,6 +79,14 @@ async function main() {
   const nameToId = buildNameToId(PREFS);
   const boundaryIndex = buildBoundaryIndex(geoJSON, nameToId);
 
+  if (candidates.length === 0) {
+    // The location feed can occasionally be unavailable. Do not fabricate
+    // named ports: sample verified coastline geometry and label the result
+    // plainly as a supplementary coastal point instead.
+    candidates = coastalCandidates(geoJSON, nameToId, PREFS).filter(c => distanceToNearest(c, TIDE_STATIONS) <= 35);
+    console.warn(`  OSM候補が0件のため、沿岸補完候補 ${candidates.length}件を使用します`);
+  }
+
   console.log('3/7 都道府県を判定中...');
   // OSMの港湾・マリーナ・桟橋の点は簡略化された海岸線ポリゴンの外側
   // (海上)に位置することが多いため、まず厳密なpoint-in-polygonを試し、
@@ -53,7 +94,7 @@ async function main() {
   const withPref = [];
   let fallbackCount = 0, noPref = 0;
   for (const c of candidates) {
-    let pref = prefectureOf(c.lat, c.lon, geoJSON, nameToId);
+    let pref = c.pref || prefectureOf(c.lat, c.lon, geoJSON, nameToId);
     if (!pref) {
       pref = nearestPrefectureOf(c.lat, c.lon, boundaryIndex, 5);
       if (pref) fallbackCount++;
@@ -98,9 +139,13 @@ async function main() {
   console.log(`  残存: ${safe.length}件（△参考地点: ${lowKept}件） / 除外(潮汐境界): ${boundaryExcluded}件 / 除外(観測点から遠すぎる): ${tooFarExcluded}件 / 除外(内陸の既知パターン): ${nonTidalExcluded}件`);
 
   console.log('7/7 最寄り観測点を割り当ててIDを発番中...');
+  const { selected: coverageSelected, minSpacingKm } = selectCoverageCandidates(
+    safe, TIDE_STATIONS, { targetSpacingKm, maxNew },
+  );
+  console.log(`  Coverage selection: ${coverageSelected.length}/${safe.length} candidates, minimum ${minSpacingKm}km, target ${targetSpacingKm}km`);
   const existingIds = TIDE_STATIONS.map(s => s.id);
-  const newIds = assignIds(existingIds, safe.length);
-  const entries = safe.map((c, i) => {
+  const newIds = assignIds(existingIds, coverageSelected.length);
+  const entries = coverageSelected.map((c, i) => {
     const anchor = assignAnchor(c, officialStations);
     return { id: newIds[i], name: c.name, lat: c.lat, lon: c.lon, pref: c.pref, approxQuality: c.approxQuality, ...anchor };
   });
