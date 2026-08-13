@@ -145,7 +145,7 @@
     var pos = 7 + row * 7 + 1 + col;
     var cell = grid.children[pos];
     if (cell) {
-      cell.classList.add('now');
+      cell.classList.add('td-now');
       cell.setAttribute('title', '現在時刻');
     }
   }

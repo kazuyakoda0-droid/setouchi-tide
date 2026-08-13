@@ -31,6 +31,7 @@ import {
 import { GUIDES, guidePage, guideIndexPage } from './lib/guides.mjs';
 import { ACTIVITIES, activityPage, activityIndexPage } from './lib/activities.mjs';
 import { stationApiJSON } from './lib/api.mjs';
+import { stationLabel } from './lib/station-quality.mjs';
 import { stationQuality } from './lib/station-quality.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -354,7 +355,7 @@ process.stdout.write(`\r  地点 ${n}/${stations.length}  ページ ${written}\n
 // 771件でも数十KB程度なので、初回検索時にまとめて取得してブラウザ側で
 // 絞り込む(サーバのようなものを持たない静的サイトなのでこれが唯一の方法)。
 writeJSON('stations-index.json', stations.map(st => ({
-  n: st.name, k: st.kana || '', p: pref(st.pref).name, h: paths.station(st),
+  n: stationLabel(st), k: st.kana || '', p: pref(st.pref).name, h: paths.station(st),
 })));
 
 // ---- 都道府県 -------------------------------------------------------
