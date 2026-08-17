@@ -281,6 +281,9 @@ for (const st of stations) {
     // それ以外は気象庁の推算値だけの静的なページなので、その日自体を
     // lastmod/dateModified にする(未来日は today を超えられないので min で丸める)。
     const dmDay = fcDay ? todayKey : dayKeyOf(Math.min(d, today));
+    // RESTRICT_INDEX時は当日以外の日別ページ(テンプレ×日付だけの薄いページ)を
+    // noindexにし、sitemapからも外す(SITE.RESTRICT_INDEX参照)。
+    const dayThin = SITE.RESTRICT_INDEX && d !== today;
     write(paths.day(st, ymd), dayPage({
       st, day: full, cel: cel(d), ymd, dayMs: d,
       isToday: d === today,
@@ -289,10 +292,11 @@ for (const st of stations) {
       monthDays,
       fc: fcDay,
       dateModified: dmDay,
+      noindex: dayThin,
     }), {
       // 今日の日別ページは canonical が地点ハブを指す(dayPage内)ので、
       // 別URLとして sitemap に出すと非canonical URLを申告することになる。
-      sitemap: d !== today,
+      sitemap: d !== today && !SITE.RESTRICT_INDEX,
       changefreq: d === today ? 'daily' : 'monthly',
       priority: d === today ? 0.5 : 0.4,
       lastmod: dmDay,
@@ -329,6 +333,9 @@ for (const st of stations) {
     // 月間カレンダーは気象庁の推算値・天文暦だけで組み立てており、天気予報を
     // 含まない(=毎日は変わらない)ので、月末日(未来月なら today)を lastmod にする。
     const monthEndMs = addDays(m, dim - 1);
+    // RESTRICT_INDEX時は当月以外の月間カレンダー(テンプレ×月だけの薄いページ)を
+    // noindexにし、sitemapからも外す(SITE.RESTRICT_INDEX参照)。
+    const monthThin = SITE.RESTRICT_INDEX && ym !== monthKeyOf(today);
     write(paths.month(st, ym), monthPage({
       st, ym, cells,
       prev: inRange(pm) ? { href: paths.month(st, monthKeyOf(pm)), label: `${new Date(pm).getUTCMonth() + 1}月` } : null,
@@ -340,7 +347,9 @@ for (const st of stations) {
         active: x === m,
       })),
       stats: { maxRange, maxRangeDay, ohshio },
+      noindex: monthThin,
     }), {
+      sitemap: !monthThin,
       changefreq: 'weekly', priority: 0.5,
       lastmod: dayKeyOf(Math.min(monthEndMs, today)),
     });
@@ -408,7 +417,7 @@ write(url('privacy'), privacyPage(), { changefreq: 'monthly', priority: 0.3, las
 // ---- ガイド記事 -------------------------------------------------------
 // 「大潮とは」のような情報型クエリの受け皿。地点ページ群と違って動的データ
 // を含まないので、lib/guides.mjs の本文を編集したときだけ日付を書き換える。
-const GUIDE_LASTMOD = '2026-08-09';
+const GUIDE_LASTMOD = '2026-08-17';
 write(paths.guideIndex(), guideIndexPage(), { changefreq: 'monthly', priority: 0.4, lastmod: GUIDE_LASTMOD });
 for (const g of GUIDES) {
   write(paths.guide(g.slug), guidePage(g, GUIDE_LASTMOD), { changefreq: 'monthly', priority: 0.4, lastmod: GUIDE_LASTMOD });
