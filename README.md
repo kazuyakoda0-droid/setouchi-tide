@@ -108,3 +108,9 @@ CSS で `.ad:empty { display: none }` としてあるので、有効化するま
 プライバシーポリシー（`/privacy/`）は `ADSENSE_CLIENT` の値によらず常に出力する。
 審査に出す時点で存在している必要があるため。問い合わせ導線は `CONTACT_URL` に
 Google フォームの URL を入れると `/about/` と `/privacy/` の両方に出る。
+
+「価値の低いコンテンツ」で却下された対策として、`.github/workflows/deploy.yml`
+のBuildステップで `SITE_RESTRICT_INDEX=1` を設定してある。ビルド時にこの環境変数が
+立っていないと `config.mjs` の `RESTRICT_INDEX` は常に `false` になり、絞り込みが
+一切効かない（コードだけ書いて有効化を忘れる事故が一度あったため明記する）。
+承認後は `deploy.yml` からこの `env:` を削除して全ページ生成に戻す。

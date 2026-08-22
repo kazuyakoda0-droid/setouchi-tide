@@ -39,8 +39,13 @@ jobs:
           restore-keys: |
             jma-
 
+      # AdSense再審査中: 当日以外の日別ページ・当月以外の月間ページをnoindex+
+      # sitemap除外にする(config.mjsのSITE.RESTRICT_INDEX参照)。承認されたら
+      # この行を削除するだけで元の全ページ生成に戻る。
       - name: Build
         run: node build.mjs
+        env:
+          SITE_RESTRICT_INDEX: '1'
 
       - name: Report size
         run: |
