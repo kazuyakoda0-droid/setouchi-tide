@@ -245,16 +245,23 @@ for (const st of stations) {
     fc: forecastFor(st, dayKeyOf(d)),
   }));
 
+  // △参考地点(参照する公式観測点が遠い/広域海域で精度保証の対象外と自認して
+  // いる地点)は、AdSense審査中は地点配下のページを丸ごとnoindexにする。
+  // 公式観測点の値をそのまま焼き直しただけの薄いページとして数えられるため。
+  // RESTRICT_INDEX を落とせば元に戻る(config.mjs 参照)。
+  const stThin = SITE.RESTRICT_INDEX && stationQuality(st) === 'low';
+
   write(paths.station(st), stationPage({
     st, day: todayFull, cel: cel(today), ymd: todayKey, dayMs: today,
     weekRows,
     neighbors: neighborsOf(st, stations),
     fc: forecastFor(st, todayKey),
-  }), { changefreq: 'daily', priority: 0.9 });
+    noindex: stThin,
+  }), { sitemap: !stThin, changefreq: 'daily', priority: 0.9 });
 
   // ---- 週間 ----
-  write(paths.week(st), weekPage({ st, rows: weekRows, ymd: todayKey }),
-    { changefreq: 'daily', priority: 0.7 });
+  write(paths.week(st), weekPage({ st, rows: weekRows, ymd: todayKey, noindex: stThin }),
+    { sitemap: !stThin, changefreq: 'daily', priority: 0.7 });
 
   // ---- 日別 ----
   for (let i = 0; i < dayList.length; i++) {
@@ -283,7 +290,7 @@ for (const st of stations) {
     const dmDay = fcDay ? todayKey : dayKeyOf(Math.min(d, today));
     // RESTRICT_INDEX時は当日以外の日別ページ(テンプレ×日付だけの薄いページ)を
     // noindexにし、sitemapからも外す(SITE.RESTRICT_INDEX参照)。
-    const dayThin = SITE.RESTRICT_INDEX && d !== today;
+    const dayThin = stThin || (SITE.RESTRICT_INDEX && d !== today);
     write(paths.day(st, ymd), dayPage({
       st, day: full, cel: cel(d), ymd, dayMs: d,
       isToday: d === today,
@@ -296,7 +303,7 @@ for (const st of stations) {
     }), {
       // 今日の日別ページは canonical が地点ハブを指す(dayPage内)ので、
       // 別URLとして sitemap に出すと非canonical URLを申告することになる。
-      sitemap: d !== today && !SITE.RESTRICT_INDEX,
+      sitemap: d !== today && !SITE.RESTRICT_INDEX && !stThin,
       changefreq: d === today ? 'daily' : 'monthly',
       priority: d === today ? 0.5 : 0.4,
       lastmod: dmDay,
@@ -335,7 +342,7 @@ for (const st of stations) {
     const monthEndMs = addDays(m, dim - 1);
     // RESTRICT_INDEX時は当月以外の月間カレンダー(テンプレ×月だけの薄いページ)を
     // noindexにし、sitemapからも外す(SITE.RESTRICT_INDEX参照)。
-    const monthThin = SITE.RESTRICT_INDEX && ym !== monthKeyOf(today);
+    const monthThin = stThin || (SITE.RESTRICT_INDEX && ym !== monthKeyOf(today));
     write(paths.month(st, ym), monthPage({
       st, ym, cells,
       prev: inRange(pm) ? { href: paths.month(st, monthKeyOf(pm)), label: `${new Date(pm).getUTCMonth() + 1}月` } : null,
