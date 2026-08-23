@@ -39,8 +39,13 @@ jobs:
           restore-keys: |
             jma-
 
+      # AdSense審査中のあいだだけ、テンプレ×日付だけの薄いページ(当日以外の
+      # 日別・当月以外の月間)をnoindexにしsitemapから外す。審査通過後はこの
+      # env ブロックごと消して元に戻す(config.mjs の RESTRICT_INDEX 参照)。
       - name: Build
         run: node build.mjs
+        env:
+          SITE_RESTRICT_INDEX: '1'
 
       - name: Report size
         run: |
