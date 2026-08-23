@@ -112,6 +112,10 @@
     var x = x0 + (x1 - x0) * (idx / 143);
     var y = y1 - (y1 - y0) * ((levels[idx] - lo) / (hi - lo));
     var NS = 'http://www.w3.org/2000/svg';
+    // SVG の font-size はカード幅ごとに CSS が決めている(style.css の
+    // @container)。丸の大きさとラベルの逃がしも同じ比率で動かさないと、
+    // 幅の狭い端末で現在地マーカーだけが点のように潰れる。
+    var em = parseFloat(getComputedStyle(svg).fontSize) || 17;
 
     var line = document.createElementNS(NS, 'line');
     line.setAttribute('x1', x); line.setAttribute('y1', y0);
@@ -119,15 +123,16 @@
     line.setAttribute('class', 'nowline');
 
     var dot = document.createElementNS(NS, 'circle');
-    dot.setAttribute('cx', x); dot.setAttribute('cy', y); dot.setAttribute('r', 6);
+    dot.setAttribute('cx', x); dot.setAttribute('cy', y);
+    dot.setAttribute('r', (em * 0.36).toFixed(1));
     dot.setAttribute('class', 'nowdot');
 
     // 数値はグラフの中で読めるようにする。右端に近いときだけ左に寄せ、
     // ラベルが SVG の外へはみ出ないようにする。
     var label = document.createElementNS(NS, 'text');
-    var onRight = x < x1 - 106;
-    label.setAttribute('x', x + (onRight ? 12 : -12));
-    label.setAttribute('y', Math.max(y0 + 20, y - 12));
+    var onRight = x < x1 - em * 6.5;
+    label.setAttribute('x', (x + (onRight ? em * 0.7 : -em * 0.7)).toFixed(1));
+    label.setAttribute('y', Math.max(y0 + em * 1.2, y - em * 0.8).toFixed(1));
     label.setAttribute('text-anchor', onRight ? 'start' : 'end');
     label.setAttribute('class', 'nowlabel');
     label.textContent = 'いま ' + levels[idx] + 'cm';

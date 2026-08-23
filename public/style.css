@@ -300,9 +300,21 @@ main { padding: 0 var(--pad); max-width: 780px; margin: 0 auto; }
 .stats b { font-family: var(--mono); font-size: 21px; font-weight: 500; }
 .stats b small { font-size: 13px; color: var(--mut); margin-left: 1px; }
 
-/* ---------- 潮位グラフ ---------- */
-.graph { margin: 6px 0 14px; padding: 0; }
-.graph > svg { display: block; width: 100%; height: auto; }
+/* ---------- 潮位グラフ ----------
+   SVG の中身は viewBox(920幅) 単位なので、カード幅が 316px なら 0.34倍に
+   縮む。文字を 17単位で置くと実寸 5.8px にしかならず読めない。
+   そこでカード幅ごとに SVG の font-size を切り替え、どの幅でも実寸
+   11〜16px に収める。--gs は満干潮マーカー(丸+三角)の拡大率で、文字と
+   同じ比率で大きくする。線の太さも em 指定なので一緒に追従する。
+   グラフ側の縦位置は em を前提に組んであるので(components.mjs 参照)、
+   ここを変えると行間・逃がしも比例して動く。 */
+.graph { margin: 6px 0 14px; padding: 0; container-type: inline-size; }
+.graph > svg { display: block; width: 100%; height: auto; overflow: visible; font-size: 17px; --gs: 1; }
+@container (max-width: 700px) { .graph > svg { font-size: 18px; --gs: 1.06; } }
+@container (max-width: 580px) { .graph > svg { font-size: 21px; --gs: 1.24; } }
+@container (max-width: 480px) { .graph > svg { font-size: 25px; --gs: 1.47; } }
+@container (max-width: 400px) { .graph > svg { font-size: 30px; --gs: 1.76; } }
+@container (max-width: 320px) { .graph > svg { font-size: 34px; --gs: 2; } }
 .graph-nav { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; margin: 0 0 8px; }
 .graph-hint { grid-column: 1 / -1; font-size: 13px; color: var(--dim); text-align: center; }
 .graph-step { display: inline-flex; align-items: center; gap: 4px; min-height: 34px; color: var(--ink2); font-size: 14px; }
@@ -311,18 +323,21 @@ main { padding: 0 var(--pad); max-width: 780px; margin: 0 auto; }
 .graph-step .ic { width: 17px; height: 17px; }
 .graph-step.off { visibility: hidden; }
 .graph-date { font-family: var(--mono); font-size: 14px; color: var(--mut); white-space: nowrap; }
+.graph .mkr { transform: scale(var(--gs)); transform-origin: 0 0; }
 .graph-arrow.hi { fill: var(--blue); }
 .graph-arrow.lo { fill: var(--warm); }
-.graph .ax { font-family: var(--mono); font-size: 17px; fill: var(--faint); }
-.graph .mk { font-family: var(--sans); font-size: 18px; font-weight: 700; }
+.graph .tide-line { stroke-width: .14em; }
+.graph .ax { font-family: var(--mono); fill: var(--mut); }
+.graph .mk { font-family: var(--sans); font-weight: 700; }
 .graph .mk.hi { fill: var(--blue); }
 .graph .mk.lo { fill: var(--warm); }
-.graph .mkv { font-family: var(--mono); font-size: 17px; fill: var(--ink2); }
+.graph .mkv { font-family: var(--mono); fill: var(--ink2); }
 .graph .mkv.dim { fill: var(--dim); }
-.graph .nowline { stroke: var(--warm); stroke-width: 2; stroke-dasharray: 5 4; }
-.graph .nowdot { fill: var(--warm); stroke: var(--panel); stroke-width: 2; }
-.graph .nowlabel { fill: var(--warm-d); font-family: var(--sans); font-size: 16px; font-weight: 700; paint-order: stroke; stroke: var(--panel); stroke-width: 5px; stroke-linejoin: round; }
+.graph .nowline { stroke: var(--warm); stroke-width: .12em; stroke-dasharray: 5 4; }
+.graph .nowdot { fill: var(--warm); stroke: var(--panel); stroke-width: .12em; }
+.graph .nowlabel { fill: var(--warm-d); font-family: var(--sans); font-weight: 700; paint-order: stroke; stroke: var(--panel); stroke-width: .3em; stroke-linejoin: round; }
 .graph .night { fill: var(--graph-night); }
+.graph .grid-ln, .graph .grid-tick { stroke-width: .06em; }
 .graph .grid-ln { stroke: var(--graph-grid); }
 .graph .grid-tick { stroke: var(--graph-tick); }
 
@@ -659,7 +674,14 @@ main { max-width: 900px; }
 .now, .stats, .sm, .th-ctl, ul.flow li, ul.stlist li, ul.guide-list li { border-color: #e6ddce; border-radius: 16px; box-shadow: 0 9px 25px rgba(43, 81, 72, .05); }
 .now { border-left: 5px solid var(--warm); }.now .lbl { color: var(--warm); }.now .val { color: var(--ink); }
 .stats { gap: 8px; background: transparent; border: 0; overflow: visible; }.stats > div { border: 1px solid #e6ddce; border-radius: 15px; box-shadow: 0 8px 20px rgba(43, 81, 72, .04); }
-.graph { padding: 15px 13px 8px; background: #fff; border: 1px solid #e6ddce; border-radius: 20px; box-shadow: 0 12px 28px rgba(43, 81, 72, .05); }.graph .nowlabel { font-size: 17px; }
+.graph { padding: 15px 13px 8px; background: var(--panel); border: 1px solid #e6ddce; border-radius: 20px; box-shadow: 0 12px 28px rgba(43, 81, 72, .05); }
+/* 480px 未満ではカードを画面いっぱいに広げる。左右の余白 16px + カード内側
+   13px を返してもらうと、グラフの描画幅が 316px → 359px になり、同じ
+   font-size でも文字が 13% 大きく出る。潮位グラフはこのページの主役なので、
+   横幅を優先して枠を外す。 */
+@media (max-width: 480px) {
+  .graph { margin-left: calc(var(--pad) * -1); margin-right: calc(var(--pad) * -1); padding-left: 8px; padding-right: 8px; border-width: 1px 0; border-radius: 0; }
+}
 .blk { margin: 36px 0; }.blk-hd { padding-bottom: 10px; border-bottom-color: #e6ddce; }.blk-hd h2 { font-weight: 800; }.blk-hd .en { color: #d9785d; font-weight: 700; }
 .wx-head { padding: 14px 16px; background: #fff5dc; border-radius: 16px; }.wx-icon { color: #d77859; }.wx-head .cond { font-weight: 700; }.wx-grid { gap: 8px; background: transparent; border: 0; overflow: visible; }.wx-grid > div { border: 1px solid #e6ddce; border-radius: 14px; box-shadow: 0 8px 20px rgba(43, 81, 72, .04); }.wx-metric-icon { color: #167289; }
 .src-note, .dev-note { background: #fff4e5; border-left-color: #efb85b; border-radius: 0 12px 12px 0; }
