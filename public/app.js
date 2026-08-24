@@ -339,7 +339,7 @@
   }
 
   // -------------------------------------------------------------------
-  // 4. 地点検索・最近見た地点
+  // 4. 地点検索・お気に入り・最近見た地点
   //
   // 全771地点ぶんのインデックス(stations-index.json)はヘッダーの検索
   // ボタンを押すまで取得しない。地点ページを開くたびに data-recent を
@@ -347,6 +347,9 @@
   // -------------------------------------------------------------------
   var RECENT_KEY = 'tide-recent-stations';
   var RECENT_MAX = 8;
+  var FAVORITE_KEY = 'tide-favorite-stations';
+  var FAVORITE_MAX = 12;
+  var openSearchModal = null;
 
   function escHtml(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -355,6 +358,14 @@
 
   function readRecent() {
     try { return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); } catch (e) { return []; }
+  }
+
+  function readFavorites() {
+    try { return JSON.parse(localStorage.getItem(FAVORITE_KEY) || '[]'); } catch (e) { return []; }
+  }
+
+  function writeFavorites(list) {
+    try { localStorage.setItem(FAVORITE_KEY, JSON.stringify(list.slice(0, FAVORITE_MAX))); } catch (e) { /* private browsing 等では諦める */ }
   }
 
   // 地点に紐づくページ(地点ハブ・日別・週間・月間)は body に data-recent
@@ -376,6 +387,34 @@
       + '</span><span class="pf">' + escHtml(s.p) + '</span></a></li>';
   }
 
+  function favoriteStations() {
+    var btn = document.querySelector('[data-favorite-toggle]');
+    var raw = document.body.dataset.recent;
+    if (!btn || !raw) return;
+    var station;
+    try { station = JSON.parse(raw); } catch (e) { return; }
+    if (!station || !station.h) return;
+
+    function isFavorite() {
+      return readFavorites().some(function (x) { return x.h === station.h; });
+    }
+    function paint() {
+      var on = isFavorite();
+      btn.classList.toggle('on', on);
+      btn.setAttribute('aria-pressed', String(on));
+      btn.innerHTML = '<span aria-hidden="true">' + (on ? '★' : '☆') + '</span> '
+        + (on ? 'お気に入り済み' : 'お気に入りに追加');
+    }
+    btn.addEventListener('click', function () {
+      var list = readFavorites();
+      var i = list.findIndex(function (x) { return x.h === station.h; });
+      if (i >= 0) list.splice(i, 1); else list.unshift(station);
+      writeFavorites(list);
+      paint();
+    });
+    paint();
+  }
+
   var searchIndex = null, searchLoading = null;
   function loadSearchIndex(src) {
     if (searchIndex) return Promise.resolve(searchIndex);
@@ -392,6 +431,7 @@
     if (!openBtn || !ovl) return;
     var input = ovl.querySelector('[data-search-input]');
     var closeBtn = ovl.querySelector('[data-search-close]');
+    var favoritesEl = ovl.querySelector('[data-search-favorites]');
     var recentEl = ovl.querySelector('[data-search-recent]');
     var resultsEl = ovl.querySelector('[data-search-results]');
     var emptyEl = ovl.querySelector('[data-search-empty]');
@@ -401,6 +441,13 @@
       var list = readRecent();
       recentEl.innerHTML = list.length
         ? '<p class="search-sub">最近見た地点</p><ul class="search-results">' + list.map(stationLi).join('') + '</ul>'
+        : '';
+    }
+
+    function renderFavorites() {
+      var list = readFavorites();
+      favoritesEl.innerHTML = list.length
+        ? '<p class="search-sub">お気に入り</p><ul class="search-results">' + list.map(stationLi).join('') + '</ul>'
         : '';
     }
 
@@ -415,12 +462,14 @@
       emptyEl.hidden = hit.length !== 0;
     }
 
-    function open() {
+    function open(query) {
       ovl.hidden = false;
       document.documentElement.style.overflow = 'hidden';
+      input.value = query || '';
+      renderFavorites();
       renderRecent();
-      renderResults([], '');
-      if (src) loadSearchIndex(src);
+      renderResults([], input.value);
+      if (src) loadSearchIndex(src).then(function (list) { renderResults(list, input.value); });
       setTimeout(function () { input.focus(); }, 0);
     }
 
@@ -429,7 +478,8 @@
       document.documentElement.style.overflow = '';
     }
 
-    openBtn.addEventListener('click', open);
+    openSearchModal = open;
+    openBtn.addEventListener('click', function () { open(''); });
     closeBtn.addEventListener('click', close);
     ovl.addEventListener('click', function (e) { if (e.target === ovl) close(); });
     document.addEventListener('keydown', function (e) {
@@ -439,6 +489,74 @@
       var q = input.value;
       if (!q.trim()) { renderResults([], ''); return; }
       loadSearchIndex(src).then(function (list) { renderResults(list, q); });
+    });
+  }
+
+  // ホームでは検索を最初の操作にする。位置情報はこのボタンを押したときだけ
+  // 取得し、現在地から最も近い掲載地点へ直接移動する。
+  function homeExperience() {
+    var form = document.querySelector('[data-home-search]');
+    var input = document.querySelector('[data-home-search-input]');
+    var locate = document.querySelector('[data-home-locate]');
+    var status = document.querySelector('[data-home-locate-status]');
+    var saved = document.querySelector('[data-home-saved]');
+    if (!form || !input) return;
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (openSearchModal) openSearchModal(input.value);
+    });
+
+    if (saved) {
+      var favorites = readFavorites();
+      var favoritePaths = favorites.map(function (x) { return x.h; });
+      var recent = readRecent().filter(function (x) { return favoritePaths.indexOf(x.h) < 0; }).slice(0, 4);
+      var groups = [];
+      if (favorites.length) groups.push('<div><h2>お気に入り</h2><ul>' + favorites.slice(0, 4).map(stationLi).join('') + '</ul></div>');
+      if (recent.length) groups.push('<div><h2>最近見た地点</h2><ul>' + recent.map(stationLi).join('') + '</ul></div>');
+      if (groups.length) { saved.innerHTML = groups.join(''); saved.hidden = false; }
+    }
+
+    if (!locate) return;
+    locate.addEventListener('click', function () {
+      if (!navigator.geolocation) {
+        if (status) status.textContent = 'このブラウザでは現在地を取得できません。地点名で検索してください。';
+        return;
+      }
+      if (status) status.textContent = '現在地を取得しています…';
+      locate.disabled = true;
+      navigator.geolocation.getCurrentPosition(function (pos) {
+        var lat = pos.coords.latitude, lon = pos.coords.longitude;
+        // 検索インデックスは軽量化のため座標を持たない。トップにだけ
+        // 埋め込んでいる地図用データを使えば、追加の通信・容量なしで
+        // 最寄り地点を求められる。
+        var mapEl = document.querySelector('[data-map]');
+        var list;
+        try { list = JSON.parse(mapEl && mapEl.dataset.stations || '[]'); } catch (e) { list = []; }
+        var nearest = list.reduce(function (best, station) {
+          if (typeof station.la !== 'number' || typeof station.lo !== 'number') return best;
+            var dLat = station.la - lat;
+            var dLon = (station.lo - lon) * Math.cos(lat * Math.PI / 180);
+            var d = dLat * dLat + dLon * dLon;
+            return !best || d < best.d ? { station: station, d: d } : best;
+          }, null);
+        if (nearest && nearest.station && nearest.station.h) location.assign(nearest.station.h);
+        else if (status) { status.textContent = '近い掲載地点を見つけられませんでした。'; locate.disabled = false; }
+      }, function () {
+        if (status) status.textContent = '現在地を取得できませんでした。許可設定を確認するか、地点名で検索してください。';
+        locate.disabled = false;
+      }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
+    });
+  }
+
+  // 通常時は必ず最新ファイルを取りに行き、通信できない時だけ以前に見た
+  // 地点ページ・検索インデックス・表示用アセットをキャッシュから返す。
+  // 潮汐データを古いまま固定しないため、cache-first にはしない。
+  function offlineCache() {
+    var src = document.body.dataset.sw;
+    if (!src || !('serviceWorker' in navigator)) return;
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register(src).catch(function () { /* 非対応環境は通常表示を継続 */ });
     });
   }
 
@@ -716,7 +834,10 @@
     run('maps', maps);
     run('thresholdMode', thresholdMode);
     run('recordRecent', recordRecent);
+    run('favoriteStations', favoriteStations);
     run('searchModal', searchModal);
+    run('homeExperience', homeExperience);
+    run('offlineCache', offlineCache);
     run('tables', tables);
   }
 
