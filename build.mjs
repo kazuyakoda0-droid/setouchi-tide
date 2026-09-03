@@ -26,7 +26,7 @@ import {
 import { paths, abs, pref, region, regionOf, prefStations, regionPrefs, regionStationCount, stationSlug, validateStations } from './lib/routes.mjs';
 import {
   stationPage, dayPage, weekPage, monthPage, prefPage, regionPage, homePage, aboutPage,
-  privacyPage,
+  privacyPage, notFoundPage,
 } from './lib/pages.mjs';
 import { GUIDES, guidePage, guideIndexPage } from './lib/guides.mjs';
 import { ACTIVITIES, activityPage, activityIndexPage } from './lib/activities.mjs';
@@ -420,6 +420,10 @@ write(paths.home(), homePage({
 const STATIC_PAGE_LASTMOD = '2026-08-02';
 write(url('about'), aboutPage(), { changefreq: 'monthly', priority: 0.3, lastmod: STATIC_PAGE_LASTMOD });
 write(url('privacy'), privacyPage(), { changefreq: 'monthly', priority: 0.3, lastmod: STATIC_PAGE_LASTMOD });
+
+// GitHub Pages の404画面用。write() は使わない(dist/404/index.html ではなく
+// dist直下の404.htmlに置く必要があり、sitemapにも載せないため)。
+fs.writeFileSync(path.join(DIST, '404.html'), notFoundPage(), 'utf8');
 
 // ---- ガイド記事 -------------------------------------------------------
 // 「大潮とは」のような情報型クエリの受け皿。地点ページ群と違って動的データ
