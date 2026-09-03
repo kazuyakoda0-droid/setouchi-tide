@@ -9,20 +9,20 @@
 
 :root {
   color-scheme: light dark;
-  --bg: #fffaf0;
+  --bg: #f3f8f7;
   --panel: #ffffff;
-  --ink: #17374b;
-  --ink2: #315666;
-  --mut: #687c83;
-  --dim: #8d9a95;
-  --faint: #b2b9ad;
-  --line: rgba(23, 90, 111, .15);
-  --line2: rgba(23, 90, 111, .08);
-  --warm: #ef7658;
-  --warm-d: #c95e46;
-  --blue: #175a6f;
-  --red: #d85f5a;
-  --th: #4e967d;
+  --ink: #102f38;
+  --ink2: #34545c;
+  --mut: #61777c;
+  --dim: #829499;
+  --faint: #a8b6b8;
+  --line: rgba(17, 101, 116, .16);
+  --line2: rgba(17, 101, 116, .08);
+  --warm: #f06d4f;
+  --warm-d: #c74f38;
+  --blue: #087b8f;
+  --red: #d95750;
+  --th: #278f75;
   --serif: 'Zen Kaku Gothic New', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', sans-serif;
   --sans: 'Zen Kaku Gothic New', system-ui, sans-serif;
   --mono: 'DM Mono', ui-monospace, monospace;
@@ -37,9 +37,9 @@
 
   /* 潮位グラフの夜間帯・目盛り線。ACC/WARM(線・満干潮マーカー)は
      明暗どちらの背景でも読める中間トーンなので固定色のまま。 */
-  --graph-night: rgba(43, 38, 32, .055);
-  --graph-grid: rgba(60, 50, 35, .10);
-  --graph-tick: rgba(60, 50, 35, .18);
+  --graph-night: rgba(8, 73, 88, .055);
+  --graph-grid: rgba(8, 73, 88, .10);
+  --graph-tick: rgba(8, 73, 88, .18);
 }
 
 /* =====================================================================
@@ -51,20 +51,20 @@
    ===================================================================== */
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #1c1712;
-    --panel: #262019;
-    --ink: #ede4d6;
-    --ink2: #d3c6b3;
-    --mut: #a5967f;
-    --dim: #8a7c67;
-    --faint: #665a49;
-    --line: rgba(232, 216, 189, .16);
-    --line2: rgba(232, 216, 189, .08);
-    --warm: #d98a56;
-    --warm-d: #e8a56f;
-    --blue: #6fa8c9;
-    --red: #d9776a;
-    --th: #6bbf8f;
+    --bg: #071b22;
+    --panel: #0e2932;
+    --ink: #effafb;
+    --ink2: #c5dadd;
+    --mut: #91abb0;
+    --dim: #718e94;
+    --faint: #4d6c72;
+    --line: rgba(164, 221, 226, .18);
+    --line2: rgba(164, 221, 226, .09);
+    --warm: #ff8a6e;
+    --warm-d: #ffad98;
+    --blue: #6fd6df;
+    --red: #ff8d86;
+    --th: #65d0ae;
 
     --shio-oh-bg: rgba(217, 138, 86, .16);   --shio-oh-bd: rgba(217, 138, 86, .4);   --shio-oh-c: #e8a56f;
     --shio-naka-bg: rgba(111, 168, 201, .16); --shio-naka-bd: rgba(111, 168, 201, .38); --shio-naka-c: #8fc3e3;
@@ -72,9 +72,9 @@
     --shio-naga-bg: rgba(138, 124, 103, .14); --shio-naga-bd: rgba(138, 124, 103, .3); --shio-naga-c: #a89b86;
     --shio-waka-bg: rgba(122, 173, 106, .16); --shio-waka-bd: rgba(122, 173, 106, .36); --shio-waka-c: #93cf83;
 
-    --graph-night: rgba(0, 0, 0, .3);
-    --graph-grid: rgba(232, 216, 189, .12);
-    --graph-tick: rgba(232, 216, 189, .2);
+    --graph-night: rgba(0, 0, 0, .24);
+    --graph-grid: rgba(164, 221, 226, .13);
+    --graph-tick: rgba(164, 221, 226, .22);
   }
 
   /* 生成りの紙の上を前提にした配色なので、影と地図タイルだけは
@@ -689,44 +689,206 @@ ul.guide-list a { font-family: var(--serif); font-size: 17px; color: var(--ink);
 ul.guide-list .note { display: block; margin-top: 4px; font-size: 14.5px; color: var(--mut); line-height: 1.6; }
 
 /* =====================================================================
-   リデザイン B / Weekend
-   明朝を使わず、海辺のレジャーに合う丸み・白地・コーラルを基調にする。
-   情報量は従来どおり保ち、見出しとカードの階層だけをやわらかく整える。
+   2026 リデザイン / Coastal Clarity
+   潮位を主役にしながら、海面の光と透明感を軽量な CSS グラフィックで表現する。
    ===================================================================== */
-body { background: var(--bg); font-family: var(--sans); }
-header.site { min-height: 70px; padding-top: 12px; padding-bottom: 12px; background: rgba(255, 250, 240, .92); border-bottom-color: #ebdec8; }
+body {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(circle at 92% 5%, rgba(61, 201, 202, .12), transparent 27rem),
+    radial-gradient(circle at 2% 42%, rgba(255, 167, 118, .09), transparent 24rem);
+  font-family: var(--sans);
+}
+header.site {
+  min-height: 70px;
+  padding-top: 11px;
+  padding-bottom: 11px;
+  background: rgba(247, 251, 250, .88);
+  border-bottom-color: rgba(17, 101, 116, .12);
+  box-shadow: 0 8px 28px rgba(23, 72, 80, .05);
+  backdrop-filter: blur(16px) saturate(1.25);
+}
 .brand-ja, .st-hd h1, .home-hd h1, .blk-hd h2, h3.sub, .shio, .daybar .date, .pg.cur, .now .dir, .wx-head .cond, .mn-name, ul.guide-list a { font-family: var(--sans); }
-.brand-ja { font-weight: 800; letter-spacing: .03em; }.brand-mark { filter: saturate(.83); }
-.search-btn { color: #315e68; background: #fff; border-color: #d9e5df; border-radius: 999px; }.search-btn:hover, .search-results a:hover { background: #edf7f5; }
-main { max-width: 900px; }
-.st-hd, .home-hd { margin-top: 24px; }.st-hd h1 { font-weight: 800; letter-spacing: -.025em; }.home-hd h1 { font-weight: 800; letter-spacing: -.035em; }
-.lead { color: #587078; }.badge, .shio { border-radius: 999px; }
-.badge.off { color: #176579; border-color: #9fdae0; background: #ddf2f4; }.badge.apx { color: #176579; border-color: #9fdae0; background: #fff; }.badge.low { color: #176579; border-color: #9fdae0; background: #fff; }
-.tabs { gap: 9px; }.tab { border-radius: 999px; border-color: #e6ddce; color: #667b7a; }.tab:hover { background: #fff0b8; }.tab.on { background: var(--blue); border-color: var(--blue); color: #fff; }
-.month-chip, .pager .pg { border-radius: 12px; }.month-chip.on { background: var(--blue); border-color: var(--blue); }
-.now, .stats, .sm, .th-ctl, ul.flow li, ul.stlist li, ul.guide-list li { border-color: #e6ddce; border-radius: 16px; box-shadow: 0 9px 25px rgba(43, 81, 72, .05); }
-.now { border-left: 5px solid var(--warm); }.now .lbl { color: var(--warm); }.now .val { color: var(--ink); }
-.stats { gap: 8px; background: transparent; border: 0; overflow: visible; }.stats > div { border: 1px solid #e6ddce; border-radius: 15px; box-shadow: 0 8px 20px rgba(43, 81, 72, .04); }
-.graph { padding: 15px 13px 8px; background: var(--panel); border: 1px solid #e6ddce; border-radius: 20px; box-shadow: 0 12px 28px rgba(43, 81, 72, .05); }
-/* 480px 未満ではカードを画面いっぱいに広げる。左右の余白 16px + カード内側
-   13px を返してもらうと、グラフの描画幅が 316px → 359px になり、同じ
-   font-size でも文字が 13% 大きく出る。潮位グラフはこのページの主役なので、
-   横幅を優先して枠を外す。 */
+.brand-ja { font-weight: 800; letter-spacing: -.01em; }
+.brand-mark { width: 26px; height: 26px; filter: saturate(.95); }
+.site-nav { gap: 12px; }
+.site-nav a { font-weight: 700; }
+.search-btn {
+  color: var(--blue);
+  background: var(--panel);
+  border-color: rgba(8, 123, 143, .2);
+  border-radius: 999px;
+  box-shadow: 0 5px 18px rgba(16, 77, 88, .06);
+}
+.search-btn:hover, .search-results a:hover { background: #eaf7f5; }
+.search-panel { border-radius: 22px; }
+.search-bar input, .search-close { border-radius: 12px; }
+main { max-width: 920px; }
+
+/* トップは検索を最短距離に置く。説明用ヒーローは使わない。 */
+body.home-page main { max-width: 1180px; }
+.home-hd {
+  margin: 22px 0 26px;
+  padding: 0;
+  color: var(--ink);
+}
+.home-hd::before, .home-hd::after { display: none; }
+.home-hd h1 { display: block; margin: 0; color: var(--ink); font-size: clamp(24px, 4vw, 36px); font-weight: 800; letter-spacing: -.035em; }
+.home-hd .meta { margin-top: 4px; color: var(--dim); }
+.home-search {
+  max-width: none;
+  margin-top: 14px;
+  padding: 14px;
+  border-color: var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: 0 10px 28px rgba(20, 81, 89, .06);
+}
+.home-search label { color: var(--ink2); }
+.home-search input { border-color: var(--line); background: var(--bg); color: var(--ink); border-radius: 11px; }
+.home-search button { min-height: 46px; border-radius: 11px; background: #087b8f; border-color: #087b8f; }
+.home-locate { color: var(--blue) !important; background: transparent !important; border-color: transparent !important; padding-left: 2px !important; }
+.home-locate-status { color: var(--mut); }
+.home-saved > div { border-color: var(--line); background: var(--panel); }
+.home-saved h2, .home-saved .pf { color: var(--dim); }
+.home-saved a { color: var(--ink); }
+.home-page .split.wide-map { gap: 24px; }
+.home-page .split.wide-map > div > .blk {
+  height: 100%;
+  margin: 0;
+  padding: 20px;
+  background: rgba(255, 255, 255, .72);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  box-shadow: 0 15px 42px rgba(20, 81, 89, .06);
+}
+
+/* 地点ページの導入部 */
+.st-hd {
+  position: relative;
+  overflow: hidden;
+  margin: 14px 0 10px;
+  padding: clamp(15px, 2.5vw, 22px);
+  border: 1px solid rgba(8, 123, 143, .14);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 92% 10%, rgba(62, 196, 190, .18), transparent 30%),
+    linear-gradient(135deg, rgba(255,255,255,.94), rgba(235,247,244,.88));
+  box-shadow: 0 14px 42px rgba(19, 78, 86, .07);
+}
+.st-hd::after {
+  position: absolute;
+  width: 260px;
+  height: 120px;
+  right: -70px;
+  bottom: -60px;
+  border: 18px solid rgba(8, 123, 143, .06);
+  border-left-color: transparent;
+  border-right-color: transparent;
+  border-radius: 50%;
+  content: '';
+  pointer-events: none;
+}
+.st-hd h1 { font-weight: 800; letter-spacing: -.035em; }
+.st-eyebrow a { font-weight: 700; }
+.lead { margin-top: 10px; color: var(--ink2); line-height: 1.65; }
+.badge, .shio { border-radius: 999px; }
+.badge.off { color: #176579; border-color: #9fdae0; background: #ddf2f4; }
+.badge.apx, .badge.low { color: #176579; border-color: #9fdae0; background: #fff; }
+.fav-toggle { min-height: 34px; padding-inline: 12px; }
+
+.tabs { gap: 9px; margin-top: 12px; margin-bottom: 10px; }
+.tab { border-radius: 999px; border-color: var(--line); color: var(--mut); }
+.tab:hover { background: #eaf7f5; }
+.tab.on { background: var(--blue); border-color: var(--blue); color: #fff; box-shadow: 0 8px 20px rgba(8, 123, 143, .18); }
+.month-chip, .pager .pg { border-radius: 12px; }
+.month-chip.on { background: var(--blue); border-color: var(--blue); }
+
+.trip-brief {
+  border-color: rgba(8, 123, 143, .14);
+  border-left-color: #38a9a4;
+  background: linear-gradient(135deg, rgba(231, 248, 245, .92), rgba(255, 255, 255, .9));
+}
+.now, .stats, .sm, .th-ctl, ul.flow li, ul.stlist li, ul.guide-list li {
+  border-color: var(--line);
+  border-radius: 16px;
+  box-shadow: 0 9px 25px rgba(20, 81, 89, .05);
+}
+.now {
+  align-items: center;
+  padding: 18px;
+  border: 0;
+  border-radius: 20px;
+  color: #efffff;
+  background: linear-gradient(135deg, #07536a, #078796);
+  box-shadow: 0 18px 42px rgba(7, 88, 103, .2);
+}
+.now .lbl { color: #8ce9de; }
+.now .val { color: #fff; font-size: 40px; font-weight: 700; letter-spacing: -.05em; }
+.now .val small, .now .rate, .now .nxt { color: rgba(235, 255, 252, .72); }
+.now .dir { color: #ffd2b9; font-weight: 700; }
+.stats { gap: 8px; background: transparent; border: 0; overflow: visible; }
+.stats > div { border: 1px solid var(--line); border-radius: 15px; box-shadow: 0 8px 20px rgba(20, 81, 89, .04); }
+.graph {
+  padding: 16px 14px 9px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  box-shadow: 0 15px 36px rgba(20, 81, 89, .07);
+}
+.map { overflow: hidden; border-color: var(--line); border-radius: 20px; box-shadow: 0 12px 30px rgba(20, 81, 89, .08); }
+.blk { margin: 40px 0; }
+.blk-hd { padding-bottom: 10px; border-bottom-color: var(--line); }
+.blk-hd h2 { font-weight: 800; letter-spacing: -.02em; }
+.blk-hd .en { color: var(--blue); font-weight: 700; }
+.wx-head { padding: 14px 16px; background: #e9f7f4; border-radius: 16px; }
+.wx-icon { color: var(--warm); }
+.wx-head .cond { font-weight: 700; }
+.wx-grid { gap: 8px; background: transparent; border: 0; overflow: visible; }
+.wx-grid > div { border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 8px 20px rgba(20, 81, 89, .04); }
+.wx-metric-icon { color: var(--blue); }
+.src-note, .dev-note { background: #fff6e8; border-left-color: #efb85b; border-radius: 0 12px 12px 0; }
+.regions a { border-radius: 13px; }
+.regions .rn { font-weight: 700; }
+.tide-map-marker { background: transparent; border: 0; }
+.tide-map-marker .marker-triangle { display: block; position: relative; width: 16px; height: 15px; background: var(--blue); clip-path: polygon(50% 0, 100% 100%, 0 100%); filter: drop-shadow(0 1px 2px rgba(0,0,0,.25)); }
+.tide-map-marker .marker-triangle::after { content: ''; position: absolute; inset: 3px; background: var(--panel); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+
+body.wave-watermark { position: relative; overflow-x: hidden; }
+body.wave-watermark::before {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  content: '';
+  pointer-events: none;
+  background-image: linear-gradient(rgba(255,255,255,.18), rgba(255,255,255,0));
+}
+body.wave-watermark::after { display: none; }
+
+@media (prefers-color-scheme: dark) {
+  header.site { background: rgba(7, 27, 34, .88); border-bottom-color: var(--line); box-shadow: 0 8px 30px rgba(0,0,0,.22); }
+  .search-btn { background: #102f38; border-color: var(--line); }
+  .search-btn:hover, .search-results a:hover, .tab:hover { background: #163b45; }
+  .home-page .split.wide-map > div > .blk { background: rgba(14, 41, 50, .78); }
+  .st-hd { border-color: var(--line); background: radial-gradient(circle at 92% 10%, rgba(73, 205, 198, .12), transparent 30%), linear-gradient(135deg, rgba(14,41,50,.96), rgba(11,47,56,.88)); }
+  .badge.off, .badge.apx, .badge.low { color: #a3e9eb; border-color: rgba(111,214,223,.35); background: rgba(111,214,223,.1); }
+  .trip-brief, .wx-head { background: linear-gradient(135deg, rgba(19, 61, 68, .9), rgba(14, 41, 50, .9)); }
+  .src-note, .dev-note { background: #30291d; }
+  .home-search { background: var(--panel); }
+  .home-search .home-locate { color: var(--blue) !important; }
+  body.wave-watermark::before { background-image: radial-gradient(circle at 90% 18%, rgba(39, 148, 157, .08), transparent 30rem); }
+}
+
+/* 480px 未満では主役グラフの描画幅を優先する。 */
 @media (max-width: 480px) {
-  .graph { margin-left: calc(var(--pad) * -1); margin-right: calc(var(--pad) * -1); padding-left: 8px; padding-right: 8px; border-width: 1px 0; border-radius: 0; }
+  .home-hd { margin-top: 18px; }
   .home-search-row { flex-direction: column; }
   .home-search-row button { width: 100%; }
+  .home-locate { width: auto !important; }
+  .graph { margin-left: calc(var(--pad) * -1); margin-right: calc(var(--pad) * -1); padding-left: 8px; padding-right: 8px; border-width: 1px 0; border-radius: 0; }
+  .st-hd { padding: 18px; border-radius: 19px; }
+  .now .val { font-size: 36px; }
 }
-.blk { margin: 36px 0; }.blk-hd { padding-bottom: 10px; border-bottom-color: #e6ddce; }.blk-hd h2 { font-weight: 800; }.blk-hd .en { color: #d9785d; font-weight: 700; }
-.wx-head { padding: 14px 16px; background: #fff5dc; border-radius: 16px; }.wx-icon { color: #d77859; }.wx-head .cond { font-weight: 700; }.wx-grid { gap: 8px; background: transparent; border: 0; overflow: visible; }.wx-grid > div { border: 1px solid #e6ddce; border-radius: 14px; box-shadow: 0 8px 20px rgba(43, 81, 72, .04); }.wx-metric-icon { color: #167289; }
-.src-note, .dev-note { background: #fff4e5; border-left-color: #efb85b; border-radius: 0 12px 12px 0; }
-.tide-map-marker { background: transparent; border: 0; }.tide-map-marker .marker-triangle { display: block; position: relative; width: 16px; height: 15px; background: var(--blue); clip-path: polygon(50% 0, 100% 100%, 0 100%); filter: drop-shadow(0 1px 2px rgba(0,0,0,.25)); }.tide-map-marker .marker-triangle::after { content: ''; position: absolute; inset: 3px; background: var(--panel); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
-
-/* 波のスカシ案。通常ページには未適用で、wave-watermark.html だけで確認する。 */
-body.wave-watermark { position: relative; overflow-x: hidden; }
-body.wave-watermark::before, body.wave-watermark::after { position: fixed; z-index: -1; width: 72vw; height: 32vw; min-width: 620px; min-height: 260px; border: 34px solid rgba(23, 90, 111, .055); border-left-color: transparent; border-right-color: transparent; border-radius: 50%; content: ''; pointer-events: none; }
-body.wave-watermark::before { top: 18vh; right: -30vw; transform: rotate(-11deg); }
-body.wave-watermark::after { top: 67vh; left: -33vw; border-color: rgba(239,118,88,.055); border-left-color: transparent; border-right-color: transparent; transform: rotate(12deg); }
 
 /* =====================================================================
    700px 以上
@@ -797,6 +959,8 @@ body.wave-watermark::after { top: 67vh; left: -33vw; border-color: rgba(239,118,
     display: block; grid-column: 2; grid-row: 2 / span 99;
     position: sticky; top: 70px; min-height: 600px;
   }
+  body.home-page.ads main { display: block; max-width: 1180px; }
+  body.home-page.ads .ad-side { display: none; }
 }
 
 /* =====================================================================

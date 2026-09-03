@@ -206,12 +206,12 @@
       scrollWheelZoom: true,
       attributionControl: true,
     });
-    // 明るい voyager タイルはダークモードの画面で浮いて見えるので、
-    // OS設定がダークのときは CARTO の dark_all タイルに切り替える。
-    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    var tileStyle = dark ? 'dark_all' : 'voyager';
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/' + tileStyle + '/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap · CARTO', maxZoom: 18,
+    // CARTO は2026年8月からAPIキー無しのラスタータイルへ透かしを入れる
+    // 仕様になったため、キー不要で日本の海岸線が読みやすい地理院淡色地図を使う。
+    // 地理院タイルはリアルタイム読み込みなら出典明示で利用できる。
+    L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
+      attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">地理院タイル</a>',
+      maxZoom: 18,
     }).addTo(map);
 
     // Leaflet はビュー(中心とズーム)が決まる前にレイヤを追加できない。

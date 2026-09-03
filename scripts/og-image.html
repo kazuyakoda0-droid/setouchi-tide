@@ -1,85 +1,47 @@
-<!--
-  og:image (1200×630) の下書き。ビルドパイプラインには含めない
-  (このリポジトリは依存パッケージなしの静的サイトジェネレータなので、
-  画像を焼くライブラリを入れていない)。
-
-  使い方:
-    1. ブラウザでこのファイルを開く（右クリック→開く、または
-       `python -m http.server` などで配信してアクセスする。file:// で
-       直接開くとブラウザによっては外部フォントの読み込みがブロックされる
-       ことがある）。
-    2. ウィンドウ幅を1200pxちょうどにする（DevToolsのデバイスツールバーで
-       "Responsive" を選び 1200×630 を指定するのが確実）。
-    3. スクリーンショットを撮り、1200×630にトリミングして
-       `public/og-image.png` として保存する。
-    4. config.mjs の OG_IMAGE に 'og-image.png' を設定する
-       （空のあいだは og:image / twitter:card を出力しない）。
--->
+<!-- 1200 x 630 の共有カード。ブラウザで同寸表示し public/og-image.png に保存する。 -->
 <!doctype html>
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../public/fonts.css">
 <style>
-  html, body { margin: 0; padding: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; }
   body {
-    width: 1200px; height: 630px; overflow: hidden;
-    background: #f4f1ea;
-    background-image:
-      radial-gradient(circle at 85% 15%, rgba(43,93,122,.10), transparent 45%),
-      radial-gradient(circle at 10% 90%, rgba(176,74,63,.08), transparent 50%);
+    position: relative; color: #f3ffff;
+    background: radial-gradient(circle at 82% 18%, rgba(71,218,204,.34), transparent 30%), radial-gradient(circle at 14% 100%, rgba(51,157,174,.3), transparent 40%), linear-gradient(135deg, #052d3b 0%, #075d6b 58%, #168e88 100%);
     font-family: 'Zen Kaku Gothic New', system-ui, sans-serif;
-    position: relative;
   }
-  .waves { position: absolute; left: 0; right: 0; bottom: 0; height: 260px; overflow: hidden; }
-  .waves svg { position: absolute; bottom: 0; width: 100%; height: 100%; }
-  .frame { position: absolute; inset: 28px; border: 1.5px solid rgba(60,50,35,.22); }
-  .content {
-    position: relative; z-index: 2;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    height: 630px; text-align: center;
-  }
-  .mark { width: 132px; height: 132px; margin-bottom: 22px; }
-  .ja {
-    font-family: 'Zen Old Mincho', 'Yu Mincho', serif; font-weight: 700;
-    font-size: 76px; color: #2b2620; letter-spacing: .06em; line-height: 1;
-  }
-  .en {
-    font-family: 'DM Mono', ui-monospace, monospace; font-weight: 500;
-    font-size: 22px; color: #6b6357; letter-spacing: .38em; margin-top: 16px;
-  }
-  .tagline { margin-top: 30px; font-size: 22px; color: #4a4034; font-weight: 500; letter-spacing: .02em; }
-  .foot {
-    position: absolute; bottom: 44px; left: 0; right: 0;
-    text-align: center; font-family: 'DM Mono', ui-monospace, monospace;
-    font-size: 15px; color: #8a8073; letter-spacing: .12em;
-  }
+  body::before, body::after { position: absolute; width: 900px; height: 300px; right: -180px; border: 3px solid rgba(220,255,250,.18); border-left-color: transparent; border-right-color: transparent; border-radius: 50%; content: ''; transform: rotate(-8deg); }
+  body::before { bottom: -60px; }
+  body::after { bottom: -145px; opacity: .55; }
+  .brand { position: absolute; top: 62px; left: 72px; display: flex; align-items: center; gap: 20px; }
+  .mark { width: 72px; height: 72px; filter: drop-shadow(0 12px 24px rgba(0,35,42,.25)); }
+  .brand-ja { font-size: 38px; font-weight: 800; letter-spacing: -.03em; }
+  .brand-en { margin-top: -2px; color: #9debe4; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 500; letter-spacing: .2em; }
+  .content { position: absolute; z-index: 2; left: 72px; top: 225px; width: 660px; }
+  h1 { margin: 0; font-size: 62px; font-weight: 800; line-height: 1.2; letter-spacing: -.05em; }
+  .sub { margin: 24px 0 0; color: rgba(234,255,252,.76); font-size: 21px; font-weight: 500; }
+  .tide-card { position: absolute; z-index: 1; right: 58px; top: 104px; width: 420px; height: 360px; padding: 28px; border: 1px solid rgba(255,255,255,.22); border-radius: 30px; background: rgba(2,47,58,.26); box-shadow: 0 25px 65px rgba(0,30,38,.18); backdrop-filter: blur(8px); }
+  .tide-card small { color: #a6efe8; font-family: 'DM Mono', monospace; font-size: 14px; letter-spacing: .15em; }
+  .tide-card b { display: block; margin-top: 6px; font-size: 30px; }
+  .tide-card svg { position: absolute; left: 20px; bottom: 28px; width: 380px; height: 220px; overflow: visible; }
+  .foot { position: absolute; left: 72px; bottom: 45px; color: rgba(226,255,251,.62); font-family: 'DM Mono', monospace; font-size: 16px; letter-spacing: .14em; }
 </style>
 </head>
 <body>
-  <div class="frame"></div>
-  <div class="waves">
-    <svg viewBox="0 0 1200 260" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M0 190 C 150 150, 300 150, 450 190 S 750 230, 900 190 S 1150 150, 1200 190 V 260 H 0 Z" fill="#2b5d7a" opacity="0.10"/>
-      <path d="M0 220 C 150 185, 300 185, 450 220 S 750 255, 900 220 S 1150 185, 1200 220 V 260 H 0 Z" fill="#b04a3f" opacity="0.10"/>
-    </svg>
+  <div class="brand">
+    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><defs><radialGradient id="g" cx="35%" cy="30%" r="75%"><stop offset="0%" stop-color="#55d5cd"/><stop offset="100%" stop-color="#087b8f"/></radialGradient><clipPath id="c"><circle cx="32" cy="32" r="32"/></clipPath></defs><circle cx="32" cy="32" r="32" fill="url(#g)"/><g clip-path="url(#c)"><path d="M-4 40 Q16 30 32 40 T68 40" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity=".55"/><path d="M-4 27 Q16 17 32 27 T68 27" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/></g></svg>
+    <div><div class="brand-ja">しおどき</div><div class="brand-en">SHIODOKI</div></div>
   </div>
-  <div class="content">
-    <svg class="mark" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-      <defs><radialGradient id="g" cx="35%" cy="30%" r="75%"><stop offset="0%" stop-color="#d5687a"/><stop offset="100%" stop-color="#b8404f"/></radialGradient>
-      <clipPath id="c"><circle cx="32" cy="32" r="32"/></clipPath></defs>
-      <circle cx="32" cy="32" r="32" fill="url(#g)"/>
-      <g clip-path="url(#c)">
-        <path d="M-4 40 Q16 30 32 40 T68 40" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity=".55"/>
-        <path d="M-4 27 Q16 17 32 27 T68 27" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
-      </g>
-    </svg>
-    <div class="ja">しおどき</div>
-    <div class="en">S H I O D O K I</div>
-    <div class="tagline">気象庁の公式推算値による全国548地点の潮見表・タイドグラフ</div>
-  </div>
+  <main class="content">
+    <h1>全国の潮見表・<br>タイドグラフ</h1>
+    <p class="sub">気象庁公式データ・全国の沿岸地点に対応</p>
+  </main>
+  <aside class="tide-card" aria-hidden="true">
+    <small>TIDE GRAPH</small><b>満潮・干潮・現在潮位</b>
+    <svg viewBox="0 0 380 220"><defs><linearGradient id="fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8cf1e5" stop-opacity=".34"/><stop offset="1" stop-color="#8cf1e5" stop-opacity="0"/></linearGradient></defs><path d="M0 170C48 48 101 38 151 126S239 212 284 124 351 45 380 82V220H0Z" fill="url(#fill)"/><path d="M0 170C48 48 101 38 151 126S239 212 284 124 351 45 380 82" fill="none" stroke="#a5f2e9" stroke-width="5" stroke-linecap="round"/><line x1="300" y1="22" x2="300" y2="198" stroke="#ffb08f" stroke-width="2" stroke-dasharray="6 6"/><circle cx="300" cy="101" r="8" fill="#ff9a78" stroke="#fff" stroke-width="3"/></svg>
+  </aside>
   <div class="foot">JAPANTIDE.COM</div>
 </body>
 </html>
