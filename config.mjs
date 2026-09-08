@@ -39,6 +39,8 @@ export const SITE = {
   // ほぼ無いうえ、地点ハブや翌日以降のページと内容がほぼ同じ薄いページに
   // なるため。DAYS_FWD はその分を厚くし、「来週の釣行」「◯日先の予定」を
   // 調べる検索・実用需要をカバーする2週間先まで生成する。
+  // 日別ページを作るかどうか。SITE.LEAN のときだけ false になる。
+  DAY_PAGES: true,
   DAYS_BACK: 1,
   DAYS_FWD: 14,
   MONTHS_BACK: 1,
@@ -60,13 +62,21 @@ export const SITE = {
     side: '3994113104',   // サイド(PCのみ) 300x600
   },
 
-  // ---- 審査対応: インデックス対象の一時的な絞り込み ---------------------
-  // AdSense審査中など、Googleにインデックスさせるページ数を絞りたい期間だけ
-  // 環境変数 SITE_RESTRICT_INDEX=1 を立てる。true のあいだ、日別ページ(当日を
-  // 除く)と月間ページ(当月を除く)を noindex にし、sitemapからも外す。
-  // ページ自体は普段どおり生成されリンクからも辿れるので、閲覧者・既存の
-  // 内部リンク構造には影響しない。承認後は環境変数を外すだけで元に戻る。
-  RESTRICT_INDEX: process.env.SITE_RESTRICT_INDEX === '1',
+  // ---- 審査対応: 配信するページの絞り込み -------------------------------
+  // AdSense は「有用性の低いコンテンツ」でこのサイトを不承認にした(2026-09-08)。
+  // 原因は近似地点にある。1,082地点のうち843地点は damp/dz/dphase の補正が
+  // すべてゼロで、参照元の公式観測点と潮位数値が1桁も違わない。1観測点から
+  // 最大19地点ぶんのページが出るため、隣接する2ページの本文一致率は96.8%になる。
+  // Google の品質ガイドラインでいう「実質的な複製」「自動生成」そのものなので、
+  // noindex で検索から隠しても審査の評価は変わらない。ページを出さないしかない。
+  //
+  // SITE_LEAN=1 のあいだは
+  //   ・公式観測点(jmaAnchor:false)だけを配信する
+  //   ・日別ページを作らない(内容は地点ハブ・週間・月間で尽きている)
+  //   ・月間カレンダーは当月だけにする
+  //   ・広告枠を graph と footer の2つに減らす
+  // 地点データもテンプレートも消していないので、環境変数を外せば元に戻る。
+  LEAN: process.env.SITE_LEAN === '1',
 
   // ---- OGP画像 --------------------------------------------------------
   // X/Facebook/Discord などでの共有カード用。`public/og-image.png`
@@ -101,6 +111,23 @@ export const SITE = {
   JMA_FC_CREDIT: '気象庁 天気予報',
   JMA_FC_CREDIT_URL: 'https://www.jma.go.jp/bosai/forecast/',
 };
+
+// LEAN のあいだは生成範囲を当日・当月に畳む。既定値を上書きするだけなので、
+// 環境変数を外せば上に書いてある元の規模に戻る。
+if (SITE.LEAN) {
+  SITE.DAY_PAGES = false;
+  SITE.DAYS_BACK = 0;
+  SITE.DAYS_FWD = 0;
+  SITE.MONTHS_BACK = 0;
+  SITE.MONTHS_FWD = 0;
+  // 本文に隣接する graph / footer だけ残し、本文の前に出る header と
+  // PC のサイド枠は落とす。枠が無い slot は空の div になり、CSS の
+  // .ad:empty で消えるので、テンプレート側は触らなくてよい。
+  SITE.ADSENSE_SLOTS = {
+    graph: SITE.ADSENSE_SLOTS.graph,
+    footer: SITE.ADSENSE_SLOTS.footer,
+  };
+}
 
 // BASE 起点のページ URL。ディレクトリなので必ず末尾スラッシュを付ける。
 export function url(...segs) {

@@ -23,6 +23,7 @@ import {
   todayJSTMs, dayKeyOf, monthKeyOf, dayMsOf, addDays, addMonths,
   daysInMonth, pad2, DAY,
 } from './lib/util.mjs';
+import { SERVED_STATIONS } from './lib/serve-stations.mjs';
 import { paths, abs, pref, region, regionOf, prefStations, regionPrefs, regionStationCount, stationSlug, validateStations } from './lib/routes.mjs';
 import {
   stationPage, dayPage, weekPage, monthPage, prefPage, regionPage, homePage, aboutPage,
@@ -31,6 +32,7 @@ import {
 import { GUIDES, guidePage, guideIndexPage } from './lib/guides.mjs';
 import { ACTIVITIES, activityPage, activityIndexPage } from './lib/activities.mjs';
 import { stationApiJSON } from './lib/api.mjs';
+import { areaProfile } from './lib/tide-profile.mjs';
 import { stationLabel } from './lib/station-quality.mjs';
 import { stationQuality } from './lib/station-quality.mjs';
 
@@ -112,8 +114,13 @@ function neighborsOf(st, pool, n = 6) {
 const today = todayJSTMs();
 const todayKey = dayKeyOf(today);
 
+// SITE.DAY_PAGES が false のときは日別ページを作らない。日別の内容は
+// 地点ハブ(当日)・週間(7日)・月間カレンダーで尽きており、日付だけ差し替えた
+// 同型のページを地点数ぶん積んでも足すものが無いため(config.mjs の LEAN 参照)。
 const dayList = [];
-for (let i = -SITE.DAYS_BACK; i <= SITE.DAYS_FWD; i++) dayList.push(addDays(today, i));
+if (SITE.DAY_PAGES) {
+  for (let i = -SITE.DAYS_BACK; i <= SITE.DAYS_FWD; i++) dayList.push(addDays(today, i));
+}
 
 // 日別ページを作る日。月カレンダーや日リンクは、この集合にある日だけ
 // リンクにする。存在しないページへ張ると 4万件超のリンク切れになる。
@@ -145,9 +152,11 @@ const t0 = Date.now();
 
 validateStations();
 
+// 配信対象は SERVED_STATIONS（SITE.LEAN のときは公式観測点だけ）。
+// TIDE_STATIONS は「知っている地点の全部」で、スラッグ採番と出典表示に使う。
 const stations = SAMPLE
-  ? TIDE_STATIONS.filter(s => s.pref === 'hiroshima')
-  : TIDE_STATIONS;
+  ? SERVED_STATIONS.filter(s => s.pref === 'hiroshima')
+  : SERVED_STATIONS;
 
 // 観測点名・最寄り観測点までの距離（近似地点の出典表示に使う）
 const officialByCode = new Map(TIDE_STATIONS.filter(s => !s.jmaAnchor).map(s => [s.jma, s]));
@@ -240,28 +249,30 @@ for (const st of stations) {
   // 週間ページ専用の詳細列(天気・潮がよく動く時間帯)のために、地点ハブの
   // 「これからの7日間」に使う軽量版とは別にlevels付きのfull版を持たせる。
   const weekRows = weekList.map(d => ({
-    dayMs: d, ymd: dayKeyOf(d), href: paths.day(st, dayKeyOf(d)),
+    // 日別ページを作っていない日はリンクにしない。存在しない URL に張ると
+    // 週間表だけで 地点数 × 6 本のリンク切れになる。
+    dayMs: d, ymd: dayKeyOf(d),
+    href: dayPageKeys.has(dayKeyOf(d)) ? paths.day(st, dayKeyOf(d)) : null,
     cel: cel(d), day: full(d), today: d === today,
     fc: forecastFor(st, dayKeyOf(d)),
   }));
-
-  // △参考地点(参照する公式観測点が遠い/広域海域で精度保証の対象外と自認して
-  // いる地点)は、AdSense審査中は地点配下のページを丸ごとnoindexにする。
-  // 公式観測点の値をそのまま焼き直しただけの薄いページとして数えられるため。
-  // RESTRICT_INDEX を落とせば元に戻る(config.mjs 参照)。
-  const stThin = SITE.RESTRICT_INDEX && stationQuality(st) === 'low';
 
   write(paths.station(st), stationPage({
     st, day: todayFull, cel: cel(today), ymd: todayKey, dayMs: today,
     weekRows,
     neighbors: neighborsOf(st, stations),
     fc: forecastFor(st, todayKey),
-    noindex: stThin,
-  }), { sitemap: !stThin, changefreq: 'daily', priority: 0.9 });
+    // 日別ページを作らない設定では「この日を詳しく」もグラフの前日/翌日も出さない。
+    dayHref: dayPageKeys.has(todayKey) ? paths.day(st, todayKey) : null,
+    dayNav: {
+      prev: dayPageKeys.has(dayKeyOf(addDays(today, -1))) ? paths.day(st, dayKeyOf(addDays(today, -1))) : null,
+      next: dayPageKeys.has(dayKeyOf(addDays(today, 1))) ? paths.day(st, dayKeyOf(addDays(today, 1))) : null,
+    },
+  }), { changefreq: 'daily', priority: 0.9 });
 
   // ---- 週間 ----
-  write(paths.week(st), weekPage({ st, rows: weekRows, ymd: todayKey, noindex: stThin }),
-    { sitemap: !stThin, changefreq: 'daily', priority: 0.7 });
+  write(paths.week(st), weekPage({ st, rows: weekRows, ymd: todayKey }),
+    { changefreq: 'daily', priority: 0.7 });
 
   // ---- 日別 ----
   for (let i = 0; i < dayList.length; i++) {
@@ -288,9 +299,6 @@ for (const st of stations) {
     // それ以外は気象庁の推算値だけの静的なページなので、その日自体を
     // lastmod/dateModified にする(未来日は today を超えられないので min で丸める)。
     const dmDay = fcDay ? todayKey : dayKeyOf(Math.min(d, today));
-    // RESTRICT_INDEX時は当日以外の日別ページ(テンプレ×日付だけの薄いページ)を
-    // noindexにし、sitemapからも外す(SITE.RESTRICT_INDEX参照)。
-    const dayThin = stThin || (SITE.RESTRICT_INDEX && d !== today);
     write(paths.day(st, ymd), dayPage({
       st, day: full, cel: cel(d), ymd, dayMs: d,
       isToday: d === today,
@@ -299,11 +307,10 @@ for (const st of stations) {
       monthDays,
       fc: fcDay,
       dateModified: dmDay,
-      noindex: dayThin,
     }), {
       // 今日の日別ページは canonical が地点ハブを指す(dayPage内)ので、
       // 別URLとして sitemap に出すと非canonical URLを申告することになる。
-      sitemap: d !== today && !SITE.RESTRICT_INDEX && !stThin,
+      sitemap: d !== today,
       changefreq: d === today ? 'daily' : 'monthly',
       priority: d === today ? 0.5 : 0.4,
       lastmod: dmDay,
@@ -312,7 +319,9 @@ for (const st of stations) {
 
   // ---- 簡易API(JSON) ----
   // HTMLの日別ページと同じ生成範囲(DAYS_BACK〜DAYS_FWD)を1ファイルにまとめる。
-  const apiDays = dayList.map(d => ({ ymd: dayKeyOf(d), cel: cel(d), day: full(d), isToday: d === today }));
+  // 日別ページを作らない設定でも API は週間ページと同じ7日ぶんを返す。
+  const apiList = dayList.length ? dayList : weekList;
+  const apiDays = apiList.map(d => ({ ymd: dayKeyOf(d), cel: cel(d), day: full(d), isToday: d === today }));
   writeJSON(`api/${st.pref}/${stationSlug(st)}.json`, stationApiJSON(st, apiDays));
 
   // ---- 月間 ----
@@ -340,9 +349,6 @@ for (const st of stations) {
     // 月間カレンダーは気象庁の推算値・天文暦だけで組み立てており、天気予報を
     // 含まない(=毎日は変わらない)ので、月末日(未来月なら today)を lastmod にする。
     const monthEndMs = addDays(m, dim - 1);
-    // RESTRICT_INDEX時は当月以外の月間カレンダー(テンプレ×月だけの薄いページ)を
-    // noindexにし、sitemapからも外す(SITE.RESTRICT_INDEX参照)。
-    const monthThin = stThin || (SITE.RESTRICT_INDEX && ym !== monthKeyOf(today));
     write(paths.month(st, ym), monthPage({
       st, ym, cells,
       prev: inRange(pm) ? { href: paths.month(st, monthKeyOf(pm)), label: `${new Date(pm).getUTCMonth() + 1}月` } : null,
@@ -354,9 +360,7 @@ for (const st of stations) {
         active: x === m,
       })),
       stats: { maxRange, maxRangeDay, ohshio },
-      noindex: monthThin,
     }), {
-      sitemap: !monthThin,
       changefreq: 'weekly', priority: 0.5,
       lastmod: dayKeyOf(Math.min(monthEndMs, today)),
     });
@@ -387,8 +391,11 @@ for (const p of prefsWithStations) {
     cel: celestialData(st, today),
     day: tideDayLight(st, jma[st.jma], today),
   }));
-  write(paths.pref(p), prefPage({ p, r: region(p.region), rows, ymd: todayKey, dateJa }),
-    { changefreq: 'daily', priority: 0.8 });
+  write(paths.pref(p), prefPage({
+    p, r: region(p.region), rows, ymd: todayKey, dateJa,
+    // 県の潮汐の性格。気象庁の年次潮位表から実測で出す(lib/tide-profile.mjs)。
+    profile: areaProfile(list, jma),
+  }), { changefreq: 'daily', priority: 0.8 });
 }
 
 // ---- 地方 -----------------------------------------------------------
@@ -398,8 +405,13 @@ const regionsWithStations = REGIONS.filter(r => regionStationCount(r.id) > 0
 for (const r of regionsWithStations) {
   const prefs = regionPrefs(r.id).filter(p => !SAMPLE || p.id === 'hiroshima');
   const all = prefs.flatMap(p => prefStations(p.id));
-  write(paths.region(r), regionPage({ r, prefs, count: all.length, allStations: all }),
-    { changefreq: 'weekly', priority: 0.7 });
+  write(paths.region(r), regionPage({
+    r, prefs, count: all.length, allStations: all,
+    profile: areaProfile(all, jma),
+    // 地方ページでは県ごとの干満差を並べて比べられるようにする。
+    prefProfiles: prefs.map(p => ({ p, pf: areaProfile(prefStations(p.id), jma) }))
+      .filter(x => x.pf),
+  }), { changefreq: 'weekly', priority: 0.7 });
 }
 
 // ---- トップ・about --------------------------------------------------
