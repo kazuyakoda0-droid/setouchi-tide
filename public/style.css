@@ -1075,16 +1075,7 @@ ul.flow small, .leaflet-container .leaflet-control-attribution,
    参照デザインと同じく、白いマストヘッドの直下に海景を置き、最初に
    判断する情報だけを見せる。以降の表・根拠・周辺情報は details に残す。
    --------------------------------------------------------------------- */
-html { color-scheme: light; }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #f8f6ef; --panel: #fffefa; --ink: #073a67; --ink2: #456987;
-    --mut: #456987; --dim: #63809a; --line: rgba(7, 58, 103, .24);
-    --line2: rgba(7, 58, 103, .11); --warm: #ef612f; --warm-d: #bd4721;
-    --blue: #073a67;
-  }
-  body, header.site { background: #f8f6ef; color: #073a67; }
-}
+html { color-scheme: light dark; }
 header.site {
   width: 100%; max-width: none; min-height: 100px; padding: 0 clamp(20px, 4vw, 64px);
   color: #073a67; background: #f8f6ef; border-bottom: 0;
@@ -1110,7 +1101,7 @@ header.site {
   background-position: var(--art-position); background-size: cover;
 }
 main { max-width: 1380px; padding-left: clamp(20px, 3vw, 42px); padding-right: clamp(20px, 3vw, 42px); }
-body.ads.station-page main { display: block; max-width: 1380px; }
+body.ads.station-page main { display: block; max-width: 1420px; }
 body.station-page .ad-side { display: none; }
 .crumb { margin-top: 18px; }
 .station-control {
@@ -1133,7 +1124,8 @@ body.station-page .ad-side { display: none; }
 .station-meta .detail { color: #073a67; font-size: 14px; }
 .station-page .lead { margin: 14px 0 16px; color: #456987; }
 .tide-dashboard {
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(270px, 310px); gap: 30px;
+  display: grid; grid-template-columns: minmax(0, 720px) minmax(270px, 300px); gap: 30px;
+  justify-content: center;
   padding: 10px 0 18px; border-bottom: 1px solid rgba(7, 58, 103, .36);
 }
 .tide-dashboard .split-info { min-width: 0; }
@@ -1149,7 +1141,7 @@ body.station-page .ad-side { display: none; }
 .tide-dashboard .stats > div:last-child { border-right: 0; }
 .tide-dashboard .stats .k { color: #456987; }
 .tide-dashboard .stats b { color: #073a67; font-size: 28px; }
-.tide-dashboard .graph { margin-top: 8px; }
+.tide-dashboard .graph { width: 100%; max-width: 720px; margin-top: 8px; }
 .tide-dashboard .graph > svg { font-size: 25px; --gs: 1.47; }
 .tide-aside { border-left: 1px solid rgba(7, 58, 103, .45); padding-left: 26px; }
 .tide-aside-block + .tide-aside-block { margin-top: 18px; padding-top: 18px; border-top: 1px solid rgba(7, 58, 103, .25); }
@@ -1198,4 +1190,91 @@ body.station-page .ad-side { display: none; }
   .tide-aside .wx-grid { grid-template-columns: repeat(3, 1fr); }
   .tide-dashboard .stats b { font-size: 24px; }
   .fold > summary { gap: 8px; }.fold-note { margin-left: auto; text-align: right; }.fold-title { font-size: 16px; }
+}
+
+/* 地点ページは、PCで本文と広告を明確に分ける。本文側には最大幅を設け、
+   潮位グラフが画面いっぱいまで間延びしないようにする。 */
+@media (min-width: 1240px) {
+  body.ads.station-page main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    column-gap: 32px;
+    align-items: start;
+  }
+  body.ads.station-page main > .crumb,
+  body.ads.station-page main > article { grid-column: 1; }
+  body.ads.station-page .ad-side {
+    display: flex;
+    grid-column: 2;
+    grid-row: 2 / span 99;
+    position: sticky;
+    top: 20px;
+    min-height: 600px;
+    margin: 0;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    background: var(--panel);
+  }
+}
+
+/* 版画ヘッダー版でも端末設定に合わせてページ全体を暗くする。前回の
+   強制ライト指定で残っていた紺色・白色の直書きもここで揃える。 */
+@media (prefers-color-scheme: dark) {
+  header.site,
+  body { background: var(--bg); color: var(--ink); }
+  .regional-art {
+    background-color: var(--bg);
+    border-color: var(--line);
+    filter: brightness(.58) saturate(.82) contrast(1.08);
+  }
+  .brand,
+  .brand-ja,
+  .brand-en,
+  .site-nav a,
+  .search-btn,
+  .favorite-nav,
+  .favorite-nav span,
+  .site-phrase,
+  .station-control .st-eyebrow,
+  .station-control .st-hd h1,
+  .station-date,
+  .station-meta .detail,
+  .tide-dashboard .now .lbl,
+  .tide-dashboard .now .val,
+  .tide-dashboard .now .dir,
+  .tide-dashboard .stats b,
+  .tide-aside h2,
+  .map-details summary,
+  .fold > summary { color: var(--ink); }
+  .brand-rule,
+  .station-control,
+  .tide-dashboard,
+  .tide-dashboard .now,
+  .tide-dashboard .stats > div,
+  .tide-aside,
+  .tide-aside-block + .tide-aside-block,
+  .tide-aside .wx-grid > div,
+  .fold { border-color: var(--line); }
+  .site-nav a,
+  .search-btn,
+  .favorite-nav { border-right-color: var(--line); background: transparent; }
+  .search-btn:hover,
+  .favorite-nav:hover { background: rgba(164, 221, 226, .08); }
+  .station-control .tabs { border-color: var(--ink); }
+  .station-control .tab {
+    color: var(--ink);
+    background: var(--panel);
+    border-right-color: var(--ink);
+  }
+  .station-control .tab.on { color: var(--bg); background: var(--ink); }
+  .station-meta,
+  .station-page .lead,
+  .tide-dashboard .now .rate,
+  .tide-dashboard .now .nxt,
+  .tide-dashboard .now .val small,
+  .tide-dashboard .stats .k,
+  .fold-note { color: var(--mut); }
+  .tide-aside .wx-head { background: transparent; }
 }

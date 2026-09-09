@@ -120,12 +120,12 @@ if (SITE.LEAN) {
   SITE.DAYS_FWD = 0;
   SITE.MONTHS_BACK = 0;
   SITE.MONTHS_FWD = 0;
-  // 本文に隣接する graph / footer だけ残し、本文の前に出る header と
-  // PC のサイド枠は落とす。枠が無い slot は空の div になり、CSS の
+  // 本文の横に置く side だけを残す。潮位グラフの直後や折りたたみ一覧の
+  // 末尾に広告を挟むより、PCでは専用のサイド列へ分けたほうが情報を追いやすい。
+  // 枠が無い slot は空の div になり、CSS の
   // .ad:empty で消えるので、テンプレート側は触らなくてよい。
   SITE.ADSENSE_SLOTS = {
-    graph: SITE.ADSENSE_SLOTS.graph,
-    footer: SITE.ADSENSE_SLOTS.footer,
+    side: SITE.ADSENSE_SLOTS.side,
   };
 }
 
