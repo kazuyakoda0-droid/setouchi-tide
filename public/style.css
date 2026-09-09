@@ -715,11 +715,11 @@ table.prefsum .lo small, table.week .wx .tmp, .cal-hd, .cal-w, .cal-s,
 table.week th { font-size: 14px; }
 /* SVG coordinates scale with its responsive viewBox. Raise the source text
    sizes at narrow container widths so their rendered size remains >=14px. */
-@container (max-width: 700px) { .graph > svg { font-size: 20px; --gs: 1.18; } }
+@container (max-width: 700px) { .graph > svg { font-size: 23px; --gs: 1.35; } }
 @container (max-width: 580px) { .graph > svg { font-size: 28px; --gs: 1.65; } }
 @container (max-width: 480px) { .graph > svg { font-size: 36px; --gs: 2.12; } }
-@container (max-width: 400px) { .graph > svg { font-size: 40px; --gs: 2.35; } }
-@container (max-width: 320px) { .graph > svg { font-size: 44px; --gs: 2.59; } }
+@container (max-width: 400px) { .graph > svg { font-size: 41px; --gs: 2.41; } }
+@container (max-width: 320px) { .graph > svg { font-size: 45px; --gs: 2.65; } }
 @media print {
   .regional-art { display: none !important; }
   body, body.ads main { background: #fff; color: #000; }
@@ -1054,4 +1054,10 @@ main { max-width: 960px; }
   header.site { background: #071b22; }
   .regional-art { border-color: var(--line); }
   .now { background: #0b4765; }
+}
+
+@media print {
+  .regional-art { display: none !important; }
+  body, body.ads main { background: #fff !important; color: #000 !important; }
+  main { padding: 0; }
 }
