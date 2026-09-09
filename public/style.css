@@ -1069,3 +1069,133 @@ table.week .hi small, table.week .lo small,
 table.prefsum .hi small, table.prefsum .lo small,
 ul.flow small, .leaflet-container .leaflet-control-attribution,
 .leaflet-tooltip { font-size: 14px; }
+
+/* ---------------------------------------------------------------------
+   版画ヘッダーと情報を畳む地点ページ
+   参照デザインと同じく、白いマストヘッドの直下に海景を置き、最初に
+   判断する情報だけを見せる。以降の表・根拠・周辺情報は details に残す。
+   --------------------------------------------------------------------- */
+html { color-scheme: light; }
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #f8f6ef; --panel: #fffefa; --ink: #073a67; --ink2: #456987;
+    --mut: #456987; --dim: #63809a; --line: rgba(7, 58, 103, .24);
+    --line2: rgba(7, 58, 103, .11); --warm: #ef612f; --warm-d: #bd4721;
+    --blue: #073a67;
+  }
+  body, header.site { background: #f8f6ef; color: #073a67; }
+}
+header.site {
+  width: 100%; max-width: none; min-height: 100px; padding: 0 clamp(20px, 4vw, 64px);
+  color: #073a67; background: #f8f6ef; border-bottom: 0;
+}
+.brand { grid-template-columns: auto 1px 64px; column-gap: 22px; }
+.brand-ja { font-size: clamp(34px, 3.4vw, 52px); color: #073a67; }
+.brand-en { color: #073a67; }
+.brand-rule { height: 68px; background: rgba(7, 58, 103, .42); }
+.brand-mark { width: 64px; height: 64px; }
+.site-nav { align-items: center; gap: 0; }
+.site-nav a, .search-btn, .favorite-nav {
+  min-height: 50px; padding: 0 22px; border: 0; border-right: 1px solid rgba(7, 58, 103, .42);
+  border-radius: 0; background: transparent; box-shadow: none; color: #073a67;
+  font-family: var(--serif); font-size: 17px; letter-spacing: .06em; font-weight: 700;
+}
+.search-btn:hover, .favorite-nav:hover { background: rgba(7, 58, 103, .05); }
+.favorite-nav { cursor: pointer; }
+.favorite-nav span { margin-right: 6px; color: #073a67; }
+.site-phrase { display: block; padding-left: 28px; color: #073a67; font-family: var(--serif); font-size: 14px; font-weight: 700; line-height: 1.55; letter-spacing: .1em; }
+.site-phrase::after { content: ''; display: block; width: 96px; height: 4px; margin-top: 7px; background: #ef612f; }
+.regional-art {
+  height: clamp(155px, 16vw, 235px); border: 0; background-color: #f8f6ef;
+  background-position: var(--art-position); background-size: cover;
+}
+main { max-width: 1380px; padding-left: clamp(20px, 3vw, 42px); padding-right: clamp(20px, 3vw, 42px); }
+body.ads.station-page main { display: block; max-width: 1380px; }
+body.station-page .ad-side { display: none; }
+.crumb { margin-top: 18px; }
+.station-control {
+  display: grid; grid-template-columns: minmax(290px, 1fr) auto minmax(280px, .8fr);
+  align-items: center; gap: 24px; padding: 12px 0 16px; border-bottom: 2px solid rgba(7, 58, 103, .42);
+}
+.station-control .st-hd { margin: 0; }
+.station-control .st-eyebrow { color: #456987; font-size: 16px; font-weight: 700; }
+.station-control .st-hd h1 { color: #073a67; font-size: clamp(32px, 3.25vw, 47px); line-height: 1.15; }
+.station-control .kana { display: none; }
+.station-control .tabs { width: max-content; max-width: none; margin: 0; gap: 0; border: 1px solid #073a67; }
+.station-control .tab { min-width: 90px; flex: 0 0 auto; padding: 9px 16px; border: 0; border-right: 1px solid #073a67; border-radius: 0; color: #073a67; background: #fffefa; }
+.station-control .tab:last-child { border-right: 0; }
+.station-control .tab.on { color: #fffefa; background: #073a67; }
+.station-date { justify-self: end; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 14px 22px; color: #073a67; font-family: var(--serif); font-weight: 700; }
+.station-date .date { font-size: 19px; white-space: nowrap; }
+.station-place { font-size: 16px; white-space: nowrap; }
+.station-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 10px 0 0; color: #456987; }
+.station-meta .shio { margin-left: auto; }
+.station-meta .detail { color: #073a67; font-size: 14px; }
+.station-page .lead { margin: 14px 0 16px; color: #456987; }
+.tide-dashboard {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(270px, 310px); gap: 30px;
+  padding: 10px 0 18px; border-bottom: 1px solid rgba(7, 58, 103, .36);
+}
+.tide-dashboard .split-info { min-width: 0; }
+.tide-dashboard .now {
+  margin: 0; padding: 10px 0; border: 0; border-radius: 0; background: transparent; color: #073a67;
+  border-bottom: 1px solid rgba(7, 58, 103, .26);
+}
+.tide-dashboard .now .lbl, .tide-dashboard .now .val, .tide-dashboard .now .dir { color: #073a67; }
+.tide-dashboard .now .rate, .tide-dashboard .now .nxt, .tide-dashboard .now .val small { color: #456987; }
+.tide-dashboard .stats { margin: 0; border: 0; border-radius: 0; background: transparent; }
+.tide-dashboard .stats > div { padding: 10px 18px 10px 0; border: 0; border-right: 1px solid rgba(7, 58, 103, .36); border-radius: 0; background: transparent; box-shadow: none; text-align: left; }
+.tide-dashboard .stats > div + div { padding-left: 18px; }
+.tide-dashboard .stats > div:last-child { border-right: 0; }
+.tide-dashboard .stats .k { color: #456987; }
+.tide-dashboard .stats b { color: #073a67; font-size: 28px; }
+.tide-dashboard .graph { margin-top: 8px; }
+.tide-dashboard .graph > svg { font-size: 25px; --gs: 1.47; }
+.tide-aside { border-left: 1px solid rgba(7, 58, 103, .45); padding-left: 26px; }
+.tide-aside-block + .tide-aside-block { margin-top: 18px; padding-top: 18px; border-top: 1px solid rgba(7, 58, 103, .25); }
+.tide-aside h2 { margin: 0 0 8px; color: #073a67; font-family: var(--serif); font-size: 18px; }
+.tide-aside h2::before { content: ''; display: inline-block; width: 12px; height: 12px; margin-right: 10px; background: #ef612f; }
+.tide-aside .ext { margin: 0; }
+.tide-aside .ext th, .tide-aside .ext td { padding: 7px 0; }
+.tide-aside .wx-head { padding: 0; background: transparent; }
+.tide-aside .wx-grid { grid-template-columns: repeat(2, 1fr); }
+.tide-aside .wx-grid > div { padding: 8px 0; border: 0; border-bottom: 1px solid rgba(7, 58, 103, .16); border-radius: 0; box-shadow: none; }
+.tide-aside .wx-more, .tide-aside .note { display: none; }
+.map-details { grid-column: 1 / -1; margin: 0; }
+.map-details summary { width: fit-content; padding: 8px 0; color: #073a67; font-size: 14px; font-weight: 700; cursor: pointer; }
+.map-details .map { height: 340px; margin-top: 8px; }
+.fold { margin: 0; border-bottom: 1px solid rgba(7, 58, 103, .42); }
+.fold > summary { display: flex; align-items: center; gap: 14px; min-height: 54px; color: #073a67; cursor: pointer; list-style: none; }
+.fold > summary::-webkit-details-marker { display: none; }
+.fold > summary::before { content: '›'; order: 3; margin-left: auto; font-family: var(--mono); font-size: 30px; font-weight: 400; line-height: 1; transition: transform .16s ease; }
+.fold[open] > summary::before { transform: rotate(90deg); }
+.fold-title { font-family: var(--serif); font-size: 18px; font-weight: 700; }
+.fold-title::before { content: '■'; margin-right: 14px; color: #ef612f; font-size: 16px; }
+.fold-note { color: #456987; font-size: 14px; }
+.fold-body { padding: 0 0 24px; }
+.fold-body .blk { margin: 0; }
+.fold-body .blk-hd { display: none; }
+.fold-body .trip-brief { margin: 0; border-radius: 0; box-shadow: none; }
+@media (max-width: 1200px) {
+  .site-phrase { display: none; }
+  .station-control { grid-template-columns: minmax(0, 1fr) auto; }
+  .station-date { grid-column: 1 / -1; justify-self: stretch; justify-content: space-between; }
+}
+@media (max-width: 699px) {
+  header.site { min-height: 76px; padding: 8px 16px; }
+  .brand { grid-template-columns: auto 1px 42px; }
+  .brand-ja { font-size: 28px; }.brand-mark { width: 42px; height: 42px; }.brand-rule { height: 42px; }
+  .site-nav { margin-left: auto; }.site-nav a, .search-btn, .favorite-nav { min-height: 44px; padding: 0 7px; font-size: 14px; }.favorite-nav { font-size: 0; }.favorite-nav span { margin: 0; font-size: 17px; }
+  .regional-art { height: 132px; }
+  .station-control { display: block; padding: 12px 0; }
+  .station-control .st-hd h1 { font-size: 32px; }
+  .station-control .tabs { width: 100%; max-width: none; margin: 14px 0 10px; }
+  .station-control .tab { min-width: 0; flex: 1 1 0; }
+  .station-date { justify-content: space-between; gap: 6px; }.station-date .date { font-size: 16px; }.station-place { font-size: 14px; }
+  .station-meta .shio { margin-left: 0; }
+  .tide-dashboard { grid-template-columns: 1fr; gap: 18px; }
+  .tide-aside { border-top: 1px solid rgba(7, 58, 103, .42); border-left: 0; padding: 16px 0 0; }
+  .tide-aside .wx-grid { grid-template-columns: repeat(3, 1fr); }
+  .tide-dashboard .stats b { font-size: 24px; }
+  .fold > summary { gap: 8px; }.fold-note { margin-left: auto; text-align: right; }.fold-title { font-size: 16px; }
+}
