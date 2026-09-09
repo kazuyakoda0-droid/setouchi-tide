@@ -50,7 +50,7 @@ for (const f of htmlFiles) {
   for (const m of t.matchAll(/href="(\/[^"#]*)"/g)) {
     let u = m[1];
     if (!u.startsWith(SITE.BASE)) continue;
-    u = u.slice(SITE.BASE.length) || '/';
+    u = (u.slice(SITE.BASE.length).split(/[?#]/, 1)[0]) || '/';
     links++;
     if (!exists.has(decodeURIComponent(u))) broken.set(u, (broken.get(u) || 0) + 1);
   }
