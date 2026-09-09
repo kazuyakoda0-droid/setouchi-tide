@@ -1167,7 +1167,15 @@ body.station-page .ad-side { display: none; }
 .fold-body { padding: 0 0 24px; }
 .fold-body .blk { margin: 0; }
 .fold-body .blk-hd { display: none; }
-.fold-body .trip-brief { margin: 0; border-radius: 0; box-shadow: none; }
+.fold-body .trip-brief {
+  margin: 0; padding: 16px 18px; color: var(--ink); background: var(--panel);
+  border: 1px solid var(--line); border-left: 4px solid var(--warm);
+  border-radius: 0; box-shadow: none;
+}
+.fold-body .trip-brief-title { color: var(--ink); font-size: 17px; }
+.fold-body .trip-brief dt { color: var(--mut); font-size: 14px; }
+.fold-body .trip-brief dd { color: var(--ink2); font-size: 15px; }
+.fold-body .trip-brief > p:last-child { color: var(--mut); font-size: 14px; }
 @media (max-width: 1200px) {
   .site-phrase { display: none; }
   .station-control { grid-template-columns: minmax(0, 1fr) auto; }
