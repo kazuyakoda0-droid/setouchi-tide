@@ -1,5 +1,5 @@
 // =====================================================================
-// Google Fonts (Zen Old Mincho / Zen Kaku Gothic New / DM Mono) を
+// Google Fonts (Kaisei Decol / New Tegomin / Zen Kaku Gothic New / DM Mono) を
 // このサイトが実際に使う文字だけに絞って自前ホストする。
 //
 //   node scripts/subset-fonts.mjs
@@ -34,10 +34,18 @@ const FONTS_DIR = path.join(ROOT, 'public', 'fonts');
 const FONTS_CSS = path.join(ROOT, 'public', 'fonts.css');
 
 const GOOGLE_FONTS_URL = 'https://fonts.googleapis.com/css2?'
-  + 'family=Zen+Old+Mincho:wght@400;500;600;700'
+  + 'family=Kaisei+Decol:wght@400;500;700'
+  + '&family=New+Tegomin'
   + '&family=Zen+Kaku+Gothic+New:wght@400;500;700'
   + '&family=DM+Mono:wght@400;500'
   + '&display=swap';
+
+// ロゴ専用の書体は「しおどき」の4文字しか描画しないので、地点名の漢字まで
+// 落とすと数MB が丸ごと無駄になる。ここに載せた書体だけは、サイト全体の
+// 使用文字ではなく指定の文字だけを含むブロックに絞る。
+const FAMILY_CHARS = {
+  'New Tegomin': 'しおどき',
+};
 
 // woff2 の unicode-range 版CSSが返るのはモダンブラウザ向けレスポンスの
 // ときだけなので、Chrome の User-Agent を指定して取得する。
@@ -136,8 +144,16 @@ const css = await fetchText(GOOGLE_FONTS_URL);
 const blocks = parseFontFaceBlocks(css);
 console.log(`  ${blocks.length} ブロック`);
 
-const keep = blocks.filter((b) => intersects(parseRanges(b.unicodeRange), neededCps));
+const familyCps = new Map(
+  Object.entries(FAMILY_CHARS).map(([fam, s]) => [fam, new Set([...s].map((c) => c.codePointAt(0)))]),
+);
+const keep = blocks.filter((b) => intersects(
+  parseRanges(b.unicodeRange), familyCps.get(b.family) ?? neededCps,
+));
 console.log(`  → 使用文字を含むブロック: ${keep.length}`);
+for (const fam of familyCps.keys()) {
+  console.log(`     (${fam} は「${FAMILY_CHARS[fam]}」のみ: ${keep.filter((b) => b.family === fam).length}ブロック)`);
+}
 
 console.log('フォントファイルをダウンロード中...');
 fs.rmSync(FONTS_DIR, { recursive: true, force: true });
@@ -157,7 +173,7 @@ for (const b of keep) {
 console.log(`\r  ${i}/${keep.length} 完了 (${(totalBytes / 1024).toFixed(0)} KB)`);
 
 console.log('fonts.css を書き出し中...');
-let out = '/* Zen Old Mincho / Zen Kaku Gothic New / DM Mono の自前ホスト版。\n'
+let out = '/* Kaisei Decol / New Tegomin / Zen Kaku Gothic New / DM Mono の自前ホスト版。\n'
   + '   このサイトが実際に使う文字だけに絞ったサブセット。\n'
   + '   scripts/subset-fonts.mjs で再生成する。 */\n\n';
 for (const b of manifest) {

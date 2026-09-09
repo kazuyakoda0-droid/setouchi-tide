@@ -17,10 +17,13 @@
   body::after { bottom: -145px; opacity: .55; }
   .brand { position: absolute; top: 62px; left: 72px; display: flex; align-items: center; gap: 20px; }
   .mark { width: 72px; height: 72px; filter: drop-shadow(0 12px 24px rgba(0,35,42,.25)); }
-  .brand-ja { font-size: 38px; font-weight: 800; letter-spacing: -.03em; }
+  /* サイト本体と同じ「ロゴ=New Tegomin(400のみ)」。太字指定は合成ボールドで
+     木版の線が潰れるので 400 固定、字間で看板らしさを出す。 */
+  .brand-ja { font-family: 'New Tegomin', serif; font-size: 38px; font-weight: 400; letter-spacing: .1em; }
   .brand-en { margin-top: -2px; color: #9debe4; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 500; letter-spacing: .2em; }
   .content { position: absolute; z-index: 2; left: 72px; top: 225px; width: 660px; }
-  h1 { margin: 0; font-size: 62px; font-weight: 800; line-height: 1.2; letter-spacing: -.05em; }
+  /* 見出しは本体と同じ Kaisei Decol。800 は無いので 700。 */
+  h1 { margin: 0; font-family: 'Kaisei Decol', serif; font-size: 62px; font-weight: 700; line-height: 1.25; letter-spacing: .01em; }
   .sub { margin: 24px 0 0; color: rgba(234,255,252,.76); font-size: 21px; font-weight: 500; }
   .tide-card { position: absolute; z-index: 1; right: 58px; top: 104px; width: 420px; height: 360px; padding: 28px; border: 1px solid rgba(255,255,255,.22); border-radius: 30px; background: rgba(2,47,58,.26); box-shadow: 0 25px 65px rgba(0,30,38,.18); backdrop-filter: blur(8px); }
   .tide-card small { color: #a6efe8; font-family: 'DM Mono', monospace; font-size: 14px; letter-spacing: .15em; }
