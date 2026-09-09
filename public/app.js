@@ -156,6 +156,95 @@
   }
 
   // -------------------------------------------------------------------
+  // 1.4 タイドグラフのカーソル読み取り
+  //
+  // カーソルを合わせた位置の時刻と潮位を、縦線・点・ラベルで出す。
+  // 潮位の系列は data-* で持たせず、既に描いてある折れ線 (.tide-line) の
+  // d 属性から読み直す。144点を全ページに二重で書くと 11,000ページぶんの
+  // 総容量に効くうえ、線と数値がずれる余地も作ってしまうため。
+  //
+  // タッチ端末では横方向のドラッグが日送りスワイプと衝突するので、
+  // ホバーを持つポインタ（マウス・トラックパッド）でのみ有効にする。
+  // -------------------------------------------------------------------
+  function graphHover() {
+    var svg = document.querySelector('svg[data-graph]');
+    if (!svg) return;
+    if (window.matchMedia && !window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+
+    var path = svg.querySelector('.tide-line');
+    if (!path || !svg.getScreenCTM) return;
+
+    // "M90,300L96,298.4…" → [[x, y], …]。数値以外を区切りとして読む。
+    var nums = (path.getAttribute('d') || '').match(/-?\d+(?:\.\d+)?/g);
+    if (!nums || nums.length < 4) return;
+    var pts = [];
+    for (var n = 0; n + 1 < nums.length; n += 2) pts.push([+nums[n], +nums[n + 1]]);
+    if (pts.length !== 144) return;
+
+    var y0 = +svg.dataset.y0, y1 = +svg.dataset.y1;
+    var lo = +svg.dataset.lo, hi = +svg.dataset.hi;
+    var x0 = pts[0][0], x1 = pts[pts.length - 1][0];
+    var NS = 'http://www.w3.org/2000/svg';
+
+    // SVG は塗りのある子要素の上でしか pointer イベントが起きない。曲線の
+    // 上の余白でも読み取れるよう、透明な当たり判定を全面に敷く。
+    var hit = document.createElementNS(NS, 'rect');
+    hit.setAttribute('x', 0); hit.setAttribute('y', 0);
+    hit.setAttribute('width', '100%'); hit.setAttribute('height', '100%');
+    hit.setAttribute('fill', 'none');
+    hit.setAttribute('pointer-events', 'all');
+    svg.appendChild(hit);
+
+    var g = document.createElementNS(NS, 'g');
+    g.setAttribute('class', 'hov');
+    g.setAttribute('pointer-events', 'none');
+    var line = document.createElementNS(NS, 'line');
+    line.setAttribute('class', 'hovline');
+    line.setAttribute('y1', y0); line.setAttribute('y2', y1);
+    var dot = document.createElementNS(NS, 'circle');
+    dot.setAttribute('class', 'hovdot');
+    var label = document.createElementNS(NS, 'text');
+    label.setAttribute('class', 'hovlabel');
+    g.appendChild(line); g.appendChild(dot); g.appendChild(label);
+    svg.appendChild(g);
+
+    // ポインタ座標 → viewBox 座標。CSS の拡縮やページのズームに左右されない
+    // よう、getScreenCTM の逆行列で戻す。
+    var pt = svg.createSVGPoint();
+    function toLocal(ev) {
+      pt.x = ev.clientX; pt.y = ev.clientY;
+      var m = svg.getScreenCTM();
+      return m ? pt.matrixTransform(m.inverse()) : null;
+    }
+
+    function move(ev) {
+      var loc = toLocal(ev);
+      if (!loc) return;
+      var i = Math.round((loc.x - x0) / (x1 - x0) * 143);
+      if (i < 0) i = 0; else if (i > 143) i = 143;
+      var x = pts[i][0], y = pts[i][1];
+      var cm = Math.round(lo + (y1 - y) / (y1 - y0) * (hi - lo));
+      var em = parseFloat(getComputedStyle(svg).fontSize) || 17;
+
+      line.setAttribute('x1', x); line.setAttribute('x2', x);
+      dot.setAttribute('cx', x); dot.setAttribute('cy', y);
+      dot.setAttribute('r', (em * 0.3).toFixed(1));
+
+      // 右端では枠外に出るので、ラベルだけ左へ返す。
+      var onRight = x < x1 - em * 7.5;
+      label.setAttribute('x', (x + (onRight ? em * 0.7 : -em * 0.7)).toFixed(1));
+      label.setAttribute('y', Math.min(y1 - em * 0.6, Math.max(y0 + em * 1.2, y - em * 0.9)).toFixed(1));
+      label.setAttribute('text-anchor', onRight ? 'start' : 'end');
+      label.textContent = fmtHM(i / 6) + ' ' + cm + 'cm';
+      g.classList.add('on');
+    }
+
+    svg.style.cursor = 'crosshair';
+    svg.addEventListener('pointermove', move);
+    svg.addEventListener('pointerleave', function () { g.classList.remove('on'); });
+  }
+
+  // -------------------------------------------------------------------
   // 1.5 タイドグラフの日送りスワイプ
   //
   // グラフそのものを画像にせず日別ページを持たせているため、左右スワイプは
@@ -830,6 +919,7 @@
 
   function init() {
     run('currentTide', currentTide);
+    run('graphHover', graphHover);
     run('graphSwipe', graphSwipe);
     run('maps', maps);
     run('thresholdMode', thresholdMode);

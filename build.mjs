@@ -351,6 +351,9 @@ for (const st of stations) {
     const monthEndMs = addDays(m, dim - 1);
     write(paths.month(st, ym), monthPage({
       st, ym, cells,
+      // タブ横の予報リンクが府県予報区コードを使う。月間ページは天気そのものは
+      // 載せないので、この fc から読むのはコードだけ。
+      fc: forecastFor(st, todayKey),
       prev: inRange(pm) ? { href: paths.month(st, monthKeyOf(pm)), label: `${new Date(pm).getUTCMonth() + 1}月` } : null,
       next: inRange(nm) ? { href: paths.month(st, monthKeyOf(nm)), label: `${new Date(nm).getUTCMonth() + 1}月` } : null,
       months: monthList.map(x => ({

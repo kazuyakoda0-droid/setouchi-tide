@@ -23,7 +23,13 @@
   --blue: #087b8f;
   --red: #d95750;
   --th: #278f75;
-  --serif: 'Zen Kaku Gothic New', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', sans-serif;
+  /* 見出し系。この定義は下の「Approved coastal-print header system」の
+     :root(1040行付近)に上書きされるので、実効値はそちらと揃えてある。 */
+  --serif: 'Kaisei Decol', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+  /* ロゴ「しおどき」専用。木版の刷り味を持つ New Tegomin は 400 の
+     1ウェイトしか無いため、使う側で font-weight: 400 を明示すること
+     (太字指定すると合成ボールドで木版の線が潰れる)。 */
+  --display: 'New Tegomin', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
   --sans: 'Zen Kaku Gothic New', system-ui, sans-serif;
   --mono: 'DM Mono', ui-monospace, monospace;
   --pad: 16px;
@@ -119,7 +125,7 @@ header.site {
 .brand { display: flex; align-items: center; gap: 8px; color: var(--ink); }
 .brand:hover { text-decoration: none; }
 .brand-mark { width: 22px; height: 22px; flex: 0 0 auto; }
-.brand-ja { font-family: var(--serif); font-weight: 600; font-size: 20px; letter-spacing: .04em; }
+.brand-ja { font-family: var(--display); font-weight: 400; font-size: 20px; letter-spacing: .08em; }
 .brand-en {
   font-family: var(--mono); font-size: 11.5px; letter-spacing: .14em;
   text-transform: uppercase; color: var(--dim); display: none;
@@ -262,6 +268,20 @@ main { padding: 0 var(--pad); max-width: 780px; margin: 0 auto; }
 
 /* ---------- タブ / ページャ ---------- */
 .tabs { display: flex; gap: 6px; margin: 18px 0 14px; }
+/* 表示モードのタブと、その右に並ぶ予報ボタン。狭い幅ではボタンが下へ折り返す。 */
+.tabs-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 18px 0 14px; }
+/* .tabs は元は横幅いっぱいのブロックで、.tab { flex: 1 } が等分に広がる。
+   flex アイテムになると内容幅まで縮んでラベルが折り返すので、
+   従来と同じ 420px までの伸びしろをここで戻す。 */
+.tabs-row .tabs { margin: 0; flex: 1 1 320px; max-width: 420px; }
+.fclinks { display: flex; flex: 0 0 auto; gap: 8px; }
+.fclink {
+  display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px;
+  border: 1px solid var(--line); border-radius: 3px;
+  color: var(--ink2); font-size: 14px; white-space: nowrap;
+}
+.fclink:hover { text-decoration: none; background: var(--panel); }
+.fc-icon { width: 18px; height: 18px; flex: 0 0 auto; color: var(--blue); }
 .tab {
   flex: 1; text-align: center; padding: 9px 4px;
   font-size: 15.5px; border: 1px solid var(--line); border-radius: 3px;
@@ -369,6 +389,11 @@ main { padding: 0 var(--pad); max-width: 780px; margin: 0 auto; }
 .graph .nowline { stroke: var(--warm); stroke-width: .12em; stroke-dasharray: 5 4; }
 .graph .nowdot { fill: var(--warm); stroke: var(--panel); stroke-width: .12em; }
 .graph .nowlabel { fill: var(--warm-d); font-family: var(--sans); font-weight: 700; paint-order: stroke; stroke: var(--panel); stroke-width: .3em; stroke-linejoin: round; }
+.graph .hov { opacity: 0; transition: opacity .1s ease; }
+.graph .hov.on { opacity: 1; }
+.graph .hovline { stroke: var(--blue); stroke-width: .1em; stroke-dasharray: 4 4; }
+.graph .hovdot { fill: var(--blue); stroke: var(--panel); stroke-width: .1em; }
+.graph .hovlabel { fill: var(--blue); font-family: var(--mono); font-weight: 700; paint-order: stroke; stroke: var(--panel); stroke-width: .3em; stroke-linejoin: round; }
 .graph .night { fill: var(--graph-night); }
 .graph .grid-ln, .graph .grid-tick { stroke-width: .06em; }
 .graph .grid-ln { stroke: var(--graph-grid); }
@@ -824,6 +849,9 @@ body.home-page main { max-width: 1180px; }
 .fav-toggle { min-height: 34px; padding-inline: 12px; }
 
 .tabs { gap: 9px; margin-top: 12px; margin-bottom: 10px; }
+.tabs-row { margin-top: 12px; margin-bottom: 10px; }
+.fclink { border-radius: 999px; border-color: var(--line); color: var(--mut); }
+.fclink:hover { background: #eaf7f5; }
 .tab { border-radius: 999px; border-color: var(--line); color: var(--mut); }
 .tab:hover { background: #eaf7f5; }
 .tab.on { background: var(--blue); border-color: var(--blue); color: #fff; box-shadow: 0 8px 20px rgba(8, 123, 143, .18); }
@@ -1017,13 +1045,20 @@ body.wave-watermark::after { display: none; }
   --bg: #f8f6ef; --panel: #fffefa; --ink: #073a67; --ink2: #456987;
   --mut: #456987; --dim: #63809a; --line: rgba(7, 58, 103, .24);
   --line2: rgba(7, 58, 103, .11); --warm: #ef612f; --warm-d: #bd4721;
-  --blue: #073a67; --serif: 'Yu Mincho', 'Hiragino Mincho ProN', serif;
+  --blue: #073a67;
+  /* 見出しは Kaisei Decol(解星デコール)。角を丸めた明朝で、
+     ロゴの木版(New Tegomin)と同じ「刷り物」の系統に揃う。
+     400/500/700 の3段しか無いので、見出し側は 700 に統一している。 */
+  --serif: 'Kaisei Decol', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
 }
 body { background: var(--bg); background-image: none; font-size: 18px; line-height: 1.65; }
 header.site { position: relative; min-height: 96px; max-width: 1380px; margin: 0 auto; padding: 0 32px; background: #f8f6ef; border: 0; box-shadow: none; backdrop-filter: none; }
 .brand { display: grid; grid-template-columns: auto 1px 58px; grid-template-rows: auto auto; align-items: center; column-gap: 18px; }
 .brand-mark { grid-column: 3; grid-row: 1 / 3; width: 58px; height: 58px; }
-.brand-ja { grid-column: 1; grid-row: 1; font-family: var(--serif); font-size: 40px; font-weight: 800; line-height: 1; letter-spacing: .09em; }
+/* ロゴだけ New Tegomin。400 しか無い書体なので font-weight は 400 固定
+   (以前の 800 のままだと合成ボールドがかかり木版の線が潰れる)。
+   線が細くなる分、字間を .09em → .13em に開いて看板らしさを出す。 */
+.brand-ja { grid-column: 1; grid-row: 1; font-family: var(--display); font-size: 40px; font-weight: 400; line-height: 1; letter-spacing: .13em; }
 .brand-en { grid-column: 1; grid-row: 2; justify-self: center; display: inline; margin-top: 7px; padding-left: 0; border-left: 0; font-family: var(--sans); font-size: 14px; font-weight: 800; letter-spacing: .32em; }
 .brand-rule { grid-column: 2; grid-row: 1 / 3; width: 1px; height: 58px; background: var(--line); }
 .site-nav { gap: 0; }
@@ -1036,7 +1071,13 @@ main { max-width: 960px; }
 .st-hd::after { display: none; }
 .st-hd h1, .home-hd h1, .prose h1 { font-family: var(--serif); font-size: clamp(30px, 4vw, 46px); font-weight: 700; letter-spacing: .04em; }
 .prose p, .prose li { font-size: 18px; line-height: 1.7; }
-.blk-hd h2 { font-family: var(--serif); }
+/* 896行のゴシック前提の指定(800 / letter-spacing -.02em)をここで打ち消す。
+   Kaisei Decol に 800 は無く、そのままだと合成ボールドで丸みが潰れる。
+   詰め気味の字間も明朝には合わないので正の値に戻す。 */
+.blk-hd h2 { font-family: var(--serif); font-weight: 700; letter-spacing: .03em; }
+/* 小見出しも762行の一括ゴシック化に巻き込まれていたので明朝に戻す。
+   Kaisei Decol に 600 は無いため 500 を指定する(700 では h2 と並ぶ)。 */
+h3.sub { font-family: var(--serif); font-weight: 500; letter-spacing: .03em; }
 .now { background: #073a67; border-radius: 0; box-shadow: none; }
 .graph, .stats > div, .now, .sm, .th-ctl, ul.flow li, ul.stlist li, ul.guide-list li { border-radius: 0; box-shadow: none; }
 @media (max-width: 1000px) { .regional-art { height: 190px; } }
@@ -1116,6 +1157,17 @@ body.station-page .ad-side { display: none; }
 .station-control .tab { min-width: 90px; flex: 0 0 auto; padding: 9px 16px; border: 0; border-right: 1px solid #073a67; border-radius: 0; color: #073a67; background: #fffefa; }
 .station-control .tab:last-child { border-right: 0; }
 .station-control .tab.on { color: #fffefa; background: #073a67; }
+/* 地点ハブは中央の列が狭く、タブと予報ボタンが一列に収まらない。横に
+   並べようとして折り返すと段の幅がばらついて見えるので、ここでは初めから
+   2段に積み、下段の2つで上段のタブ3つと同じ幅を分け合わせる。
+   .tabs は内容幅で囲み罫を締めるため flex-grow を打ち消す。 */
+.station-control .tabs-row { margin: 0; flex-direction: column; align-items: stretch; row-gap: 8px; }
+.station-control .tabs-row .tabs { flex: 0 0 auto; }
+.station-control .fclinks { display: grid; grid-template-columns: 1fr 1fr; }
+.station-control .fclink { justify-content: center; }
+.station-control .fclink { padding: 9px 13px; border-color: #073a67; border-radius: 0; color: #073a67; background: #fffefa; }
+.station-control .fclink:hover { background: #eaf3fb; }
+.station-control .fc-icon { color: #ef612f; }
 .station-date { justify-self: end; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 14px 22px; color: #073a67; font-family: var(--serif); font-weight: 700; }
 .station-date .date { font-size: 19px; white-space: nowrap; }
 .station-place { font-size: 16px; white-space: nowrap; }
@@ -1151,7 +1203,11 @@ body.station-page .ad-side { display: none; }
 .tide-aside .ext th, .tide-aside .ext td { padding: 7px 0; }
 .tide-aside .wx-head { padding: 0; background: transparent; }
 .tide-aside .wx-grid { grid-template-columns: repeat(2, 1fr); }
-.tide-aside .wx-grid > div { padding: 8px 0; border: 0; border-bottom: 1px solid rgba(7, 58, 103, .16); border-radius: 0; box-shadow: none; }
+/* 横に細い欄なので、本文側の 40px の左余白は落としている。ただし
+   .wx-metric-icon は absolute のままなので、余白を消すとアイコンが数値の
+   上に乗る。アイコン用の余白だけ残し、ラベル行の頭に合わせて置き直す。 */
+.tide-aside .wx-grid > div { padding: 8px 0 8px 22px; border: 0; border-bottom: 1px solid rgba(7, 58, 103, .16); border-radius: 0; box-shadow: none; }
+.tide-aside .wx-metric-icon { top: 10px; left: 0; width: 16px; height: 16px; transform: none; }
 .tide-aside .wx-more, .tide-aside .note { display: none; }
 .map-details { grid-column: 1 / -1; margin: 0; }
 .map-details summary { width: fit-content; padding: 8px 0; color: #073a67; font-size: 14px; font-weight: 700; cursor: pointer; }
@@ -1190,6 +1246,10 @@ body.station-page .ad-side { display: none; }
   .station-control { display: block; padding: 12px 0; }
   .station-control .st-hd h1 { font-size: 32px; }
   .station-control .tabs { width: 100%; max-width: none; margin: 14px 0 10px; }
+  /* 縦積みの外側の余白は .tabs-row が持つ。タブ自身の margin が残ると
+     タブと予報ボタンの間だけ広がる。 */
+  .station-control .tabs-row { margin: 14px 0 10px; }
+  .station-control .tabs-row .tabs { margin: 0; }
   .station-control .tab { min-width: 0; flex: 1 1 0; }
   .station-date { justify-content: space-between; gap: 6px; }.station-date .date { font-size: 16px; }.station-place { font-size: 14px; }
   .station-meta .shio { margin-left: 0; }
@@ -1277,6 +1337,8 @@ body.station-page .ad-side { display: none; }
     border-right-color: var(--ink);
   }
   .station-control .tab.on { color: var(--bg); background: var(--ink); }
+  .station-control .fclink { border-color: var(--line); color: var(--ink2); background: var(--panel); }
+  .station-control .fclink:hover { background: rgba(164, 221, 226, .08); }
   .station-meta,
   .station-page .lead,
   .tide-dashboard .now .rate,
