@@ -1061,3 +1061,11 @@ main { max-width: 960px; }
   body, body.ads main { background: #fff !important; color: #000 !important; }
   main { padding: 0; }
 }
+
+/* Do not let inherited unit labels undercut the 14px mobile reading floor. */
+main small { font-size: max(.8333em, 14px); }
+.wd, table.week thead th, table.prefsum thead th,
+table.week .hi small, table.week .lo small,
+table.prefsum .hi small, table.prefsum .lo small,
+ul.flow small, .leaflet-container .leaflet-control-attribution,
+.leaflet-tooltip { font-size: 14px; }
