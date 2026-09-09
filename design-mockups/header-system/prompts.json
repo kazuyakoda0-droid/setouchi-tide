@@ -1,0 +1,42 @@
+{
+  "tool": "built-in image_gen",
+  "styleReference": "prototype/hiroshima/assets/setouchi-print-header.png",
+  "prompts": [
+    {
+      "id": "hokkaido",
+      "prompt": "Use case: illustration-story. Create one production website header panorama at 2172x724 or similar 3:1 landscape ratio. Input image is a STYLE REFERENCE only; produce a new coherent scene. Match its Japanese coastal woodcut/linocut print aesthetic closely: warm off-white paper, rich indigo navy and muted blue carved hatching, vermilion orange sun and sparse orange reflection, tactile irregular ink. Calm restrained editorial composition. Horizon around 45 percent height; subjects across central band so a shallow desktop crop remains attractive. Generous off-white sky upper quarter; carved water lower third. No lettering, logos, border, captions, map, collage or inset. One image only. Scene: a northern Japanese fishing coast, broad rugged headland, low harbor buildings, fishing boat, windswept conifers, distant mountains"
+    },
+    {
+      "id": "tohoku",
+      "prompt": "Use case: illustration-story. Create one production website header panorama at 2172x724 or similar 3:1 landscape ratio. Input image is a STYLE REFERENCE only; produce a new coherent scene. Match its Japanese coastal woodcut/linocut print aesthetic closely: warm off-white paper, rich indigo navy and muted blue carved hatching, vermilion orange sun and sparse orange reflection, tactile irregular ink. Calm restrained editorial composition. Horizon around 45 percent height; subjects across central band so a shallow desktop crop remains attractive. Generous off-white sky upper quarter; carved water lower third. No lettering, logos, border, captions, map, collage or inset. One image only. Scene: Sanriku-inspired deeply indented ria coastline, steep forested headlands and pine islets, small fishing boat in sheltered cove"
+    },
+    {
+      "id": "kanto",
+      "prompt": "Use case: illustration-story. Create one production website header panorama at 2172x724 or similar 3:1 landscape ratio. Input image is a STYLE REFERENCE only; produce a new coherent scene. Match its Japanese coastal woodcut/linocut print aesthetic closely: warm off-white paper, rich indigo navy and muted blue carved hatching, vermilion orange sun and sparse orange reflection, tactile irregular ink. Calm restrained editorial composition. Horizon around 45 percent height; subjects across central band so a shallow desktop crop remains attractive. Generous off-white sky upper quarter; carved water lower third. No lettering, logos, border, captions, map, collage or inset. One image only. Scene: a broad Pacific bay, low coastal headland and small fishing harbor, distant gentle mountain silhouettes, modest lighthouse at right"
+    },
+    {
+      "id": "chubu",
+      "prompt": "Use case: illustration-story. Create one production website header panorama at 2172x724 or similar 3:1 landscape ratio. Input image is a STYLE REFERENCE only; produce a new coherent scene. Match its Japanese coastal woodcut/linocut print aesthetic closely: warm off-white paper, rich indigo navy and muted blue carved hatching, vermilion orange sun and sparse orange reflection, tactile irregular ink. Calm restrained editorial composition. Horizon around 45 percent height; subjects across central band so a shallow desktop crop remains attractive. Generous off-white sky upper quarter; carved water lower third. No lettering, logos, border, captions, map, collage or inset. One image only. Scene: central Japan coastal bay with distant high mountain ridgeline and one broad triangular peak, pine-clad peninsula and fishing vessels"
+    },
+    {
+      "id": "kinki",
+      "prompt": "Use case: illustration-story. Create one production website header panorama at 2172x724 or similar 3:1 landscape ratio. Input image is a STYLE REFERENCE only; produce a new coherent scene. Match its Japanese coastal woodcut/linocut print aesthetic closely: warm off-white paper, rich indigo navy and muted blue carved hatching, vermilion orange sun and sparse orange reflection, tactile irregular ink. Calm restrained editorial composition. Horizon around 45 percent height; subjects across central band so a shallow desktop crop remains attractive. Generous off-white sky upper quarter; carved water lower third. No lettering, logos, border, captions, map, collage or inset. One image only. Scene: Kii-inspired rugged rocky coast, pine-covered headland, small lighthouse, distant low islands and a fishing vessel"
+    },
+    {
+      "id": "shikoku",
+      "prompt": "Use case: illustration-story. Create one production website header panorama at 2172x724 or similar 3:1 landscape ratio. Input image is a STYLE REFERENCE only; produce a new coherent scene. Match its Japanese coastal woodcut/linocut print aesthetic closely: warm off-white paper, rich indigo navy and muted blue carved hatching, vermilion orange sun and sparse orange reflection, tactile irregular ink. Calm restrained editorial composition. Horizon around 45 percent height; subjects across central band so a shallow desktop crop remains attractive. Generous off-white sky upper quarter; carved water lower third. No lettering, logos, border, captions, map, collage or inset. One image only. Scene: a Shikoku-inspired long Pacific cape with low white lighthouse, layered forested hills, rocky foreshore and broad sea"
+    },
+    {
+      "id": "kyushu",
+      "prompt": "Use case: illustration-story. Create one production website header panorama at 2172x724 or similar 3:1 landscape ratio. Input image is a STYLE REFERENCE only; produce a new coherent scene. Match its Japanese coastal woodcut/linocut print aesthetic closely: warm off-white paper, rich indigo navy and muted blue carved hatching, vermilion orange sun and sparse orange reflection, tactile irregular ink. Calm restrained editorial composition. Horizon around 45 percent height; subjects across central band so a shallow desktop crop remains attractive. Generous off-white sky upper quarter; carved water lower third. No lettering, logos, border, captions, map, collage or inset. One image only. Scene: a southern Japanese bay with broad volcanic mountain silhouette far away, small rounded coastal islands and a working fishing boat"
+    },
+    {
+      "id": "okinawa",
+      "prompt": "Use case: illustration-story. Create one production website header panorama at 2172x724 or similar 3:1 landscape ratio. Input image is a STYLE REFERENCE only; produce a new coherent scene. Match its Japanese coastal woodcut/linocut print aesthetic closely: warm off-white paper, rich indigo navy and muted blue carved hatching, vermilion orange sun and sparse orange reflection, tactile irregular ink. Calm restrained editorial composition. Horizon around 45 percent height; subjects across central band so a shallow desktop crop remains attractive. Generous off-white sky upper quarter; carved water lower third. No lettering, logos, border, captions, map, collage or inset. One image only. Scene: a subtropical Japanese coast with low coral limestone islets, pandanus trees at edge, broad shallow reef and a small traditional fishing boat"
+    },
+    {
+      "id": "national",
+      "prompt": "Use case: illustration-story. Create one production website header panorama at 2172x724 or similar 3:1 landscape ratio. Input image is a STYLE REFERENCE only; produce a new coherent scene. Match its Japanese coastal woodcut/linocut print aesthetic closely: warm off-white paper, rich indigo navy and muted blue carved hatching, vermilion orange sun and sparse orange reflection, tactile irregular ink. Calm restrained editorial composition. Horizon around 45 percent height; subjects across central band so a shallow desktop crop remains attractive. Generous off-white sky upper quarter; carved water lower third. No lettering, logos, border, captions, map, collage or inset. One image only. Scene: a geographically neutral Japanese coastal panorama, layered small islands and headlands, one fishing boat, spacious gently rippling sea"
+    }
+  ]
+}

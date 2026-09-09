@@ -1,0 +1,106 @@
+{
+  "version": 1,
+  "default": "national",
+  "assets": {
+    "hokkaido": {
+      "label": "北海道",
+      "src": "/assets/headers/hokkaido.webp",
+      "position": "center 55%",
+      "mobilePosition": "center 55%",
+      "scene": "a northern Japanese fishing coast, broad rugged headland, low harbor buildings, fishing boat, windswept conifers, distant mountains"
+    },
+    "tohoku": {
+      "label": "東北",
+      "src": "/assets/headers/tohoku.webp",
+      "position": "center 55%",
+      "mobilePosition": "center 55%",
+      "scene": "Sanriku-inspired deeply indented ria coastline, steep forested headlands and pine islets, small fishing boat in sheltered cove"
+    },
+    "kanto": {
+      "label": "関東",
+      "src": "/assets/headers/kanto.webp",
+      "position": "center 55%",
+      "mobilePosition": "center 55%",
+      "scene": "a broad Pacific bay, low coastal headland and small fishing harbor, distant gentle mountain silhouettes, modest lighthouse at right"
+    },
+    "chubu": {
+      "label": "中部",
+      "src": "/assets/headers/chubu.webp",
+      "position": "center 55%",
+      "mobilePosition": "center 55%",
+      "scene": "central Japan coastal bay with distant high mountain ridgeline and one broad triangular peak, pine-clad peninsula and fishing vessels"
+    },
+    "kinki": {
+      "label": "近畿",
+      "src": "/assets/headers/kinki.webp",
+      "position": "center 55%",
+      "mobilePosition": "center 55%",
+      "scene": "Kii-inspired rugged rocky coast, pine-covered headland, small lighthouse, distant low islands and a fishing vessel"
+    },
+    "shikoku": {
+      "label": "四国",
+      "src": "/assets/headers/shikoku.webp",
+      "position": "center 55%",
+      "mobilePosition": "center 55%",
+      "scene": "a Shikoku-inspired long Pacific cape with low white lighthouse, layered forested hills, rocky foreshore and broad sea"
+    },
+    "kyushu": {
+      "label": "九州",
+      "src": "/assets/headers/kyushu.webp",
+      "position": "center 55%",
+      "mobilePosition": "center 55%",
+      "scene": "a southern Japanese bay with broad volcanic mountain silhouette far away, small rounded coastal islands and a working fishing boat"
+    },
+    "okinawa": {
+      "label": "沖縄",
+      "src": "/assets/headers/okinawa.webp",
+      "position": "center 55%",
+      "mobilePosition": "center 55%",
+      "scene": "a subtropical Japanese coast with low coral limestone islets, pandanus trees at edge, broad shallow reef and a small traditional fishing boat"
+    },
+    "national": {
+      "label": "全国・案内",
+      "src": "/assets/headers/national.webp",
+      "position": "center 55%",
+      "mobilePosition": "center 55%",
+      "scene": "a geographically neutral Japanese coastal panorama, layered small islands and headlands, one fishing boat, spacious gently rippling sea"
+    },
+    "chugoku": {
+      "label": "中国",
+      "src": "/assets/headers/chugoku.webp",
+      "position": "center 57%",
+      "mobilePosition": "center 57%",
+      "scene": "Approved Setouchi print reused unchanged"
+    }
+  },
+  "regionMap": {
+    "hokkaido": "hokkaido",
+    "tohoku": "tohoku",
+    "kanto": "kanto",
+    "chubu": "chubu",
+    "kinki": "kinki",
+    "chugoku": "chugoku",
+    "shikoku": "shikoku",
+    "kyushu": "kyushu"
+  },
+  "prefectureOverrides": {
+    "okinawa": "okinawa"
+  },
+  "stationRule": "Resolve station.pref through PREFS.region, then apply prefectureOverrides",
+  "sharedPages": [
+    "home",
+    "guideIndex",
+    "guide",
+    "activityIndex",
+    "activity",
+    "about",
+    "privacy",
+    "notFound"
+  ],
+  "dimensions": {
+    "desktopHeight": 235,
+    "tabletHeight": 190,
+    "mobileHeight": 132
+  },
+  "implementation": "Use asset() helper to convert src; artwork below masthead, before breadcrumbs, decorative only."
+}

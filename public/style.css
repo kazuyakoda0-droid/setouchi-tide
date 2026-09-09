@@ -699,6 +699,32 @@ body {
     radial-gradient(circle at 2% 42%, rgba(255, 167, 118, .09), transparent 24rem);
   font-family: var(--sans);
 }
+
+/* Secondary labels remain legible on a phone; data tables can scroll instead
+   of shrinking their text below the approved 14px floor. */
+.search-sub, .search-results .pf, .copy, .fav-toggle, .home-hd h1 .en,
+.home-locate-status, .home-saved h2, .home-saved .pf, .home-purpose > span,
+.home-purpose a, .badge, .month-chip small, .trip-brief dt,
+.trip-brief > p:last-child, .now .lbl, .stats .k, .stats b small,
+.graph-hint, table.ext .v small, .blk-hd .en, .note, .tdcell,
+.sm-hd .en, .mn-age, .wx-grid .k, .wx-grid .v small, .wx-rel,
+.wx-txt dt, table.prefsum th, table.prefsum .hi small,
+table.prefsum .lo small, table.week .wx .tmp, .cal-hd, .cal-w, .cal-s,
+.cal-ex, ul.stlist .kn, ul.stlist .nt, ul.extlinks .arrow, .note-inline,
+.rc, .tbtn { font-size: 14px; }
+table.week th { font-size: 14px; }
+/* SVG coordinates scale with its responsive viewBox. Raise the source text
+   sizes at narrow container widths so their rendered size remains >=14px. */
+@container (max-width: 700px) { .graph > svg { font-size: 20px; --gs: 1.18; } }
+@container (max-width: 580px) { .graph > svg { font-size: 28px; --gs: 1.65; } }
+@container (max-width: 480px) { .graph > svg { font-size: 36px; --gs: 2.12; } }
+@container (max-width: 400px) { .graph > svg { font-size: 40px; --gs: 2.35; } }
+@container (max-width: 320px) { .graph > svg { font-size: 44px; --gs: 2.59; } }
+@media print {
+  .regional-art { display: none !important; }
+  body, body.ads main { background: #fff; color: #000; }
+  main { padding: 0; }
+}
 header.site {
   min-height: 70px;
   padding-top: 11px;
@@ -983,4 +1009,49 @@ body.wave-watermark::after { display: none; }
   .split > * + * { margin-top: 16px; }
   table, .tdgrid { page-break-inside: avoid; }
   h1, h2, h3 { page-break-after: avoid; }
+}
+
+/* Approved coastal-print header system. Art remains decorative; page identity
+   and tide data start below it in the normal document flow. */
+:root {
+  --bg: #f8f6ef; --panel: #fffefa; --ink: #073a67; --ink2: #456987;
+  --mut: #456987; --dim: #63809a; --line: rgba(7, 58, 103, .24);
+  --line2: rgba(7, 58, 103, .11); --warm: #ef612f; --warm-d: #bd4721;
+  --blue: #073a67; --serif: 'Yu Mincho', 'Hiragino Mincho ProN', serif;
+}
+body { background: var(--bg); background-image: none; font-size: 18px; line-height: 1.65; }
+header.site { position: relative; min-height: 96px; max-width: 1380px; margin: 0 auto; padding: 0 32px; background: #f8f6ef; border: 0; box-shadow: none; backdrop-filter: none; }
+.brand { display: grid; grid-template-columns: auto 1px 58px; grid-template-rows: auto auto; align-items: center; column-gap: 18px; }
+.brand-mark { grid-column: 3; grid-row: 1 / 3; width: 58px; height: 58px; }
+.brand-ja { grid-column: 1; grid-row: 1; font-family: var(--serif); font-size: 40px; font-weight: 800; line-height: 1; letter-spacing: .09em; }
+.brand-en { grid-column: 1; grid-row: 2; justify-self: center; display: inline; margin-top: 7px; padding-left: 0; border-left: 0; font-family: var(--sans); font-size: 14px; font-weight: 800; letter-spacing: .32em; }
+.brand-rule { grid-column: 2; grid-row: 1 / 3; width: 1px; height: 58px; background: var(--line); }
+.site-nav { gap: 0; }
+.site-nav a, .search-btn { min-height: 44px; padding: 0 16px; border: 0; border-right: 1px solid var(--line); border-radius: 0; background: transparent; box-shadow: none; color: var(--ink); font-size: 14px; font-weight: 700; }
+.site-nav a:last-child { border-right: 0; }
+.regional-art { height: 235px; border-top: 1px solid var(--line2); border-bottom: 1px solid var(--line); background-color: #f0ede4; background-position: var(--art-position); background-size: cover; }
+main { max-width: 960px; }
+.crumb { margin-top: 24px; }
+.st-hd, .home-hd { border: 0; border-radius: 0; box-shadow: none; background: transparent; padding: 0; }
+.st-hd::after { display: none; }
+.st-hd h1, .home-hd h1, .prose h1 { font-family: var(--serif); font-size: clamp(30px, 4vw, 46px); font-weight: 700; letter-spacing: .04em; }
+.prose p, .prose li { font-size: 18px; line-height: 1.7; }
+.blk-hd h2 { font-family: var(--serif); }
+.now { background: #073a67; border-radius: 0; box-shadow: none; }
+.graph, .stats > div, .now, .sm, .th-ctl, ul.flow li, ul.stlist li, ul.guide-list li { border-radius: 0; box-shadow: none; }
+@media (max-width: 1000px) { .regional-art { height: 190px; } }
+@media (max-width: 699px) {
+  header.site { min-height: 76px; padding: 0 16px; flex-wrap: wrap; align-content: center; gap: 4px 12px; }
+  .brand { grid-template-columns: auto 1px 42px; column-gap: 12px; }.brand-ja { font-size: 28px; }.brand-en { font-size: 14px; margin-top: 4px; }
+  .brand-mark { width: 42px; height: 42px; }.brand-rule { height: 42px; }.site-nav { margin-left: auto; }
+  .site-nav a, .search-btn { min-height: 44px; padding: 0 6px; }.search-btn-t { display: inline; }
+  .regional-art { height: 132px; background-position: center 55%; } main { padding: 0 16px; }.crumb { margin-top: 16px; }
+}
+@media (max-width: 430px) { .brand-en { display: none; }.brand { grid-template-rows: auto; }.brand-ja { grid-row: 1; }.brand-mark { grid-row: 1; }.brand-rule { grid-row: 1; }.site-nav a, .search-btn { font-size: 14px; padding: 0 5px; } }
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #071b22; --panel: #0e2932; --ink: #effafb; --ink2: #c5dadd; --mut: #a6c0c5; --dim: #91abb0; --line: rgba(164, 221, 226, .18); --line2: rgba(164, 221, 226, .09); --blue: #8cdae1; --warm: #ff8a6e; --warm-d: #ffad98; }
+  body { background: var(--bg); }
+  header.site { background: #071b22; }
+  .regional-art { border-color: var(--line); }
+  .now { background: #0b4765; }
 }
