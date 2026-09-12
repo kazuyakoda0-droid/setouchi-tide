@@ -7,8 +7,9 @@
      1. 現在時刻の潮位マーカー（当日ページのみ）
      2. 地図（トップ・地方・都道府県ページのみ）
      3. 潮干狩り/磯遊びしきい値ハイライト（10分毎グリッド・月間カレンダー）
-     4. 地点検索・最近見た地点（全ページ共通のヘッダー）
-     5. 表のコピー / CSV 書き出し
+     4. サーフモード（好みの潮位帯・上げ下げ・日中の候補時間）
+     5. 地点検索・最近見た地点（全ページ共通のヘッダー）
+     6. 表のコピー / CSV 書き出し
 
    気象・海象はここには無い。気象庁の天気予報をビルド時に取得して
    HTML に焼き込んでいる（lib/forecast.mjs）。閲覧者のブラウザから
@@ -156,20 +157,21 @@
   }
 
   // -------------------------------------------------------------------
-  // 1.4 タイドグラフのカーソル読み取り
+  // 1.4 タイドグラフの位置読み取り
   //
-  // カーソルを合わせた位置の時刻と潮位を、縦線・点・ラベルで出す。
+  // カーソルを合わせるかタップした位置の時刻と潮位を、縦線・点・
+  // ラベルで出す。
   // 潮位の系列は data-* で持たせず、既に描いてある折れ線 (.tide-line) の
   // d 属性から読み直す。144点を全ページに二重で書くと 11,000ページぶんの
   // 総容量に効くうえ、線と数値がずれる余地も作ってしまうため。
   //
-  // タッチ端末では横方向のドラッグが日送りスワイプと衝突するので、
-  // ホバーを持つポインタ（マウス・トラックパッド）でのみ有効にする。
+  // タッチ端末では pointerdown で即座に表示し、指でなぞっている間も
+  // 更新する。preventDefault は呼ばないため、横方向の日送りスワイプと
+  // 縦方向のページスクロールは従来どおり使える。
   // -------------------------------------------------------------------
   function graphHover() {
     var svg = document.querySelector('svg[data-graph]');
     if (!svg) return;
-    if (window.matchMedia && !window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
 
     var path = svg.querySelector('.tide-line');
     if (!path || !svg.getScreenCTM) return;
@@ -239,9 +241,30 @@
       g.classList.add('on');
     }
 
+    var touchPointer = null;
     svg.style.cursor = 'crosshair';
-    svg.addEventListener('pointermove', move);
-    svg.addEventListener('pointerleave', function () { g.classList.remove('on'); });
+    svg.addEventListener('pointerdown', function (ev) {
+      if (ev.pointerType === 'touch') touchPointer = ev.pointerId;
+      move(ev);
+    });
+    svg.addEventListener('pointermove', function (ev) {
+      // タッチでは、画面に触れていない指由来の疑似イベントを拾わない。
+      if (ev.pointerType === 'touch' && ev.pointerId !== touchPointer) return;
+      move(ev);
+    });
+    svg.addEventListener('pointerup', function (ev) {
+      if (ev.pointerId === touchPointer) touchPointer = null;
+    });
+    svg.addEventListener('pointercancel', function (ev) {
+      if (ev.pointerId === touchPointer) touchPointer = null;
+    });
+    svg.addEventListener('pointerleave', function (ev) {
+      // タップ後は値を残す。マウスは従来どおり外れたら消す。
+      if (ev.pointerType !== 'touch') g.classList.remove('on');
+    });
+    document.addEventListener('pointerdown', function (ev) {
+      if (ev.pointerType === 'touch' && !svg.contains(ev.target)) g.classList.remove('on');
+    });
   }
 
   // -------------------------------------------------------------------
@@ -428,7 +451,202 @@
   }
 
   // -------------------------------------------------------------------
-  // 4. 地点検索・お気に入り・最近見た地点
+  // 3.5 サーフモード
+  //
+  // 潮位系列はHTMLへ二重に埋め込まず、SVGの折れ線を座標から潮位へ戻す。
+  // 地点ごとの設定だけをlocalStorageへ保存し、同じ地点の日別ページでも
+  // 引き継ぐ。候補は最低30分続く時間帯に絞り、短いノイズを出さない。
+  // -------------------------------------------------------------------
+  var SURF_KEY = 'tide-surf-pref:';
+
+  function graphTideLevels() {
+    var svg = document.querySelector('svg[data-graph]');
+    if (!svg) return [];
+    var path = svg.querySelector('.tide-line');
+    if (!path) return [];
+    var nums = (path.getAttribute('d') || '').match(/-?\d+(?:\.\d+)?/g);
+    if (!nums || nums.length !== 288) return [];
+    var y0 = +svg.dataset.y0, y1 = +svg.dataset.y1;
+    var lo = +svg.dataset.lo, hi = +svg.dataset.hi;
+    var levels = [];
+    for (var i = 1; i < nums.length; i += 2) {
+      var y = +nums[i];
+      levels.push(Math.round(lo + (y1 - y) / (y1 - y0) * (hi - lo)));
+    }
+    return levels;
+  }
+
+  function surfDirection(levels, i) {
+    var left = levels[Math.max(0, i - 1)];
+    var right = levels[Math.min(levels.length - 1, i + 1)];
+    if (right > left) return 'up';
+    if (right < left) return 'down';
+    return 'turn';
+  }
+
+  function surfCandidateWindows(levels, min, max, direction, from, to) {
+    var windows = [], start = null;
+    var finish = function (end) {
+      if (start != null && end - start + 1 >= 3) windows.push({ start: start, end: end });
+      start = null;
+    };
+    for (var i = 0; i < levels.length; i++) {
+      var dir = surfDirection(levels, i);
+      var inTime = i >= from && i <= to;
+      var inLevel = levels[i] >= min && levels[i] <= max;
+      var inDirection = direction === 'both' || dir === direction;
+      if (inTime && inLevel && inDirection) {
+        if (start == null) start = i;
+      } else if (start != null) {
+        finish(i - 1);
+      }
+    }
+    if (start != null) finish(levels.length - 1);
+    return windows;
+  }
+
+  function surfWindowDirection(levels, w) {
+    var delta = levels[w.end] - levels[w.start];
+    return delta > 0 ? ['up', '上げ潮', '↗'] : delta < 0 ? ['down', '下げ潮', '↘'] : ['turn', '転流前後', '→'];
+  }
+
+  function markSurfCandidates(windows) {
+    var svg = document.querySelector('svg[data-graph]');
+    if (!svg) return;
+    var old = svg.querySelector('.surf-bands');
+    if (old) old.remove();
+    var NS = 'http://www.w3.org/2000/svg';
+    var group = document.createElementNS(NS, 'g');
+    group.setAttribute('class', 'surf-bands');
+    var x0 = +svg.dataset.x0, x1 = +svg.dataset.x1;
+    var y0 = +svg.dataset.y0, y1 = +svg.dataset.y1;
+    windows.forEach(function (w) {
+      var x = x0 + (x1 - x0) * (w.start / 143);
+      var edge = Math.min(143, w.end + 1);
+      var right = x0 + (x1 - x0) * (edge / 143);
+      var rect = document.createElementNS(NS, 'rect');
+      rect.setAttribute('class', 'surf-band');
+      rect.setAttribute('x', x.toFixed(1));
+      rect.setAttribute('y', y0);
+      rect.setAttribute('width', Math.max(3, right - x).toFixed(1));
+      rect.setAttribute('height', y1 - y0);
+      group.appendChild(rect);
+    });
+    var line = svg.querySelector('.tide-line');
+    svg.insertBefore(group, line || null);
+
+    var grid = document.querySelector('[data-grid]');
+    if (!grid) return;
+    Array.prototype.forEach.call(grid.querySelectorAll('.tdcell.surf-hit'), function (cell) {
+      cell.classList.remove('surf-hit');
+    });
+    windows.forEach(function (w) {
+      for (var i = w.start; i <= w.end; i++) {
+        var row = Math.floor(i / 6), col = i % 6;
+        var pos = 7 + row * 7 + 1 + col;
+        if (grid.children[pos]) grid.children[pos].classList.add('surf-hit');
+      }
+    });
+  }
+
+  function readSurfPreference(key, fallback) {
+    try {
+      var saved = JSON.parse(localStorage.getItem(SURF_KEY + key) || 'null');
+      if (!saved || typeof saved !== 'object') return fallback;
+      return {
+        min: Number.isFinite(+saved.min) ? +saved.min : fallback.min,
+        max: Number.isFinite(+saved.max) ? +saved.max : fallback.max,
+        direction: /^(both|up|down)$/.test(saved.direction) ? saved.direction : fallback.direction,
+        daylight: saved.daylight !== false,
+      };
+    } catch (e) { return fallback; }
+  }
+
+  function saveSurfPreference(key, pref) {
+    try { localStorage.setItem(SURF_KEY + key, JSON.stringify(pref)); } catch (e) { /* 保存できない環境では表示だけ使う */ }
+  }
+
+  function surfMode() {
+    var card = document.querySelector('[data-surf]');
+    if (!card) return;
+    var levels = graphTideLevels();
+    if (levels.length !== 144) return;
+
+    var minInput = card.querySelector('[data-surf-min-input]');
+    var maxInput = card.querySelector('[data-surf-max-input]');
+    var directionInput = card.querySelector('[data-surf-direction]');
+    var daylightInput = card.querySelector('[data-surf-daylight]');
+    var list = card.querySelector('[data-surf-windows]');
+    var note = card.querySelector('[data-surf-result-note]');
+    var savedText = card.querySelector('[data-surf-saved]');
+    var key = card.dataset.surfStation;
+    var fallback = {
+      min: +card.dataset.surfMin,
+      max: +card.dataset.surfMax,
+      direction: 'both',
+      daylight: true,
+    };
+    var pref = readSurfPreference(key, fallback);
+    minInput.value = pref.min;
+    maxInput.value = pref.max;
+    directionInput.value = pref.direction;
+    daylightInput.checked = pref.daylight;
+
+    function update(save) {
+      var min = parseInt(minInput.value, 10), max = parseInt(maxInput.value, 10);
+      if (isNaN(min) || isNaN(max) || min > max) {
+        list.innerHTML = '<li class="surf-empty">最低潮位は最高潮位以下にしてください。</li>';
+        note.textContent = '';
+        markSurfCandidates([]);
+        return;
+      }
+      pref = { min: min, max: max, direction: directionInput.value, daylight: daylightInput.checked };
+      if (save) {
+        saveSurfPreference(key, pref);
+        savedText.textContent = 'この地点の設定を保存しました。';
+      }
+
+      var from = pref.daylight ? Math.max(0, Math.ceil(+card.dataset.sunrise * 6)) : 0;
+      var to = pref.daylight ? Math.min(143, Math.floor(+card.dataset.sunset * 6)) : 143;
+      var windows = surfCandidateWindows(levels, min, max, pref.direction, from, to);
+      markSurfCandidates(windows);
+
+      if (!windows.length) {
+        list.innerHTML = '<li class="surf-empty">この日の条件に合う30分以上の時間帯はありません。</li>';
+        note.textContent = '潮位帯を広げるか、潮の向きを「両方」にすると候補が増えます。';
+      } else {
+        list.innerHTML = windows.slice(0, 5).map(function (w) {
+          var d = surfWindowDirection(levels, w);
+          var end = Math.min(24, (w.end + 1) / 6);
+          var endLabel = end >= 24 ? '24:00' : fmtHM(end);
+          return '<li class="' + d[0] + '"><time>' + fmtHM(w.start / 6) + '〜' + endLabel + '</time>'
+            + '<span>' + d[2] + ' ' + d[1] + '</span><small>' + levels[w.start] + '→' + levels[w.end] + 'cm</small></li>';
+        }).join('');
+        note.textContent = windows.length > 5 ? 'ほか' + (windows.length - 5) + '件。グラフと10分毎の潮位も強調しています。'
+          : 'グラフと10分毎の潮位も強調しています。';
+      }
+
+      var nowEl = card.querySelector('[data-surf-now]');
+      if (nowEl) {
+        var idx = Math.min(143, Math.max(0, Math.round(nowHourJST() * 6)));
+        var d = surfDirection(levels, idx);
+        var labels = d === 'up' ? ['↗', '上げ潮'] : d === 'down' ? ['↘', '下げ潮'] : ['→', '転流'];
+        var matches = windows.some(function (w) { return idx >= w.start && idx <= w.end; });
+        nowEl.textContent = levels[idx] + 'cm ' + labels[0] + ' ' + labels[1] + (matches ? '・条件内' : '・条件外');
+        nowEl.classList.toggle('match', matches);
+      }
+    }
+
+    [minInput, maxInput].forEach(function (input) {
+      input.addEventListener('input', function () { update(true); });
+    });
+    directionInput.addEventListener('change', function () { update(true); });
+    daylightInput.addEventListener('change', function () { update(true); });
+    update(false);
+  }
+
+  // -------------------------------------------------------------------
+  // 5. 地点検索・お気に入り・最近見た地点
   //
   // 全771地点ぶんのインデックス(stations-index.json)はヘッダーの検索
   // ボタンを押すまで取得しない。地点ページを開くたびに data-recent を
@@ -923,6 +1141,7 @@
     run('graphSwipe', graphSwipe);
     run('maps', maps);
     run('thresholdMode', thresholdMode);
+    run('surfMode', surfMode);
     run('recordRecent', recordRecent);
     run('favoriteStations', favoriteStations);
     run('searchModal', searchModal);

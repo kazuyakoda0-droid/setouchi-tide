@@ -1348,3 +1348,77 @@ body.station-page .ad-side { display: none; }
   .fold-note { color: var(--mut); }
   .tide-aside .wx-head { background: transparent; }
 }
+
+/* ---------------------------------------------------------------------
+   サーフモード
+   潮位帯をユーザーが決める「判断支援」とし、波質を断定するスコアにはしない。
+   --------------------------------------------------------------------- */
+.surf-card {
+  margin: 22px 0; padding: 22px 24px;
+  border: 1px solid var(--line); border-top: 5px solid var(--warm);
+  background: var(--panel); color: var(--ink); box-shadow: 0 14px 34px rgba(7, 58, 103, .07);
+}
+.surf-head { display: flex; align-items: end; justify-content: space-between; gap: 24px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.surf-head h2 { margin: 2px 0 0; font-family: var(--serif); font-size: 26px; letter-spacing: .04em; }
+.surf-kicker { font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: .18em; color: var(--warm-d); }
+.surf-head p { max-width: 34em; margin: 0; color: var(--mut); font-size: 14px; }
+.surf-layout { display: grid; grid-template-columns: minmax(270px, .85fr) minmax(320px, 1.15fr); gap: 28px; padding: 18px 0; }
+.surf-settings { display: grid; align-content: start; gap: 12px; }
+.surf-settings > label:not(.surf-daylight) { display: grid; grid-template-columns: 7em minmax(0, 1fr); align-items: center; gap: 12px; color: var(--mut); font-size: 14px; }
+.surf-range { display: flex; align-items: center; gap: 7px; color: var(--mut); }
+.surf-range input, .surf-settings select {
+  min-width: 0; height: 42px; border: 1px solid var(--line); border-radius: 0;
+  background: var(--bg); color: var(--ink); font: 500 16px var(--mono);
+}
+.surf-range input { width: 82px; padding: 7px 8px; text-align: right; }
+.surf-range small { font-size: 14px; }
+.surf-settings select { width: 100%; padding: 7px 30px 7px 10px; font-family: var(--sans); }
+.surf-range input:focus, .surf-settings select:focus { outline: 2px solid var(--blue); outline-offset: 2px; }
+.surf-daylight { display: flex; align-items: center; gap: 8px; color: var(--ink2); font-size: 14px; }
+.surf-daylight input { width: 18px; height: 18px; accent-color: var(--blue); }
+.surf-saved { min-height: 1.5em; margin: 2px 0 0; color: var(--dim); font-size: 12.5px; }
+.surf-result { padding-left: 24px; border-left: 1px solid var(--line); }
+.surf-result h3 { margin: 0 0 9px; font-family: var(--serif); font-size: 18px; }
+.surf-now { display: flex; align-items: baseline; gap: 12px; margin: 0 0 14px; padding-bottom: 11px; border-bottom: 1px solid var(--line2); }
+.surf-now span { color: var(--mut); font-size: 13px; }
+.surf-now b { color: var(--ink2); font: 500 18px var(--mono); }
+.surf-now b.match { color: var(--warm-d); }
+.surf-result ul { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.surf-result li { display: grid; grid-template-columns: minmax(9.5em, auto) 1fr auto; align-items: baseline; gap: 12px; padding: 8px 10px; border-left: 4px solid var(--line); background: var(--bg); }
+.surf-result li.up { border-left-color: var(--blue); }
+.surf-result li.down { border-left-color: var(--warm); }
+.surf-result li time { color: var(--ink); font: 600 16px var(--mono); }
+.surf-result li span { color: var(--ink2); font-size: 14px; }
+.surf-result li small { color: var(--mut); font: 13px var(--mono); white-space: nowrap; }
+.surf-result li.surf-empty { display: block; color: var(--mut); font-size: 14px; }
+.surf-result-note { margin: 8px 0 0; color: var(--dim); font-size: 12.5px; }
+.surf-sea { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.surf-sea > div { min-width: 0; padding: 12px 16px; }
+.surf-sea > div + div { border-left: 1px solid var(--line); }
+.surf-sea dt { display: flex; align-items: center; gap: 7px; color: var(--mut); font-size: 13px; }
+.surf-sea dt .ic { width: 18px; height: 18px; color: var(--warm); }
+.surf-sea dd { margin: 5px 0 0; color: var(--ink2); font-size: 14px; line-height: 1.55; }
+.surf-foot { margin: 12px 0 0; color: var(--dim); font-size: 12.5px; line-height: 1.6; }
+.surf-foot a { font-weight: 700; }
+.graph .surf-band { fill: var(--warm); opacity: .13; pointer-events: none; }
+.tdcell.surf-hit { box-shadow: inset 0 0 0 2px var(--warm); font-weight: 700; }
+.tdcell.td-now.surf-hit { box-shadow: inset 0 0 0 2px var(--warm), inset 0 0 0 4px var(--panel); }
+
+@media (max-width: 699px) {
+  .surf-card { margin: 18px -4px; padding: 18px 16px; }
+  .surf-head { display: block; }.surf-head h2 { font-size: 23px; }.surf-head p { margin-top: 7px; }
+  .surf-layout { grid-template-columns: 1fr; gap: 18px; }
+  .surf-result { padding: 17px 0 0; border-top: 1px solid var(--line); border-left: 0; }
+  .surf-settings > label:not(.surf-daylight) { grid-template-columns: 6.5em minmax(0, 1fr); }
+  .surf-result li { grid-template-columns: 1fr auto; gap: 4px 8px; }
+  .surf-result li span { grid-row: 2; }.surf-result li small { grid-column: 2; grid-row: 1 / 3; }
+  .surf-sea { grid-template-columns: 1fr; }
+  .surf-sea > div + div { border-top: 1px solid var(--line); border-left: 0; }
+}
+
+@media print {
+  .surf-settings { display: none; }
+  .surf-card { box-shadow: none; }
+  .surf-layout { grid-template-columns: 1fr; }
+  .surf-result { padding-left: 0; border-left: 0; }
+}
