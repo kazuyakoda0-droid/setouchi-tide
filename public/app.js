@@ -6,8 +6,7 @@
 
      1. 現在時刻の潮位マーカー（当日ページのみ）
      2. 地図（トップ・地方・都道府県ページのみ）
-     3. 潮干狩り/磯遊びしきい値ハイライト（10分毎グリッド・月間カレンダー）
-     4. サーフモード（好みの潮位帯・上げ下げ・日中の候補時間）
+     3. 用途別モード（釣り・潮干狩り・サーフ・環境調査・航海管理）
      5. 地点検索・最近見た地点（全ページ共通のヘッダー）
      6. 表のコピー / CSV 書き出し
 
@@ -387,77 +386,42 @@
   }
 
   // -------------------------------------------------------------------
-  // 3. 潮干狩り/磯遊びしきい値ハイライト
-  //
-  // しきい値(cm)は地点・日によって適切な値が違い、ビルド時には決められない。
-  // 10分毎グリッドのセルは既に潮位の数値をテキストで持っているので、
-  // 追加のdata属性を焼き込まずにテキストをそのまま読んで判定する。
-  // 月間カレンダーは干潮の一覧(.cal-ex li.l em)を同様に読む。
-  // -------------------------------------------------------------------
-  var TH_KEY = 'tide-threshold-cm';
-  var TH_DEFAULT = 30;
-
-  function applyThreshold(threshold) {
-    var cells = document.querySelectorAll('.tdgrid .tdcell');
-    for (var i = 0; i < cells.length; i++) {
-      var c = cells[i];
-      if (c.className.indexOf('hd') !== -1 || c.className.indexOf('hh') !== -1) continue;
-      var v = parseInt(c.textContent, 10);
-      c.classList.toggle('th-hit', !isNaN(v) && v <= threshold);
-    }
-
-    var days = document.querySelectorAll('.cal-cell');
-    for (var d = 0; d < days.length; d++) {
-      var lows = days[d].querySelectorAll('.cal-ex li.l em');
-      var hit = false;
-      for (var e = 0; e < lows.length; e++) {
-        var lv = parseInt(lows[e].textContent, 10);
-        if (!isNaN(lv) && lv <= threshold) { hit = true; break; }
-      }
-      days[d].classList.toggle('th-hit', hit);
-    }
-  }
-
-  function readSavedThreshold() {
-    try {
-      var v = parseInt(localStorage.getItem(TH_KEY), 10);
-      return isNaN(v) ? TH_DEFAULT : v;
-    } catch (e) { return TH_DEFAULT; }
-  }
-
-  function saveThreshold(v) {
-    try { localStorage.setItem(TH_KEY, String(v)); } catch (e) { /* private browsing 等では諦める */ }
-  }
-
-  function thresholdMode() {
-    var inputs = document.querySelectorAll('[data-th-input]');
-    if (!inputs.length) return;
-
-    var initial = readSavedThreshold();
-    for (var i = 0; i < inputs.length; i++) inputs[i].value = initial;
-    applyThreshold(initial);
-
-    Array.prototype.forEach.call(inputs, function (input) {
-      input.addEventListener('input', function () {
-        var v = parseInt(input.value, 10);
-        if (isNaN(v)) return;
-        Array.prototype.forEach.call(inputs, function (other) {
-          if (other !== input) other.value = v;
-        });
-        saveThreshold(v);
-        applyThreshold(v);
-      });
-    });
-  }
-
-  // -------------------------------------------------------------------
-  // 3.5 サーフモード
+  // 3. 用途別モード
   //
   // 潮位系列はHTMLへ二重に埋め込まず、SVGの折れ線を座標から潮位へ戻す。
-  // 地点ごとの設定だけをlocalStorageへ保存し、同じ地点の日別ページでも
-  // 引き継ぐ。候補は最低30分続く時間帯に絞り、短いノイズを出さない。
+  // 用途と地点ごとの設定をlocalStorageへ保存し、同じ地点の日別ページでも
+  // 引き継ぐ。用途ごとに初期値・案内文を変え、候補は30分以上にまとめる。
   // -------------------------------------------------------------------
-  var SURF_KEY = 'tide-surf-pref:';
+  var ACTIVITY_KEY = 'tide-activity-pref:';
+  var ACTIVITY_MODE_KEY = 'tide-activity-mode';
+  var LEGACY_SURF_KEY = 'tide-surf-pref:';
+  var ACTIVITY_CONFIG = {
+    fishing: {
+      label: '釣り', title: '釣行候補', minRatio: .2, maxRatio: .9, direction: 'both', daylight: false,
+      description: '狙う潮位帯と上げ・下げを指定して、釣行候補の時間を確認します。',
+      caution: '候補時間は釣果や安全を保証するものではありません。'
+    },
+    clamming: {
+      label: '潮干狩り', title: '潮干狩り候補', minRatio: 0, maxRatio: .25, direction: 'down', daylight: true,
+      description: '干潟が現れやすい低い潮位帯を指定して、日中の候補時間を確認します。',
+      caution: '潮位の戻り、立入区域、漁業権を現地で必ず確認してください。'
+    },
+    surf: {
+      label: 'サーフ', title: '入水候補', minRatio: .2, maxRatio: .8, direction: 'both', daylight: true,
+      description: 'ポイントに合う潮位帯と上げ・下げを保存して、入水候補を絞り込みます。',
+      caution: '候補時間は安全や波質を保証するものではありません。'
+    },
+    research: {
+      label: '環境調査', title: '調査候補', minRatio: 0, maxRatio: 1, direction: 'both', daylight: true,
+      description: '観測条件をそろえるための潮位帯・潮の向き・時間帯を指定します。',
+      caution: '調査計画では現地条件と観測手順をあわせて確認してください。'
+    },
+    navigation: {
+      label: '航海管理', title: '航行確認時間', minRatio: .25, maxRatio: 1, direction: 'both', daylight: false,
+      description: '船や岸壁に必要な潮位帯を指定して、該当する時間を確認します。',
+      caution: '航行判断には海図水深・喫水・気象海象・港湾情報を必ず併用してください。'
+    }
+  };
 
   function graphTideLevels() {
     var svg = document.querySelector('svg[data-graph]');
@@ -476,7 +440,7 @@
     return levels;
   }
 
-  function surfDirection(levels, i) {
+  function activityDirection(levels, i) {
     var left = levels[Math.max(0, i - 1)];
     var right = levels[Math.min(levels.length - 1, i + 1)];
     if (right > left) return 'up';
@@ -484,19 +448,25 @@
     return 'turn';
   }
 
-  function surfCandidateWindows(levels, min, max, direction, from, to) {
-    var windows = [], start = null;
+  function activityCandidateWindows(levels, min, max, direction, from, to) {
+    var windows = [], start = null, activeDirection = null;
     var finish = function (end) {
       if (start != null && end - start + 1 >= 3) windows.push({ start: start, end: end });
       start = null;
+      activeDirection = null;
     };
     for (var i = 0; i < levels.length; i++) {
-      var dir = surfDirection(levels, i);
+      var dir = activityDirection(levels, i);
       var inTime = i >= from && i <= to;
       var inLevel = levels[i] >= min && levels[i] <= max;
       var inDirection = direction === 'both' || dir === direction;
       if (inTime && inLevel && inDirection) {
-        if (start == null) start = i;
+        // 「両方」でも上げと下げを一つの候補に混ぜない。満潮・干潮の
+        // 折り返しで分割すると、各候補の矢印と潮向が実態に一致する。
+        if (start != null && direction === 'both' && dir !== 'turn'
+          && activeDirection !== 'turn' && dir !== activeDirection) finish(i - 1);
+        if (start == null) { start = i; activeDirection = dir; }
+        else if (activeDirection === 'turn' && dir !== 'turn') activeDirection = dir;
       } else if (start != null) {
         finish(i - 1);
       }
@@ -505,19 +475,19 @@
     return windows;
   }
 
-  function surfWindowDirection(levels, w) {
+  function activityWindowDirection(levels, w) {
     var delta = levels[w.end] - levels[w.start];
     return delta > 0 ? ['up', '上げ潮', '↗'] : delta < 0 ? ['down', '下げ潮', '↘'] : ['turn', '転流前後', '→'];
   }
 
-  function markSurfCandidates(windows) {
+  function markActivityCandidates(windows) {
     var svg = document.querySelector('svg[data-graph]');
     if (!svg) return;
-    var old = svg.querySelector('.surf-bands');
+    var old = svg.querySelector('.activity-bands');
     if (old) old.remove();
     var NS = 'http://www.w3.org/2000/svg';
     var group = document.createElementNS(NS, 'g');
-    group.setAttribute('class', 'surf-bands');
+    group.setAttribute('class', 'activity-bands');
     var x0 = +svg.dataset.x0, x1 = +svg.dataset.x1;
     var y0 = +svg.dataset.y0, y1 = +svg.dataset.y1;
     windows.forEach(function (w) {
@@ -525,7 +495,7 @@
       var edge = Math.min(143, w.end + 1);
       var right = x0 + (x1 - x0) * (edge / 143);
       var rect = document.createElementNS(NS, 'rect');
-      rect.setAttribute('class', 'surf-band');
+      rect.setAttribute('class', 'activity-band');
       rect.setAttribute('x', x.toFixed(1));
       rect.setAttribute('y', y0);
       rect.setAttribute('width', Math.max(3, right - x).toFixed(1));
@@ -537,21 +507,34 @@
 
     var grid = document.querySelector('[data-grid]');
     if (!grid) return;
-    Array.prototype.forEach.call(grid.querySelectorAll('.tdcell.surf-hit'), function (cell) {
-      cell.classList.remove('surf-hit');
+    Array.prototype.forEach.call(grid.querySelectorAll('.tdcell.activity-hit'), function (cell) {
+      cell.classList.remove('activity-hit');
     });
     windows.forEach(function (w) {
       for (var i = w.start; i <= w.end; i++) {
         var row = Math.floor(i / 6), col = i % 6;
         var pos = 7 + row * 7 + 1 + col;
-        if (grid.children[pos]) grid.children[pos].classList.add('surf-hit');
+        if (grid.children[pos]) grid.children[pos].classList.add('activity-hit');
       }
     });
   }
 
-  function readSurfPreference(key, fallback) {
+  function activityFallback(card, purpose) {
+    var config = ACTIVITY_CONFIG[purpose];
+    var lo = +card.dataset.dayMin, hi = +card.dataset.dayMax;
+    var range = Math.max(0, hi - lo);
+    var snap = function (v) { return Math.round(v / 5) * 5; };
+    var min = snap(lo + range * config.minRatio);
+    var max = snap(lo + range * config.maxRatio);
+    if (min > max) { min = lo; max = hi; }
+    return { min: min, max: max, direction: config.direction, daylight: config.daylight };
+  }
+
+  function readActivityPreference(key, purpose, fallback) {
     try {
-      var saved = JSON.parse(localStorage.getItem(SURF_KEY + key) || 'null');
+      var saved = JSON.parse(localStorage.getItem(ACTIVITY_KEY + key + ':' + purpose) || 'null');
+      // 旧サーフモードの地点設定は、サーフを初めて開いたときだけ引き継ぐ。
+      if (!saved && purpose === 'surf') saved = JSON.parse(localStorage.getItem(LEGACY_SURF_KEY + key) || 'null');
       if (!saved || typeof saved !== 'object') return fallback;
       return {
         min: Number.isFinite(+saved.min) ? +saved.min : fallback.min,
@@ -562,61 +545,60 @@
     } catch (e) { return fallback; }
   }
 
-  function saveSurfPreference(key, pref) {
-    try { localStorage.setItem(SURF_KEY + key, JSON.stringify(pref)); } catch (e) { /* 保存できない環境では表示だけ使う */ }
+  function saveActivityPreference(key, purpose, pref) {
+    try { localStorage.setItem(ACTIVITY_KEY + key + ':' + purpose, JSON.stringify(pref)); } catch (e) { /* 保存できない環境では表示だけ使う */ }
   }
 
-  function surfMode() {
-    var card = document.querySelector('[data-surf]');
+  function activityMode() {
+    var card = document.querySelector('[data-activity]');
     if (!card) return;
     var levels = graphTideLevels();
     if (levels.length !== 144) return;
 
-    var minInput = card.querySelector('[data-surf-min-input]');
-    var maxInput = card.querySelector('[data-surf-max-input]');
-    var directionInput = card.querySelector('[data-surf-direction]');
-    var daylightInput = card.querySelector('[data-surf-daylight]');
-    var list = card.querySelector('[data-surf-windows]');
-    var note = card.querySelector('[data-surf-result-note]');
-    var savedText = card.querySelector('[data-surf-saved]');
-    var key = card.dataset.surfStation;
-    var fallback = {
-      min: +card.dataset.surfMin,
-      max: +card.dataset.surfMax,
-      direction: 'both',
-      daylight: true,
-    };
-    var pref = readSurfPreference(key, fallback);
-    minInput.value = pref.min;
-    maxInput.value = pref.max;
-    directionInput.value = pref.direction;
-    daylightInput.checked = pref.daylight;
+    var minInput = card.querySelector('[data-activity-min-input]');
+    var maxInput = card.querySelector('[data-activity-max-input]');
+    var directionInput = card.querySelector('[data-activity-direction]');
+    var daylightInput = card.querySelector('[data-activity-daylight]');
+    var list = card.querySelector('[data-activity-windows]');
+    var note = card.querySelector('[data-activity-result-note]');
+    var savedText = card.querySelector('[data-activity-saved]');
+    var title = card.querySelector('[data-activity-result-title]');
+    var description = card.querySelector('[data-activity-description]');
+    var caution = card.querySelector('[data-activity-caution]');
+    var purposeButtons = card.querySelectorAll('[data-activity-purpose]');
+    var key = card.dataset.activityStation;
+    var purpose = 'fishing';
+    try {
+      var savedPurpose = localStorage.getItem(ACTIVITY_MODE_KEY);
+      if (ACTIVITY_CONFIG[savedPurpose]) purpose = savedPurpose;
+    } catch (e) { /* 保存できない環境では既定の釣りを使う */ }
+    var pref;
 
     function update(save) {
       var min = parseInt(minInput.value, 10), max = parseInt(maxInput.value, 10);
       if (isNaN(min) || isNaN(max) || min > max) {
-        list.innerHTML = '<li class="surf-empty">最低潮位は最高潮位以下にしてください。</li>';
+        list.innerHTML = '<li class="activity-empty">最低潮位は最高潮位以下にしてください。</li>';
         note.textContent = '';
-        markSurfCandidates([]);
+        markActivityCandidates([]);
         return;
       }
       pref = { min: min, max: max, direction: directionInput.value, daylight: daylightInput.checked };
       if (save) {
-        saveSurfPreference(key, pref);
-        savedText.textContent = 'この地点の設定を保存しました。';
+        saveActivityPreference(key, purpose, pref);
+        savedText.textContent = ACTIVITY_CONFIG[purpose].label + 'の設定をこの地点に保存しました。';
       }
 
       var from = pref.daylight ? Math.max(0, Math.ceil(+card.dataset.sunrise * 6)) : 0;
       var to = pref.daylight ? Math.min(143, Math.floor(+card.dataset.sunset * 6)) : 143;
-      var windows = surfCandidateWindows(levels, min, max, pref.direction, from, to);
-      markSurfCandidates(windows);
+      var windows = activityCandidateWindows(levels, min, max, pref.direction, from, to);
+      markActivityCandidates(windows);
 
       if (!windows.length) {
-        list.innerHTML = '<li class="surf-empty">この日の条件に合う30分以上の時間帯はありません。</li>';
+        list.innerHTML = '<li class="activity-empty">この日の条件に合う30分以上の時間帯はありません。</li>';
         note.textContent = '潮位帯を広げるか、潮の向きを「両方」にすると候補が増えます。';
       } else {
         list.innerHTML = windows.slice(0, 5).map(function (w) {
-          var d = surfWindowDirection(levels, w);
+          var d = activityWindowDirection(levels, w);
           var end = Math.min(24, (w.end + 1) / 6);
           var endLabel = end >= 24 ? '24:00' : fmtHM(end);
           return '<li class="' + d[0] + '"><time>' + fmtHM(w.start / 6) + '〜' + endLabel + '</time>'
@@ -626,10 +608,10 @@
           : 'グラフと10分毎の潮位も強調しています。';
       }
 
-      var nowEl = card.querySelector('[data-surf-now]');
+      var nowEl = card.querySelector('[data-activity-now]');
       if (nowEl) {
         var idx = Math.min(143, Math.max(0, Math.round(nowHourJST() * 6)));
-        var d = surfDirection(levels, idx);
+        var d = activityDirection(levels, idx);
         var labels = d === 'up' ? ['↗', '上げ潮'] : d === 'down' ? ['↘', '下げ潮'] : ['→', '転流'];
         var matches = windows.some(function (w) { return idx >= w.start && idx <= w.end; });
         nowEl.textContent = levels[idx] + 'cm ' + labels[0] + ' ' + labels[1] + (matches ? '・条件内' : '・条件外');
@@ -637,12 +619,36 @@
       }
     }
 
+    function selectPurpose(nextPurpose, saveMode) {
+      purpose = ACTIVITY_CONFIG[nextPurpose] ? nextPurpose : 'fishing';
+      var config = ACTIVITY_CONFIG[purpose];
+      pref = readActivityPreference(key, purpose, activityFallback(card, purpose));
+      minInput.value = pref.min;
+      maxInput.value = pref.max;
+      directionInput.value = pref.direction;
+      daylightInput.checked = pref.daylight;
+      title.textContent = config.title;
+      description.textContent = config.description;
+      caution.textContent = config.caution;
+      savedText.textContent = '用途ごと・地点ごとの設定として端末内に保存されます。';
+      Array.prototype.forEach.call(purposeButtons, function (button) {
+        button.setAttribute('aria-pressed', button.dataset.activityPurpose === purpose ? 'true' : 'false');
+      });
+      if (saveMode) {
+        try { localStorage.setItem(ACTIVITY_MODE_KEY, purpose); } catch (e) { /* 保存できない環境では表示だけ使う */ }
+      }
+      update(false);
+    }
+
     [minInput, maxInput].forEach(function (input) {
       input.addEventListener('input', function () { update(true); });
     });
     directionInput.addEventListener('change', function () { update(true); });
     daylightInput.addEventListener('change', function () { update(true); });
-    update(false);
+    Array.prototype.forEach.call(purposeButtons, function (button) {
+      button.addEventListener('click', function () { selectPurpose(button.dataset.activityPurpose, true); });
+    });
+    selectPurpose(purpose, false);
   }
 
   // -------------------------------------------------------------------
@@ -709,8 +715,10 @@
       var on = isFavorite();
       btn.classList.toggle('on', on);
       btn.setAttribute('aria-pressed', String(on));
-      btn.innerHTML = '<span aria-hidden="true">' + (on ? '★' : '☆') + '</span> '
-        + (on ? 'お気に入り済み' : 'お気に入りに追加');
+      var icon = btn.querySelector('[data-favorite-icon]');
+      var label = btn.querySelector('[data-favorite-label]');
+      if (icon) icon.src = on ? icon.dataset.onSrc : icon.dataset.offSrc;
+      if (label) label.textContent = on ? 'お気に入り済み' : 'お気に入りに追加';
     }
     btn.addEventListener('click', function () {
       var list = readFavorites();
@@ -1140,8 +1148,7 @@
     run('graphHover', graphHover);
     run('graphSwipe', graphSwipe);
     run('maps', maps);
-    run('thresholdMode', thresholdMode);
-    run('surfMode', surfMode);
+    run('activityMode', activityMode);
     run('recordRecent', recordRecent);
     run('favoriteStations', favoriteStations);
     run('searchModal', searchModal);
