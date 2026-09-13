@@ -32,7 +32,9 @@ import {
 import { GUIDES, guidePage, guideIndexPage } from './lib/guides.mjs';
 import { ACTIVITIES, activityPage, activityIndexPage } from './lib/activities.mjs';
 import { stationApiJSON } from './lib/api.mjs';
-import { areaProfile } from './lib/tide-profile.mjs';
+import { areaProfile, stationProfile, highTideLag } from './lib/tide-profile.mjs';
+import { stationNoteHtml } from './lib/station-notes.mjs';
+import { esc } from './lib/html.mjs';
 import { stationLabel } from './lib/station-quality.mjs';
 import { stationQuality } from './lib/station-quality.mjs';
 
@@ -185,6 +187,49 @@ for (const c of codes) {
   }
 }
 
+// ---- 年間の潮汐プロファイル ----------------------------------------------
+// 地点・県・地方の解説文の元になる実測値。今年の潮位表だけで集計する
+// (月間ページを翌年まで出す設定では2年ぶん読み込まれているため)。
+const YEAR = Number(todayKey.slice(0, 4));
+const stationProfiles = new Map();
+for (const st of stations) {
+  const sp = stationProfile(jma[st.jma], YEAR);
+  if (sp) stationProfiles.set(st.id, sp);
+}
+const profiledOfficial = stations.filter(s => !s.jmaAnchor && stationProfiles.has(s.id))
+  .sort((a, b) => stationProfiles.get(b.id).avg - stationProfiles.get(a.id).avg);
+const nationalRank = new Map(profiledOfficial.map((s, i) => [s.id, i + 1]));
+const prefProfileCache = new Map();
+function prefProfileOf(prefId) {
+  if (!prefProfileCache.has(prefId)) prefProfileCache.set(prefId, areaProfile(prefStations(prefId), jma, YEAR));
+  return prefProfileCache.get(prefId);
+}
+
+// 地点ページの「この地点の潮の特徴」。近似地点は参照元の観測点と同じ値に
+// なり地点固有の情報にならないので、公式観測点にだけ付ける。
+function stationNoteFor(st, neighbors) {
+  const sp = stationProfiles.get(st.id);
+  if (!sp || st.jmaAnchor) return null;
+  const p = pref(st.pref);
+  const prefList = profiledOfficial.filter(s => s.pref === st.pref);
+  const near = neighbors.find(x => !x.st.jmaAnchor && x.st.jma !== st.jma && stationProfiles.has(x.st.id));
+  const nb = near ? {
+    name: stationLabel(near.st), km: near.km,
+    lag: highTideLag(jma[st.jma], jma[near.st.jma], YEAR),
+    avg: stationProfiles.get(near.st.id).avg, ownAvg: sp.avg,
+  } : null;
+  return {
+    year: YEAR,
+    html: stationNoteHtml({
+      sp, year: YEAR, name: esc(stationLabel(st)),
+      rank: nationalRank.get(st.id), total: profiledOfficial.length,
+      prefName: p.name, prefAvg: prefProfileOf(st.pref)?.avg,
+      prefRank: prefList.findIndex(s => s.id === st.id) + 1, prefN: prefList.length,
+      nb, guideHref: paths.guide('kisetsu-kanchou'),
+    }),
+  };
+}
+
 // ---- 天気予報 -------------------------------------------------------
 // 落ちてもサイトは出す。気象欄が空になるだけで、潮汐は独立している。
 let forecastFor = () => null;
@@ -257,10 +302,12 @@ for (const st of stations) {
     fc: forecastFor(st, dayKeyOf(d)),
   }));
 
+  const neighbors = neighborsOf(st, stations);
   write(paths.station(st), stationPage({
     st, day: todayFull, cel: cel(today), ymd: todayKey, dayMs: today,
     weekRows,
-    neighbors: neighborsOf(st, stations),
+    neighbors,
+    profile: stationNoteFor(st, neighbors),
     fc: forecastFor(st, todayKey),
     // 日別ページを作らない設定では「この日を詳しく」もグラフの前日/翌日も出さない。
     dayHref: dayPageKeys.has(todayKey) ? paths.day(st, todayKey) : null,
@@ -271,8 +318,12 @@ for (const st of stations) {
   }), { changefreq: 'daily', priority: 0.9 });
 
   // ---- 週間 ----
-  write(paths.week(st), weekPage({ st, rows: weekRows, ymd: todayKey }),
-    { changefreq: 'daily', priority: 0.7 });
+  // SITE.LEAN のあいだ、週間・月間は noindex にして sitemap からも外す。
+  // どちらも地点ハブの表を期間だけ変えた同型ページで、数値を伏せると
+  // 月間は本文の9割以上が全地点で共通になる。ページ自体は残すので、
+  // 地点ハブのタブからの利用には影響しない。
+  write(paths.week(st), weekPage({ st, rows: weekRows, ymd: todayKey, noindex: SITE.LEAN }),
+    { changefreq: 'daily', priority: 0.7, sitemap: !SITE.LEAN });
 
   // ---- 日別 ----
   for (let i = 0; i < dayList.length; i++) {
@@ -363,8 +414,9 @@ for (const st of stations) {
         active: x === m,
       })),
       stats: { maxRange, maxRangeDay, ohshio },
+      noindex: SITE.LEAN,
     }), {
-      changefreq: 'weekly', priority: 0.5,
+      changefreq: 'weekly', priority: 0.5, sitemap: !SITE.LEAN,
       lastmod: dayKeyOf(Math.min(monthEndMs, today)),
     });
   }
@@ -397,7 +449,7 @@ for (const p of prefsWithStations) {
   write(paths.pref(p), prefPage({
     p, r: region(p.region), rows, ymd: todayKey, dateJa,
     // 県の潮汐の性格。気象庁の年次潮位表から実測で出す(lib/tide-profile.mjs)。
-    profile: areaProfile(list, jma),
+    profile: prefProfileOf(p.id),
   }), { changefreq: 'daily', priority: 0.8 });
 }
 
@@ -405,17 +457,23 @@ for (const p of prefsWithStations) {
 const regionsWithStations = REGIONS.filter(r => regionStationCount(r.id) > 0
   && (!SAMPLE || r.id === 'chugoku'));
 
+// 用途別ページ・ガイド記事でも地方ごとの傾向を使うので残しておく。
+const regionProfiles = [];
 for (const r of regionsWithStations) {
   const prefs = regionPrefs(r.id).filter(p => !SAMPLE || p.id === 'hiroshima');
   const all = prefs.flatMap(p => prefStations(p.id));
+  const profile = areaProfile(all, jma, YEAR);
+  if (profile) regionProfiles.push({ r, pf: profile });
   write(paths.region(r), regionPage({
     r, prefs, count: all.length, allStations: all,
-    profile: areaProfile(all, jma),
+    profile,
     // 地方ページでは県ごとの干満差を並べて比べられるようにする。
-    prefProfiles: prefs.map(p => ({ p, pf: areaProfile(prefStations(p.id), jma) }))
+    prefProfiles: prefs.map(p => ({ p, pf: prefProfileOf(p.id) }))
       .filter(x => x.pf),
   }), { changefreq: 'weekly', priority: 0.7 });
 }
+// 全国の公式観測点の集計。季節ごとの干潮の傾向を記事に書くときに使う。
+const national = { year: YEAR, pf: areaProfile(stations.filter(s => !s.jmaAnchor), jma, YEAR), regions: regionProfiles };
 
 // ---- トップ・about --------------------------------------------------
 const homeRegions = regionsWithStations.map(r => ({
@@ -432,7 +490,7 @@ write(paths.home(), homePage({
 
 // about/privacy は動的データを含まない固定ページ。本文を編集したときだけ
 // この日付を書き換える(このビルドで内容を変えていないので据え置き)。
-const STATIC_PAGE_LASTMOD = '2026-08-02';
+const STATIC_PAGE_LASTMOD = '2026-09-13';
 write(url('about'), aboutPage(), { changefreq: 'monthly', priority: 0.3, lastmod: STATIC_PAGE_LASTMOD });
 write(url('privacy'), privacyPage(), { changefreq: 'monthly', priority: 0.3, lastmod: STATIC_PAGE_LASTMOD });
 
@@ -443,10 +501,10 @@ fs.writeFileSync(path.join(DIST, '404.html'), notFoundPage(), 'utf8');
 // ---- ガイド記事 -------------------------------------------------------
 // 「大潮とは」のような情報型クエリの受け皿。地点ページ群と違って動的データ
 // を含まないので、lib/guides.mjs の本文を編集したときだけ日付を書き換える。
-const GUIDE_LASTMOD = '2026-08-17';
+const GUIDE_LASTMOD = '2026-09-13';
 write(paths.guideIndex(), guideIndexPage(), { changefreq: 'monthly', priority: 0.4, lastmod: GUIDE_LASTMOD });
 for (const g of GUIDES) {
-  write(paths.guide(g.slug), guidePage(g, GUIDE_LASTMOD), { changefreq: 'monthly', priority: 0.4, lastmod: GUIDE_LASTMOD });
+  write(paths.guide(g.slug), guidePage(g, GUIDE_LASTMOD, national), { changefreq: 'monthly', priority: 0.4, lastmod: GUIDE_LASTMOD });
 }
 
 // ---- 用途別の入口ページ -------------------------------------------------
@@ -454,7 +512,7 @@ for (const g of GUIDES) {
 // 地点データは無く、地方一覧への案内だけなので地点数の変動にだけ追従する。
 write(paths.activityIndex(), activityIndexPage(), { changefreq: 'monthly', priority: 0.4, lastmod: GUIDE_LASTMOD });
 for (const a of ACTIVITIES) {
-  write(paths.activity(a.slug), activityPage(a, homeRegions), { changefreq: 'weekly', priority: 0.5, lastmod: GUIDE_LASTMOD });
+  write(paths.activity(a.slug), activityPage(a, homeRegions, national), { changefreq: 'weekly', priority: 0.5, lastmod: GUIDE_LASTMOD });
 }
 
 // ---- sitemap / robots / manifest / llms.txt ---------------------------
