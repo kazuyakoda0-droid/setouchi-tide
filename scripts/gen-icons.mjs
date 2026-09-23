@@ -19,11 +19,11 @@ import path from 'node:path';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
-const BG = [244, 241, 234];   // --bg (#f4f1ea)
-const BLUE = [43, 93, 122];   // 潮位の線 (#2b5d7a)
-// rust は元SVGで opacity .8 なので、背景に前もって合成した色を使う
-const RUST_RAW = [176, 106, 63]; // (#b06a3f)
-const RUST = RUST_RAW.map((c, i) => Math.round(c * 0.8 + BG[i] * 0.2));
+const BG = [7, 58, 103];      // ロゴ地色 (#073a67, header の waveMark と同じ)
+const WAVE_RAW = [248, 244, 233]; // ロゴの波線 (#f8f4e9)
+const WAVE = WAVE_RAW; // 1本目は不透明
+// 2本目は元SVGで opacity .7 なので、背景に前もって合成した色を使う
+const WAVE_DIM = WAVE_RAW.map((c, i) => Math.round(c * 0.7 + BG[i] * 0.3));
 
 const CRC_TABLE = (() => {
   const t = new Uint32Array(256);
@@ -77,7 +77,7 @@ function mix(base, top, alpha) {
 }
 
 // favicon.svg (32x32) の2本の波を、サイズに応じてラスタライズする。
-// path1(藍, baseline21) → path2(弁柄, baseline12・上に重なる) の順で描画。
+// path1(不透明, baseline21) → path2(opacity .7, baseline12・上に重なる) の順で描画。
 function renderIcon(size) {
   const s = size / 32;
   const amp = 6.5, period = 13, phase = 3;
@@ -95,11 +95,11 @@ function renderIcon(size) {
       const wy1 = waveYPx(x, 21);
       const d1 = Math.abs(y - wy1);
       const a1 = Math.max(0, Math.min(1, 1 - (d1 - strokeW / 2) / 1.2));
-      if (a1 > 0) color = mix(color, BLUE, a1);
+      if (a1 > 0) color = mix(color, WAVE, a1);
       const wy2 = waveYPx(x, 12);
       const d2 = Math.abs(y - wy2);
       const a2 = Math.max(0, Math.min(1, 1 - (d2 - strokeW / 2) / 1.2));
-      if (a2 > 0) color = mix(color, RUST, a2);
+      if (a2 > 0) color = mix(color, WAVE_DIM, a2);
       const i = (y * size + x) * 4;
       rgba[i] = color[0]; rgba[i + 1] = color[1]; rgba[i + 2] = color[2]; rgba[i + 3] = 255;
     }
