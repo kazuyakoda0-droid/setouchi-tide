@@ -76,30 +76,67 @@ function mix(base, top, alpha) {
   return base.map((c, i) => Math.round(c + (top[i] - c) * alpha));
 }
 
+// favicon.svg の波パスをそのままラスタライズする(近似の正弦波は使わない)。
+// 各波は "M3 baseline Q9 baseline-7 16 baseline T29 baseline" と同じ形の
+// 二次ベジエ2本(山ひとつ→谷ひとつ)で、favicon.svgの実際の座標と一致させる。
+function quadPoint(p0, p1, p2, t) {
+  const mt = 1 - t;
+  return {
+    x: mt * mt * p0.x + 2 * mt * t * p1.x + t * t * p2.x,
+    y: mt * mt * p0.y + 2 * mt * t * p1.y + t * t * p2.y,
+  };
+}
+
+function waveSamples(baseline) {
+  const p0 = { x: 3, y: baseline };
+  const p1 = { x: 9, y: baseline - 7 };
+  const p2 = { x: 16, y: baseline };
+  // SVGのT(smooth quadratic)はp1をp2に対して反転した点を制御点に使う
+  const p3 = { x: 2 * p2.x - p1.x, y: 2 * p2.y - p1.y };
+  const p4 = { x: 29, y: baseline };
+  const steps = 400;
+  const pts = [];
+  for (let i = 0; i <= steps; i++) pts.push(quadPoint(p0, p1, p2, i / steps));
+  for (let i = 1; i <= steps; i++) pts.push(quadPoint(p2, p3, p4, i / steps));
+  return pts; // xは3→29まで単調増加
+}
+
+// samplesはx昇順。xにおけるyを線形補間で求める(範囲外はnull=線なし)。
+function yAt(samples, x) {
+  if (x < samples[0].x || x > samples[samples.length - 1].x) return null;
+  let lo = 0, hi = samples.length - 1;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (samples[mid].x < x) lo = mid; else hi = mid;
+  }
+  const a = samples[lo], b = samples[hi];
+  const t = (x - a.x) / (b.x - a.x || 1);
+  return a.y + (b.y - a.y) * t;
+}
+
 // favicon.svg (32x32) の2本の波を、サイズに応じてラスタライズする。
 // path1(不透明, baseline21) → path2(opacity .7, baseline12・上に重なる) の順で描画。
 function renderIcon(size) {
   const s = size / 32;
-  const amp = 6.5, period = 13, phase = 3;
   const strokeW = Math.max(1.6, 2.6 * s);
   const rgba = new Uint8ClampedArray(size * size * 4);
-
-  const waveYPx = (x, baseline) => {
-    const t = x / s;
-    return (baseline - amp * Math.sin((2 * Math.PI * (t - phase)) / period)) * s;
-  };
+  const curve21 = waveSamples(21);
+  const curve12 = waveSamples(12);
 
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       let color = BG;
-      const wy1 = waveYPx(x, 21);
-      const d1 = Math.abs(y - wy1);
-      const a1 = Math.max(0, Math.min(1, 1 - (d1 - strokeW / 2) / 1.2));
-      if (a1 > 0) color = mix(color, WAVE, a1);
-      const wy2 = waveYPx(x, 12);
-      const d2 = Math.abs(y - wy2);
-      const a2 = Math.max(0, Math.min(1, 1 - (d2 - strokeW / 2) / 1.2));
-      if (a2 > 0) color = mix(color, WAVE_DIM, a2);
+      const xu = x / s;
+      const wy1 = yAt(curve21, xu);
+      if (wy1 !== null) {
+        const a1 = Math.max(0, Math.min(1, 1 - (Math.abs(y - wy1 * s) - strokeW / 2) / 1.2));
+        if (a1 > 0) color = mix(color, WAVE, a1);
+      }
+      const wy2 = yAt(curve12, xu);
+      if (wy2 !== null) {
+        const a2 = Math.max(0, Math.min(1, 1 - (Math.abs(y - wy2 * s) - strokeW / 2) / 1.2));
+        if (a2 > 0) color = mix(color, WAVE_DIM, a2);
+      }
       const i = (y * size + x) * 4;
       rgba[i] = color[0]; rgba[i + 1] = color[1]; rgba[i + 2] = color[2]; rgba[i + 3] = 255;
     }
