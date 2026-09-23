@@ -622,6 +622,11 @@ ul.regions a:hover { text-decoration: none; background: #efe9dc; }
 ul.feat { margin: 0; padding-left: 1.2em; font-size: 15.5px; line-height: 1.85; }
 ul.feat li { margin-bottom: 6px; }
 
+/* トップの「全国の潮の傾向」。干満差の上位・下位を横に並べ、狭い画面では縦に積む。 */
+.rank-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 4px 24px; margin: 4px 0 12px; }
+.rank-pair h3 { font-family: var(--serif); font-size: 16px; margin: 0 0 4px; }
+.rank-pair ol { margin: 0; padding-left: 1.5em; }
+
 /* ---------- 地図 ---------- */
 /* Leaflet 内部の各ペイン(.leaflet-pane等)は z-index:400〜1000で、
    .map 自身がスタッキングコンテキストを持たないとヘッダー(z-index:100)と

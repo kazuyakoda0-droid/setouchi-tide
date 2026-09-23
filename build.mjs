@@ -486,6 +486,12 @@ write(paths.home(), homePage({
   allStations: stations,
   dateJa,
   activities: ACTIVITIES,
+  national,
+  // 平均の干満差の上位・下位3地点(profiledOfficial は大きい順)。
+  rangeRank: profiledOfficial.length >= 6 ? {
+    top: profiledOfficial.slice(0, 3).map(st => ({ st, avg: stationProfiles.get(st.id).avg })),
+    bottom: profiledOfficial.slice(-3).reverse().map(st => ({ st, avg: stationProfiles.get(st.id).avg })),
+  } : null,
 }), { changefreq: 'daily', priority: 1.0 });
 
 // about/privacy は動的データを含まない固定ページ。本文を編集したときだけ
