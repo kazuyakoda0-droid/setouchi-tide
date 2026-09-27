@@ -188,7 +188,7 @@ footer.site {
   font-size: 14.5px; color: var(--mut); line-height: 1.75;
 }
 footer.site p { margin: 0 0 8px; }
-.foot-nav { display: flex; gap: 18px; margin: 16px 0 8px; }
+.foot-nav { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 16px 0 8px; }
 .copy { font-family: var(--mono); font-size: 13px; color: var(--faint); }
 
 main { padding: 0 var(--pad); max-width: 780px; margin: 0 auto; }

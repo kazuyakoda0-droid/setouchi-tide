@@ -1,3 +1,7 @@
 dist/
 .cache/
 node_modules/
+
+# ローカル専用のデザイン素材（本番は public/assets/headers の WebP を使う）
+design-mockups/header-system/masters/
+prototype/
